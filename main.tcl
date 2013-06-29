@@ -1,0 +1,187 @@
+package require Tk
+package require snit
+package require BWidget
+package require irc
+
+proc debug {arg} {
+    puts $arg
+}
+
+#Icons: https://github.com/kgn/kgn_icons
+#Logo:  http://www.iconarchive.com/show/free-spring-icons-by-ergosign/butterfly-icon.html
+
+namespace eval Main {
+    variable APP_VERSION
+    variable APP_NAME
+    set APP_VERSION 0.01
+    set APP_NAME tirrcl
+    
+    variable servers
+    
+    variable descmenu
+    variable mainframe
+    variable toolbar
+    variable status_text
+    variable status_prog
+    variable notebook
+    variable nicklist
+    
+    variable toolbar_disconnect
+    variable toolbar_join
+    variable toolbar_part
+    variable toolbar_properties
+    variable toolbar_channellist
+    variable toolbar_away
+}
+
+source tab.tcl
+source toolbar.tcl
+
+
+proc Main::init { } {
+    variable mainframe
+
+    
+    #set top [toplevel .intro -relief raised -borderwidth 2]
+    #BWidget::place $top 0 0 center
+    
+	#Commands menus
+	#Url Catcher
+	#Channel List
+	#Logfile
+    
+    # Menu description
+    set Main::descmenu {
+        "&File" all file 0 {
+            {command "E&xit" {} "Exit BWidget demo" {} -command exit}
+        }
+        "&Options" all options 0 {
+            {checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
+                -variable Main::toolbar
+                -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
+            }
+        }
+    }
+    
+    # Status Bar & Toolbar
+    set mainframe [MainFrame .mainframe \
+                       -menu         $Main::descmenu \
+                       -textvariable Main::status_text \
+                       -progressvar  Main::status_prog]
+   
+    #$mainframe addindicator -text "BWidget [package version BWidget]"
+    #$mainframe addindicator -textvariable tk_patchLevel
+    init_toolbar
+    
+    # NoteBook creation
+    set frame    [$Main::mainframe getframe]
+    set Main::notebook [NoteBook $frame.nb]
+    
+    
+    $Main::notebook compute_size
+    pack $Main::notebook -fill both -expand yes -padx 4 -pady 4
+    $Main::notebook raise [$Main::notebook page 0]
+    pack $Main::mainframe -fill both -expand yes
+    
+    
+    set icondir [pwd]/icons
+    wm iconphoto . -default [image create photo -file $icondir/butterfly-icon_48.gif]
+    set Main::servers(1) [tab %AUTO%]
+    $Main::notebook compute_size
+    wm title . "$Main::APP_NAME v$Main::APP_VERSION"
+    wm minsize . [winfo width .] [winfo height .]
+    $Main::notebook delete [$Main::servers(1) getId] 1
+    unset Main::servers(1)
+    
+    #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6697 notbryant]
+    #$Main::servers(1) joinChan #jupiterBroadcasting
+}
+
+proc Main::showConnectDialog { } {
+    global DEFAULT_PORT;
+    set connectDialog .connectDialog
+    
+    toplevel $connectDialog -padx 10 -pady 10
+    wm transient $connectDialog .
+    
+    label $connectDialog.l_serv -text "Server"
+    entry $connectDialog.serv -width 20
+    label $connectDialog.l_port -text "Port"
+    entry $connectDialog.port -width 10 -textvariable DEFAULT_PORT
+    label $connectDialog.l_nick -text "Nick"
+    entry $connectDialog.nick -width 20
+    button $connectDialog.go -text "Connect"
+    
+    grid config $connectDialog.l_serv -row 0 -column 0 -sticky "w"
+    grid config $connectDialog.serv   -row 1 -column 0
+    grid config $connectDialog.l_port -row 0 -column 1 -sticky "w"
+    grid config $connectDialog.port   -row 1 -column 1
+    grid config $connectDialog.l_nick -row 2 -column 0 -sticky "w"
+    grid config $connectDialog.nick   -row 3 -column 0
+    grid config $connectDialog.go     -row 3 -column 1
+    bind $connectDialog.go <ButtonPress> Main::createConnection
+    
+    foreground_win $connectDialog
+    grab release .
+    grab set $connectDialog
+}
+
+proc Main::showJoinDialog { } {
+    global DEFAULT_PORT;
+    set joinDialog .joinDialog
+    
+    toplevel $joinDialog -padx 10 -pady 10
+    wm transient $joinDialog .
+    
+    label $joinDialog.l_chan -text "Channel"
+    entry $joinDialog.chan -width 20
+    button $joinDialog.go -text "Join"
+    
+    grid config $joinDialog.l_chan -row 0 -column 0 -sticky "w"
+    grid config $joinDialog.chan   -row 1 -column 0
+    grid config $joinDialog.go     -row 1 -column 1
+    bind $joinDialog.go <ButtonPress> Main::joinChannel
+    
+    foreground_win $joinDialog
+    grab release .
+    grab set $joinDialog
+}
+
+proc Main::joinChannel {} {
+    set chan [.joinDialog.chan get]
+    if [ expr { [string length $chan] == 0 }] {
+	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+	return
+    }
+    grab release .joinDialog
+    grab set .
+    wm state .joinDialog withdrawn
+    
+    $Main::servers(1) joinChan $chan
+}
+
+proc Main::createConnection {} {
+    set serv [.connectDialog.serv get]
+    set por [.connectDialog.port get]
+    set nick [.connectDialog.nick get]
+    if [ expr { [string length $serv] == 0 || \
+		[string length $por] == 0  || \
+		[string length $nick] == 0}] {
+	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+	return
+    }
+    grab release .connectDialog
+    grab set .
+    wm state .connectDialog withdrawn
+    
+    set Main::servers(1) [tab %AUTO% $serv $por $nick]
+    $Main::notebook raise [$Main::servers(1) getId]
+}
+
+proc Main::foreground_win { w } {
+    #wm withdraw $w
+    #wm deiconify $w
+}
+
+set DEFAULT_PORT "6667"
+Main::init
