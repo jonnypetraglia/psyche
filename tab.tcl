@@ -1,3 +1,5 @@
+source irc.tcl
+
 snit::type tab {
     variable nick
     variable server
@@ -14,6 +16,7 @@ snit::type tab {
     # Controls
     variable chat
     variable input
+    variable nickList
 
     
     ############## Get nick string
@@ -80,6 +83,7 @@ snit::type tab {
     
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
+	set nickList [list]
 	set nick $arg2
 	# blank if is channel, a string if is server
 	
@@ -111,10 +115,10 @@ snit::type tab {
 	    set name $channel
 	}
 	
-	debug "  Name: $name"
 	regsub -all "\\." $id_var "_" id_var
 	regsub -all " " $id_var "__" id_var
 	debug "  TabID: $id_var"
+	debug "  Name: $name"
 	
 	# Magic bullshit
 	set frame [$Main::notebook insert end $id_var -text $name]
@@ -123,6 +127,7 @@ snit::type tab {
 	set chat [text $topf.chat -height 30 -wrap word -font {Arial 9}]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
+	$chat tag config timestamp -font {Arial 7} -foreground grey60
 	#$chat tag config blue   -foreground blue
 	$chat configure -background white
 	$chat configure -state disabled
@@ -136,12 +141,13 @@ snit::type tab {
 	
 	# Create the nicklist widget
 	if [expr { [string length $server] == 0 }] {
-	    set nicklistPanedWindow   [PanedWindow $topf.pw -side top]
+	    set nicklistPanedWindow [PanedWindow $topf.pw -side top]
 	    set pane  [$nicklistPanedWindow add -minsize 100]
-	    set nicklistScrolledWindow    [ScrolledWindow $pane.sw]
-	    set nicklist    [listbox $nicklistScrolledWindow.lb -height 8 -width 20 -highlightthickness 0]
-        
-	    $nicklistScrolledWindow setwidget $nicklist
+	    set nicklistScrolledWindow [ScrolledWindow $pane.sw]
+	    set nicklistCtrl [listbox $nicklistScrolledWindow.lb -listvariable [myvar nickList] \
+				 -height 8 -width 20 -highlightthickness 0]
+	    
+	    $nicklistScrolledWindow setwidget $nicklistCtrl
 	    pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
 	}
         
@@ -165,6 +171,7 @@ snit::type tab {
 	$Main::toolbar_away configure -state normal
     }
     
+    ############## Init Channel ##############
     method initChan {} {
 	$self _send "JOIN $channel"
     }
@@ -179,37 +186,93 @@ snit::type tab {
     ############## Internal Function ##############
     method _recv {} {
 	gets $fileDesc line
+	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	debug $line
 	
 	#PING
 	#if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)}}
+	#MODE
+	#VERSION
 	
 	# Private message - sent to channel or user
 	if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)} $line -> mNick mTarget mMsg]} {
+	    debug TOP
 	    if {[expr {$mNick != "IRC"} ]} {
-		$channelMap($mTarget) handleReceived <$mNick> bold $mMsg ""
+		$channelMap($mTarget) handleReceived $timestamp <$mNick> bold $mMsg ""
 		return
 	    }
 	}
 	
-	# Server message - sent to channel, user, or no one (mTarget could be blank)
-	if {[regexp {:([^ ]*) ([0-9]+) byteslol[ |=]+([^:]*) :(.*)} $line -> mServer mCode mTarget mMsg]} {
+	# Numbered message - sent to channel, user, or no one (mTarget could be blank)
+	if {[regexp {:([^ ]*) ([0-9]+) byteslol =?([^:]*):(.*)} $line -> mServer mCode mTarget mMsg]} {
+	    debug MIDDLE
+	    set mTarget [string trim $mTarget]
+	    set mMsg [string trim $mMsg]
+	    switch $mCode {
+		333 {
+		    #RPL_TOPICWHOTIME
+		    regexp {^ChanServ (.*)} $mMsg -> mMsg
+		    set mMsg [clock format $mMsg]
+		}
+		353 {
+		    #RPL_NAMREPLY
+		    $channelMap($mTarget) addUsers $mMsg
+		    return
+		}
+		366 {
+		    #RPL_ENDOFNAMES
+		    $channelMap($mTarget) sortUsers
+		}
+	    }
+	    debug "$mCode!!!$mTarget"
 	    if [info exists channelMap($mTarget)] {
-		$channelMap($mTarget) handleReceived $mServer bold $mMsg "" 
+		$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
+		return
+	    } else {
+		$self handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
 		return
 	    }
 	}
+	# Numbered message #2
+	if {[regexp {:([^ ]*) ([0-9]+) byteslol (.*)} $line -> mServer mCode mMsg]} {
+	    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg ""
+	    debug MIDDLE2
+	    return
+	}
 	
-	# WTF I DON'T EVEN
-	if {[regexp {:([^ ]*) (.*):(.*)} $line -> mServer mTarget mMsg]} {
-	    $self handleReceived $mServer bold $mMsg "" 
+	# Server message with no numbers but sent explicitely from server
+	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
+	    debug BOTTOM
+	    # MODE
+	    #if {[expr {$mServer == $nick} ]} {
+		$self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+	    #} else {
+		#$self handleReceived $mServer bold $mMsg "" 
+	    #}
 	    return
 	}
 	debug "WHAT: $line"
     }
     
-    method handleReceived {title style1 message style2} {
-	$self append $title $style1
+    method addUsers {users} {
+	set users [split $users]
+	foreach usr $users {
+	    lappend nickList $usr
+	}
+	debug "TESTX"
+	debug $nickList
+    }
+    
+    method sortUsers {} {
+	set nickList [lsort -command compare $nickList]
+	debug "TEST366 $channel"
+	debug $nickList
+    }
+   
+    
+    method handleReceived {timestamp title style1 message style2} {
+	$self append $timestamp\  timestamp
+	$self append $title\  $style1
 	$self append $message\n $style2
 	$chat yview end
     }
@@ -251,3 +314,40 @@ snit::type tab {
 
 ############## in: determines if an element is in a list? ##############
     proc in {list element} {expr {[lsearch -exact $list $element]>=0}}
+    
+# ~ = admin
+# & = owner
+# @ = op
+# % = halfop
+# + = voice
+    
+variable compareMap
+set compareMap(~) 0
+set compareMap(&) 1
+set compareMap(@) 2
+set compareMap(%) 3
+set compareMap(+) 4
+    
+proc compare {a b} {
+    global compareMap;
+    set av 10
+    set bv 10
+    set a0 [lindex $a 0]
+    set b0 [lindex $b 0]
+    
+    if {[regexp {^[~&@%+].*} $a0]} {
+	set av $compareMap([string index $a0 0])
+    }
+    if {[regexp {^[~&@%+].*} $b0]} {
+	set bv $compareMap([string index $b0 0])
+    }
+    if {$av == 10 && $bv == 10 } {
+	return [string compare [lindex $a 1] [lindex $b 1]]
+    } else {
+	if {$av < $bv} {
+	    return -1
+	} elseif {$av > $bv} {
+	    return 1
+	}
+    }
+}
