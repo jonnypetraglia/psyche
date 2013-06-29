@@ -6,6 +6,7 @@ snit::type tab {
     variable ServerRef
     variable fileDesc
     variable channelMap
+    variable activeChannels
     variable id_var
     variable irc_conn
     
@@ -21,7 +22,7 @@ snit::type tab {
     
     ############## Get nick string
     method getNick {} {
-	if [expr { [string length $server] > 0 }] {
+	if { [string length $server] > 0 } {
 	    return $nick
 	}
 	return [$ServerRef getNick]
@@ -34,7 +35,7 @@ snit::type tab {
     
     ############## Get server string ##############
     method getServer {} {
-	if [expr { [string length $server] > 0 }] {
+	if { [string length $server] > 0 } {
 	    return $server
 	}
 	return [$ServerRef getServer]
@@ -42,9 +43,11 @@ snit::type tab {
     
     ############## Get server string ##############
     method joinChan {chan} {
-	if [expr { [string length $server] > 0 }] {
+	if { [string length $server] > 0 } {
 	    set channelMap($chan) [tab %AUTO% $self $chan]
+	    lappend activeChannels $channelMap($chan)
 	    $Main::notebook raise [$channelMap($chan) getId]
+	    $self updateToolbar $chan
 	} else {
 	    $ServerRef joinChan $chan
 	}
@@ -52,6 +55,7 @@ snit::type tab {
     
     ############## getId ##############
     method getId {} { return $id_var }
+    method getfileDesc {} { return $fileDesc }
    
 
     ############## Constructor ##############
@@ -63,7 +67,7 @@ snit::type tab {
 	variable temp
 	set server ""
 	
-	if [expr { [string length $args] > 0 }] {
+	if { [string length $args] > 0 } {
 	    $self init [lindex $args 0] [lindex $args 1] [lindex $args 2]
 	} else {
 	    set channel Temp
@@ -84,17 +88,18 @@ snit::type tab {
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
 	set nickList [list]
+	set activeChannels [list]
 	set nick $arg2
 	# blank if is channel, a string if is server
 	
 	debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
 	debug "  nick: !$nick!"
 	
-	if [ expr { [string length $nick] == 0} ] {
+	if { [string length $nick] == 0} {
 	    set ServerRef $arg0
 	    set channel $arg1
 	    set temp [$ServerRef getServer]
-	    set id_var [concat $temp "__" $channel]
+	    set id_var [concat $temp " " $channel]
 	    debug "  Channel: $channel"
 	} else {
 	    set server $arg0
@@ -109,16 +114,14 @@ snit::type tab {
     # id_var definitely should not be blank
     method init_ui {} {
 	variable name
-	if [expr { [string length $server] > 0 }] {
+	if { [string length $server] > 0 } {
 	    set name $server
 	} else {
 	    set name $channel
 	}
 	
 	regsub -all "\\." $id_var "_" id_var
-	regsub -all " " $id_var "__" id_var
-	debug "  TabID: $id_var"
-	debug "  Name: $name"
+	regsub -all " " $id_var "*" id_var
 	
 	# Magic bullshit
 	set frame [$Main::notebook insert end $id_var -text $name]
@@ -140,7 +143,7 @@ snit::type tab {
 	pack $input -side bottom -fill x
 	
 	# Create the nicklist widget
-	if [expr { [string length $server] == 0 }] {
+	if { [string length $server] == 0 } {
 	    set nicklistPanedWindow [PanedWindow $topf.pw -side top]
 	    set pane  [$nicklistPanedWindow add -minsize 100]
 	    set nicklistScrolledWindow [ScrolledWindow $pane.sw]
@@ -155,20 +158,56 @@ snit::type tab {
 	pack $topf -fill both -expand 1
     }
     
+    method updateToolbar {mTarget} {
+	if [info exists channelMap($mTarget)] {
+	    $channelMap($mTarget) updateToolbar ""
+	    return
+	}
+	
+	
+	if [expr { [string length $server] > 0 }] {
+	    $Main::toolbar_part configure -state disabled
+	    # If is connected
+	    if { [string length $fileDesc] > 0 } {
+		$Main::toolbar_join configure -state normal
+		$Main::toolbar_disconnect configure -state normal
+		$Main::toolbar_reconnect configure -state disabled
+	    } else {
+		$Main::toolbar_join configure -state disabled
+		$Main::toolbar_disconnect configure -state disabled
+		$Main::toolbar_reconnect configure -state normal
+	    }
+	} else {
+	    if { [string length [$ServerRef getfileDesc] ] > 0 } {
+		if { [lsearch $activeChannels $mTarget] != -1 } {
+		    $Main::toolbar_part configure -state normal
+		} else {
+		    $Main::toolbar_part configure -state disabled
+		}
+		$Main::toolbar_join configure -state normal
+		$Main::toolbar_disconnect configure -state normal
+		$Main::toolbar_reconnect configure -state disabled
+	    } else {
+		$Main::toolbar_part configure -state disabled
+		$Main::toolbar_join configure -state disabled
+		$Main::toolbar_disconnect configure -state disabled
+		$Main::toolbar_reconnect configure -state normal
+	    }
+	}
+	$Main::toolbar_properties configure -state normal
+	$Main::toolbar_channellist configure -state normal
+	$Main::toolbar_away configure -state normal
+    }
+    
     ############## Init Server ##############
     method initServer {} {
 	set fileDesc [socket $server $port]
+	puts $fileDesc
 	$self _send "NICK $nick"
 	#TODO: What is this
 	$self _send "USER $nick 0 * :PicoIRC user"
 	fileevent $fileDesc readable [mymethod _recv]
-	
-	$Main::toolbar_disconnect configure -state normal
-	$Main::toolbar_join configure -state normal
-	$Main::toolbar_part configure -state normal
-	$Main::toolbar_properties configure -state normal
-	$Main::toolbar_channellist configure -state normal
-	$Main::toolbar_away configure -state normal
+	$self updateToolbar ""
     }
     
     ############## Init Channel ##############
@@ -190,9 +229,10 @@ snit::type tab {
 	debug $line
 	
 	#PING
-	#if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)}}
-	#MODE
-	#VERSION
+	if {[regexp {^PING :(.*)} $line -> mResponse]} {
+	    $self _send "PONG :$mResponse"
+	    return
+	}
 	
 	# Private message - sent to channel or user
 	if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)} $line -> mNick mTarget mMsg]} {
@@ -222,6 +262,7 @@ snit::type tab {
 		366 {
 		    #RPL_ENDOFNAMES
 		    $channelMap($mTarget) sortUsers
+		    return
 		}
 	    }
 	    debug "$mCode!!!$mTarget"
@@ -294,7 +335,7 @@ snit::type tab {
 	$input delete 0 end
 	set style ""
 	if [regexp {\001ACTION(.+)\001} $msg -> msg] {set style italic}
-	$self append $nick\t {bold blue}
+	$self append $nick\  {bold blue}
 	$self append $msg\n [list blue $style]
 	    #TODO: Scroll only if at bottom
 	$chat yview end
@@ -302,14 +343,51 @@ snit::type tab {
     
     ############## Internal function ##############
     method _send {str} {
-	if [expr { [string length $server] > 0 }] {
+	if { [string length $server] > 0 } {
 	    puts $fileDesc $str; flush $fileDesc
 	} else {
 	    $ServerRef _send $str
 	}
     }
     
+    # for server
+    method quit {reason} {
+	if { [string length $server] > 0 } {
+	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	    $self _send "QUIT $reason"
+	    close $fileDesc
+	    set fileDesc ""
+	    $self handleReceived $timestamp " \[QUIT\] " bold "You have left the server" ""
+	    $self updateToolbar ""
+	    
+	    #foreach cha $channelMap {
+		#TODO: Print in each Channel's tab
+	    #}
+	} else {
+	    $ServerRef quit $reason
+	}
+    }
     
+    # for channel
+    method part {chann reason} {
+	if { [string length $server] > 0 } {
+	    $channelMap($chann) part $chann $reason
+	} else {
+	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	    $self _send "PART $chann $reason"
+	    $self handleReceived $timestamp " \[PART\] " bold "You have left the channel" ""
+	    
+	    
+	    set idx [lsearch $activeChannels $chann]
+	    set activeChannels [lreplace $activeChannels $idx $idx]
+
+	    set parts [split [$Main::notebook raise] "*"]
+	    set serv [lindex $parts 0]
+	    set chan [lindex $parts 1]
+	    regsub -all "_" $serv "." serv
+	    $Main::servers($serv) updateToolbar $chan
+	}
+    }
 }
 
 ############## in: determines if an element is in a list? ##############

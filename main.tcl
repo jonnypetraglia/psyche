@@ -26,6 +26,7 @@ namespace eval Main {
     variable notebook
     variable nicklist
     
+    variable toolbar_reconnect
     variable toolbar_disconnect
     variable toolbar_join
     variable toolbar_part
@@ -76,6 +77,7 @@ proc Main::init { } {
     # NoteBook creation
     set frame    [$Main::mainframe getframe]
     set Main::notebook [NoteBook $frame.nb]
+    $Main::notebook bindtabs <ButtonPress> { Main::pressTab }
     
     
     $Main::notebook compute_size
@@ -93,64 +95,73 @@ proc Main::init { } {
     $Main::notebook delete [$Main::servers(1) getId] 1
     unset Main::servers(1)
     
-    set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
-    $Main::notebook raise [$Main::servers(1) getId]
+    #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
+    #$Main::notebook raise [$Main::servers(1) getId]
     #$Main::servers(1) joinChan #jupiterBroadcasting
+}
+
+proc Main::pressTab { args} {
+    set parts [split $args "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    $Main::servers($serv) updateToolbar $chan
 }
 
 proc Main::showConnectDialog { } {
     global DEFAULT_PORT;
-    set connectDialog .connectDialog
     
-    toplevel $connectDialog -padx 10 -pady 10
-    wm transient $connectDialog .
+    toplevel .connectDialog -padx 10 -pady 10
+    wm transient .connectDialog .
+    wm resizable .connectDialog 0 0
     
-    label $connectDialog.l_serv -text "Server"
-    entry $connectDialog.serv -width 20
-    label $connectDialog.l_port -text "Port"
-    entry $connectDialog.port -width 10 -textvariable DEFAULT_PORT
-    label $connectDialog.l_nick -text "Nick"
-    entry $connectDialog.nick -width 20
-    button $connectDialog.go -text "Connect"
+    label .connectDialog.l_serv -text "Server"
+    entry .connectDialog.serv -width 20
+    label .connectDialog.l_port -text "Port"
+    entry .connectDialog.port -width 10 -textvariable DEFAULT_PORT
+    label .connectDialog.l_nick -text "Nick"
+    entry .connectDialog.nick -width 20
+    button .connectDialog.go -text "Connect"
     
-    grid config $connectDialog.l_serv -row 0 -column 0 -sticky "w"
-    grid config $connectDialog.serv   -row 1 -column 0
-    grid config $connectDialog.l_port -row 0 -column 1 -sticky "w"
-    grid config $connectDialog.port   -row 1 -column 1
-    grid config $connectDialog.l_nick -row 2 -column 0 -sticky "w"
-    grid config $connectDialog.nick   -row 3 -column 0
-    grid config $connectDialog.go     -row 3 -column 1
-    bind $connectDialog.go <ButtonPress> Main::createConnection
+    grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
+    grid config .connectDialog.serv   -row 1 -column 0
+    grid config .connectDialog.l_port -row 0 -column 1 -sticky "w"
+    grid config .connectDialog.port   -row 1 -column 1
+    grid config .connectDialog.l_nick -row 2 -column 0 -sticky "w"
+    grid config .connectDialog.nick   -row 3 -column 0
+    grid config .connectDialog.go     -row 3 -column 1
+    bind .connectDialog.go <ButtonPress> Main::createConnection
     
-    foreground_win $connectDialog
+    foreground_win .connectDialog
     grab release .
-    grab set $connectDialog
+    grab set .connectDialog
 }
 
 proc Main::showJoinDialog { } {
     global DEFAULT_PORT;
-    set joinDialog .joinDialog
     
-    toplevel $joinDialog -padx 10 -pady 10
-    wm transient $joinDialog .
+    toplevel .joinDialog -padx 10 -pady 10
+    wm transient .joinDialog .
+    wm resizable .joinDialog 0 0
     
-    label $joinDialog.l_chan -text "Channel"
-    entry $joinDialog.chan -width 20
-    button $joinDialog.go -text "Join"
+    label .joinDialog.l_chan -text "Channel"
+    entry .joinDialog.chan -width 20
+    button .joinDialog.go -text "Join"
     
-    grid config $joinDialog.l_chan -row 0 -column 0 -sticky "w"
-    grid config $joinDialog.chan   -row 1 -column 0
-    grid config $joinDialog.go     -row 1 -column 1
-    bind $joinDialog.go <ButtonPress> Main::joinChannel
+    grid config .joinDialog.l_chan -row 0 -column 0 -sticky "w"
+    grid config .joinDialog.chan   -row 1 -column 0
+    grid config .joinDialog.go     -row 1 -column 1
+    bind .joinDialog.go <ButtonPress> Main::joinChannel
     
-    foreground_win $joinDialog
+    foreground_win .joinDialog
     grab release .
-    grab set $joinDialog
+    grab set .joinDialog
 }
 
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
-    if [ expr { [string length $chan] == 0 }] {
+    if { [string length $chan] == 0 } {
 	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
 	return
     }
@@ -158,7 +169,11 @@ proc Main::joinChannel {} {
     grab set .
     wm state .joinDialog withdrawn
     
-    $Main::servers(1) joinChan $chan
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    
+    $Main::servers($serv) joinChan $chan
 }
 
 proc Main::createConnection {} {
@@ -177,6 +192,30 @@ proc Main::createConnection {} {
     
     set Main::servers($serv) [tab %AUTO% $serv $por $nick]
     $Main::notebook raise [$Main::servers($serv) getId]
+}
+
+proc Main::reconnect {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    regsub -all "_" $serv "." serv
+    $Main::servers($serv) initServer
+}
+
+proc Main::disconnect {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    regsub -all "_" $serv "." serv
+    $Main::servers($serv) quit "Leavin"
+}
+
+proc Main::part {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    regsub -all "_" $serv "." serv
+    $Main::servers($serv) part $chan "Leavin"
 }
 
 proc Main::foreground_win { w } {
