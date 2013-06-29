@@ -33,7 +33,7 @@ A butterfly
 In case you're curious, this semester I'm taking a "Concepts of the Soul" philosophy class for
 my philosophy minor, and one recurring theme is that in various cultures, a butterfly or moth
 is often associated with the soul. And in Greek, the word for "butterfly" is actually the same
-as the word for "butterfly", and that word is "psyche".
+as the word for "soul", and that word is "psyche".
 
 
 Further notes

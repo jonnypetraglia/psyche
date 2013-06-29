@@ -41,6 +41,7 @@ snit::type tab {
     method joinChan {chan} {
 	if [expr { [string length $server] > 0 }] {
 	    set channelMap($chan) [tab %AUTO% $self $chan]
+	    $Main::notebook raise [$channelMap($chan) getId]
 	} else {
 	    $ServerRef joinChan $chan
 	}
@@ -120,8 +121,8 @@ snit::type tab {
 	set topf  [frame $frame.topf]
 	# Create the chat text widget
 	set chat [text $topf.chat -height 30 -wrap word -font {Arial 9}]
-	#$chat tag config bold   -font [linsert [$chat cget -font] end bold]
-	#$chat tag config italic -font [linsert [$chat cget -font] end italic]
+	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
+	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	#$chat tag config blue   -foreground blue
 	$chat configure -background white
 	$chat configure -state disabled
@@ -130,22 +131,20 @@ snit::type tab {
 	set input [entry $topf.input]
 	bind $input <Return> [mymethod sendMessage]
 	
-	# Create the nicklist widget 
-	set nicklistPanedWindow   [PanedWindow $topf.pw -side top]
-	set pane  [$nicklistPanedWindow add -minsize 100]
-        set nicklistScrolledWindow    [ScrolledWindow $pane.sw]
-        set nicklist    [listbox $nicklistScrolledWindow.lb -height 8 -width 20 -highlightthickness 0]
-        
-        # DEBUG
-        for {set i 1} {$i <= 100} {incr i} {
-            $nicklist insert end "Value $i"
-        }
-        
-        $nicklistScrolledWindow setwidget $nicklist
-        
-        # Add widgets to GUI - Order matters here!
+	# Add widgets to GUI - Order matters here!
 	pack $input -side bottom -fill x
-	pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
+	
+	# Create the nicklist widget
+	if [expr { [string length $server] == 0 }] {
+	    set nicklistPanedWindow   [PanedWindow $topf.pw -side top]
+	    set pane  [$nicklistPanedWindow add -minsize 100]
+	    set nicklistScrolledWindow    [ScrolledWindow $pane.sw]
+	    set nicklist    [listbox $nicklistScrolledWindow.lb -height 8 -width 20 -highlightthickness 0]
+        
+	    $nicklistScrolledWindow setwidget $nicklist
+	    pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
+	}
+        
 	pack $chat -fill both -expand 1
 	pack $topf -fill both -expand 1
     }
@@ -172,37 +171,46 @@ snit::type tab {
     
     ############## Append text to chat log ##############
     method append {txt stylez} {
-	debug "$txt"
 	$chat configure -state normal
-	#$chat insert end "$txt\n"
-	$chat insert end "$txt" $stylez
+	$chat insert end $txt $stylez
 	$chat configure -state disabled
     }
     
     ############## Internal Function ##############
     method _recv {} {
 	gets $fileDesc line
+	debug $line
+	
+	#PING
+	#if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)}}
+	
+	# Private message - sent to channel or user
 	if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)} $line -> mNick mTarget mMsg]} {
-	    puts "NICK:    $mTarget vs $nick"
-	    if {[expr {$mTarget != $nick} ]} {
-		$channelMap($mTarget) handleReceived $line
+	    if {[expr {$mNick != "IRC"} ]} {
+		$channelMap($mTarget) handleReceived <$mNick> bold $mMsg ""
 		return
 	    }
 	}
-	$self handleReceived $line
+	
+	# Server message - sent to channel, user, or no one (mTarget could be blank)
+	if {[regexp {:([^ ]*) ([0-9]+) byteslol[ |=]+([^:]*) :(.*)} $line -> mServer mCode mTarget mMsg]} {
+	    if [info exists channelMap($mTarget)] {
+		$channelMap($mTarget) handleReceived $mServer bold $mMsg "" 
+		return
+	    }
+	}
+	
+	# WTF I DON'T EVEN
+	if {[regexp {:([^ ]*) (.*):(.*)} $line -> mServer mTarget mMsg]} {
+	    $self handleReceived $mServer bold $mMsg "" 
+	    return
+	}
+	debug "WHAT: $line"
     }
     
-    method handleReceived {line} {
-	#if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)} $line -> nick target msg]} {
-	    #set tag ""
-	    #if [regexp {\001ACTION(.+)\001} $msg -> msg] {set tag italic}
-	    #if [in {azbridge ijchain} $nick] {regexp {<([^>]+)>(.+)} $msg -> nick msg}
-	    #$self append "$nick\t" bold
-	    #$self append "$msg" $tag
-	    #$self append "$line" $tag
-	#} else {
-	    $self append $line\n ""
-	#}
+    method handleReceived {title style1 message style2} {
+	$self append $title $style1
+	$self append $message\n $style2
 	$chat yview end
     }
     #$chat insert end $nick\t bold $msg\n $tag

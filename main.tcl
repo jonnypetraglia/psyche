@@ -14,7 +14,7 @@ namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
     set APP_VERSION 0.01
-    set APP_NAME tirrcl
+    set APP_NAME Psyche
     
     variable servers
     
@@ -93,7 +93,8 @@ proc Main::init { } {
     $Main::notebook delete [$Main::servers(1) getId] 1
     unset Main::servers(1)
     
-    #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6697 notbryant]
+    set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
+    $Main::notebook raise [$Main::servers(1) getId]
     #$Main::servers(1) joinChan #jupiterBroadcasting
 }
 
@@ -174,8 +175,8 @@ proc Main::createConnection {} {
     grab set .
     wm state .connectDialog withdrawn
     
-    set Main::servers(1) [tab %AUTO% $serv $por $nick]
-    $Main::notebook raise [$Main::servers(1) getId]
+    set Main::servers($serv) [tab %AUTO% $serv $por $nick]
+    $Main::notebook raise [$Main::servers($serv) getId]
 }
 
 proc Main::foreground_win { w } {
