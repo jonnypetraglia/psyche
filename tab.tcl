@@ -88,7 +88,7 @@ snit::type tab {
     method init {arg0 arg1 arg2} {
 	set nickList [list]
 	set activeChannels [list]
-	set nick $arg2
+	set nick [string trim $arg2]
 	# blank if is channel, a string if is server
 	
 	debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
@@ -279,7 +279,6 @@ snit::type tab {
 			regexp { ?\[.*\] (.*)} $mMsg -> mMsg
 			set whspc [string length $mTarget]
 			set whspc [expr {33 - $whspc}]
-			puts "WHSPC: $mTarget $whspc"
 			set whspc [string repeat " " $whspc]
 			set sss [$self getServer]
 			lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
@@ -358,13 +357,26 @@ snit::type tab {
 	if [regexp {^/me (.+)} $msg -> action] {
 	    set msg "\001ACTION $action\001"
 	}
-	#send "PRIVMSG $channel :$msg"
 	
 	$input delete 0 end
 	set style ""
-	if [regexp {\001ACTION(.+)\001} $msg -> msg] {set style italic}
-	$self append $nick\  {bold blue}
-	$self append $msg\n [list blue $style]
+	
+	#if [regexp {\001ACTION(.+)\001} $msg -> msg] {set style italic}
+	
+	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	# Send to server
+	if { [string length $server] > 0 } {
+	    $self _send $msg
+	    set lenick "[Raw]"
+	} else {
+	    $self _send "PRIVMSG $channel :$msg"
+	    set lenick <[$self getNick]>
+	}
+	
+	$self handleReceived $timestamp $lenick {bold blu} $msg $style
+	#$self append $nick\  {bold blue}
+	#$self append $msg\n ""
+	
 	    #TODO: Scroll only if at bottom
 	$chat yview end
     }
