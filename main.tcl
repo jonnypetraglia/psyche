@@ -17,6 +17,7 @@ namespace eval Main {
     set APP_NAME Psyche
     
     variable servers
+    variable channelList
     
     variable descmenu
     variable mainframe
@@ -224,6 +225,63 @@ proc Main::part {} {
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
     $Main::servers($serv) part $chan "Leavin"
+}
+
+proc Main::channelList {} {
+    variable chanL
+    
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    if { ![info exists Main::channelList($serv)] } {
+	set Main::channelList($serv) [list]
+	$Main::servers($serv) _send LIST
+    } else {
+	if { [llength $Main::channelList($serv) ] == 0 } {
+	    set Main::channelList($serv) [list]
+	    $Main::servers($serv) _send LIST
+	}
+    }
+
+    destroy .channelList
+    toplevel .channelList -padx 10 -pady 10
+    wm transient .channelList .
+
+    set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
+			-height 20 -width 40 -highlightthickness 0]
+    button .channelList.join -text "Join"
+    button .channelList.refresh -text "Refresh"
+    bind .channelList.join <ButtonPress> Main::joinChannelList
+    bind .channelList.refresh <ButtonPress> Main::refreshChannelList
+    
+    grid config .channelList.lb -row 0 -column 0 -sticky "w" -columnspan 2
+    grid config .channelList.join   -row 1 -column 0
+    grid config .channelList.refresh   -row 1 -column 1
+    
+    foreground_win .channelList
+    grab release .
+    grab set .channelList
+}
+
+proc Main::joinChannelList {} {
+    grab release .channelList
+    grab set .
+    wm state .channelList withdrawn
+    
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    $Main::servers($serv) joinChan [.channelList.lb get [.channelList.lb curselection] ]
+}
+
+proc Main::refreshChannelList {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    
+    # Clear the list & update
+    set Main::channelList($serv) [list]
+    $Main::servers($serv) _send LIST
 }
 
 proc Main::foreground_win { w } {

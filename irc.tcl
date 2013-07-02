@@ -50,8 +50,14 @@ proc getTitle {mCode} {
 	    #RPL_GLOBALUSERS
 	    return \[Users\]
 	}
+	322 {
+	    #RPL_LIST 
+	}
+	323 {
+	    #RPL_LISTEND
+	}
 	328 {
-	    
+	    #RPL_CHANNEL_URL 
 	}
 	332 {
 	    #RPL_TOPIC

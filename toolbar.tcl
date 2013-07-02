@@ -42,7 +42,8 @@ proc Main::init_toolbar { } {
     set Main::toolbar_channellist [\
     $bbox add -image [image create photo -file $icondir/channels.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Channel List" -state disabled]
+        -helptext "Channel List" -state disabled \
+        -command Main::channelList]
     set Main::toolbar_away [\
     $bbox add -image [image create photo -file $icondir/away.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \

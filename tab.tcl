@@ -19,7 +19,6 @@ snit::type tab {
     variable input
     variable nickList
 
-    
     ############## Get nick string
     method getNick {} {
 	if { [string length $server] > 0 } {
@@ -271,6 +270,21 @@ snit::type tab {
 		366 {
 		    #RPL_ENDOFNAMES
 		    $channelMap($mTarget) sortUsers
+		    return
+		}
+		322 {
+		    #RPL_LIST 
+		    if {[regexp {(#[^ ]+) ([0-9]+)} $mTarget -> mTarget mUserCount]} {
+			set sss [$self getServer]
+			lappend Main::channelList($sss) "$mTarget"
+			#"$mTarget$mMsg"
+		    }
+		    return
+		}
+		323 {
+		    #RPL_LISTEND
+		    set sss [$self getServer]
+		    set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
 		    return
 		}
 	    }
