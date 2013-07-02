@@ -15,6 +15,9 @@ namespace eval Main {
     variable APP_NAME
     set APP_VERSION 0.01
     set APP_NAME Psyche
+
+    variable DEFAULT_PORT
+    set DEFAULT_PORT 6667
     
     variable servers
     variable channelList
@@ -113,7 +116,6 @@ proc Main::pressTab { args} {
 }
 
 proc Main::showConnectDialog { } {
-    global DEFAULT_PORT;
     
     destroy .connectDialog
     toplevel .connectDialog -padx 10 -pady 10
@@ -124,7 +126,7 @@ proc Main::showConnectDialog { } {
     entry .connectDialog.serv -width 20
     .connectDialog.serv configure -background white
     label .connectDialog.l_port -text "Port"
-    entry .connectDialog.port -width 10 -textvariable DEFAULT_PORT
+    entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
     label .connectDialog.l_nick -text "Nick"
     entry .connectDialog.nick -width 20
@@ -138,7 +140,7 @@ proc Main::showConnectDialog { } {
     grid config .connectDialog.l_nick -row 2 -column 0 -sticky "w"
     grid config .connectDialog.nick   -row 3 -column 0
     grid config .connectDialog.go     -row 3 -column 1
-    bind .connectDialog.go <ButtonPress> Main::createConnection
+    bind .connectDialog.go <ButtonPress> Main::connectDialogConfirm
     
     foreground_win .connectDialog
     grab release .
@@ -171,8 +173,8 @@ proc Main::showJoinDialog { } {
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
     if { [string length $chan] == 0 } {
-	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
-	return
+    	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+    	return
     }
     grab release .joinDialog
     grab set .
@@ -185,22 +187,26 @@ proc Main::joinChannel {} {
     $Main::servers($serv) joinChan $chan
 }
 
-proc Main::createConnection {} {
+proc Main::createConnection {serv por nick} {
+    set Main::servers($serv) [tab %AUTO% $serv $por $nick]
+    $Main::notebook raise [$Main::servers($serv) getId]
+}
+
+proc Main::connectDialogConfirm {} {
     set serv [.connectDialog.serv get]
     set por [.connectDialog.port get]
     set nick [.connectDialog.nick get]
     if [ expr { [string length $serv] == 0 || \
 		[string length $por] == 0  || \
 		[string length $nick] == 0}] {
-	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
-	return
+    	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+    	return
     }
     grab release .connectDialog
     grab set .
     wm state .connectDialog withdrawn
-    
-    set Main::servers($serv) [tab %AUTO% $serv $por $nick]
-    $Main::notebook raise [$Main::servers($serv) getId]
+
+    Main::createConnection $serv $por $nick
 }
 
 proc Main::reconnect {} {
@@ -291,9 +297,8 @@ proc Main::refreshChannelList {} {
 }
 
 proc Main::foreground_win { w } {
-    #wm withdraw $w
-    #wm deiconify $w
+    wm withdraw $w
+    wm deiconify $w
 }
 
-set DEFAULT_PORT "6667"
 Main::init

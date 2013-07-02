@@ -22,6 +22,10 @@ proc getTitle {mCode} {
 	    #RPL_BOUNCE
 	    return \[Support\]
 	}
+	250 {
+		#RPL_STATSDLINE (Freenode)
+		return \[Stats\]
+	}
 	251 {
 	    #RPL_LUSERCLIENT
 	    return \[Users\]
@@ -52,12 +56,18 @@ proc getTitle {mCode} {
 	}
 	322 {
 	    #RPL_LIST 
+	    # Use this to update channel list
+	    return ""
 	}
 	323 {
 	    #RPL_LISTEND
+	    # Use this to update channel list
+	    return ""
 	}
 	328 {
 	    #RPL_CHANNEL_URL 
+	    # ???
+	    # Received after joining a channel, I think
 	}
 	332 {
 	    #RPL_TOPIC
@@ -97,4 +107,65 @@ proc getTitle {mCode} {
 	    return \[$mCode\]
 	}
     }
+}
+
+# returns 1 if it was handled (if it was a special case), 0 otherwise
+proc performSpecialCase {msg obj} {
+	puts "!!!!!!$msg"
+
+	#/connect
+	if [regexp {^connect ([^ ]+) ?[0-9]*} $msg -> serv port] {
+		if {[string length $port] == 0} {
+			set port $Main::DEFAULT_PORT
+		}
+		Main::createConnection $serv $port [$obj getNick]
+		puts "CONNECT: $msg"
+	}
+
+	return true
+
+	#/join
+	#/msg
+	#/part
+	#/partall
+	#/quit
+	#/me
+	#/nick
+	    #"You are now known as"
+	#/notice
+	#/ping
+	#/query?
+	#/ignore
+	#/chat
+	#/help
+	#/whois
+	#/who
+	#/whowas
+	#/ison
+	#/cycle?
+	#/motd
+	#/lusers
+	#/map
+	#/version
+	#/links
+	#/admin
+	#/userhost
+	#/topic
+	#/away
+	#/watch
+	#/helpop
+	#/list
+	#/knock
+	#/setname
+	#/vhost
+	#/modes
+	#/credits
+	#/license
+	#/time
+	#/botmotd
+	#/identify
+	#/dns
+	#/userip
+	#/stats
+	#/module
 }
