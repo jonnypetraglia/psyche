@@ -275,9 +275,14 @@ snit::type tab {
 		322 {
 		    #RPL_LIST 
 		    if {[regexp {(#[^ ]+) ([0-9]+)} $mTarget -> mTarget mUserCount]} {
+			#TODO: Fix regex to remove modes
+			regexp { ?\[.*\] (.*)} $mMsg -> mMsg
+			set whspc [string length $mTarget]
+			set whspc [expr {33 - $whspc}]
+			puts "WHSPC: $mTarget $whspc"
+			set whspc [string repeat " " $whspc]
 			set sss [$self getServer]
-			lappend Main::channelList($sss) "$mTarget"
-			#"$mTarget$mMsg"
+			lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
 		    }
 		    return
 		}

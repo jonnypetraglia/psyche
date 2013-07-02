@@ -246,17 +246,19 @@ proc Main::channelList {} {
     destroy .channelList
     toplevel .channelList -padx 10 -pady 10
     wm transient .channelList .
+    wm resizable .channelList 400 300
 
     set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
-			-height 20 -width 40 -highlightthickness 0]
+			-height 20 -width 40 -highlightthickness 0 \
+			-font [list Courier 12] ]
     button .channelList.join -text "Join"
     button .channelList.refresh -text "Refresh"
     bind .channelList.join <ButtonPress> Main::joinChannelList
     bind .channelList.refresh <ButtonPress> Main::refreshChannelList
     
-    grid config .channelList.lb -row 0 -column 0 -sticky "w" -columnspan 2
-    grid config .channelList.join   -row 1 -column 0
-    grid config .channelList.refresh   -row 1 -column 1
+    pack .channelList.lb -fill both -expand 1
+    pack .channelList.join -fill both -expand 0
+    pack .channelList.refresh -fill both -expand 0
     
     foreground_win .channelList
     grab release .
@@ -264,6 +266,10 @@ proc Main::channelList {} {
 }
 
 proc Main::joinChannelList {} {
+    set chanName [.channelList.lb get [.channelList.lb curselection] ]
+    regexp {(#[^ ]+) .*} $chanName -> chanName
+    puts $chanName
+
     grab release .channelList
     grab set .
     wm state .channelList withdrawn
@@ -271,7 +277,7 @@ proc Main::joinChannelList {} {
     set parts [split [$Main::notebook raise] "*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
-    $Main::servers($serv) joinChan [.channelList.lb get [.channelList.lb curselection] ]
+    $Main::servers($serv) joinChan $chanName
 }
 
 proc Main::refreshChannelList {} {
