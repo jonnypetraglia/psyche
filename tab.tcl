@@ -137,6 +137,7 @@ snit::type tab {
 	
 	# Create the input widget
 	set input [entry $topf.input]
+	$input configure -background white
 	bind $input <Return> [mymethod sendMessage]
 	
 	# Add widgets to GUI - Order matters here!
@@ -164,21 +165,32 @@ snit::type tab {
 	    return
 	}
 	
-	
-	if [expr { [string length $server] > 0 }] {
-	    $Main::toolbar_part configure -state disabled
-	    # If is connected
+	#Is Server
+	if { [string length $server] > 0 } {
+	    #Is connected
 	    if { [string length $fileDesc] > 0 } {
 		$Main::toolbar_join configure -state normal
 		$Main::toolbar_disconnect configure -state normal
 		$Main::toolbar_reconnect configure -state disabled
+		$Main::toolbar_properties configure -state normal
+		$Main::toolbar_channellist configure -state normal
+		$Main::toolbar_away configure -state normal
 	    } else {
 		$Main::toolbar_join configure -state disabled
 		$Main::toolbar_disconnect configure -state disabled
 		$Main::toolbar_reconnect configure -state normal
+		$Main::toolbar_properties configure -state normal
+		$Main::toolbar_channellist configure -state normal
+		$Main::toolbar_away configure -state normal
 	    }
+	    $Main::toolbar_part configure -state disabled
+	    
+	    
+	#Is Channel
 	} else {
+	    #Is connected
 	    if { [string length [$ServerRef getfileDesc] ] > 0 } {
+		#Is connected to this channel
 		if { [lsearch $activeChannels $mTarget] != -1 } {
 		    $Main::toolbar_part configure -state normal
 		} else {
@@ -194,9 +206,6 @@ snit::type tab {
 		$Main::toolbar_reconnect configure -state normal
 	    }
 	}
-	$Main::toolbar_properties configure -state normal
-	$Main::toolbar_channellist configure -state normal
-	$Main::toolbar_away configure -state normal
     }
     
     ############## Init Server ##############

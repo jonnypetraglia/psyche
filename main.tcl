@@ -52,23 +52,25 @@ proc Main::init { } {
 	#Logfile
     
     # Menu description
-    set Main::descmenu {
-        "&File" all file 0 {
-            {command "E&xit" {} "Exit BWidget demo" {} -command exit}
-        }
-        "&Options" all options 0 {
-            {checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
-                -variable Main::toolbar
-                -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
-            }
-        }
+    if false {
+	set Main::descmenu {
+	    "&File" all file 0 {
+		{command "E&xit" {} "Exit BWidget demo" {} -command exit}
+	    }
+	    "&Options" all options 0 {
+		{checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
+		    -variable Main::toolbar
+		    -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
+		}
+	    }
+	}
     }
     
     # Status Bar & Toolbar
     set mainframe [MainFrame .mainframe \
-                       -menu         $Main::descmenu \
                        -textvariable Main::status_text \
                        -progressvar  Main::status_prog]
+                       #-menu         $Main::descmenu]
    
     #$mainframe addindicator -text "BWidget [package version BWidget]"
     #$mainframe addindicator -textvariable tk_patchLevel
@@ -112,16 +114,20 @@ proc Main::pressTab { args} {
 proc Main::showConnectDialog { } {
     global DEFAULT_PORT;
     
+    destroy .connectDialog
     toplevel .connectDialog -padx 10 -pady 10
     wm transient .connectDialog .
     wm resizable .connectDialog 0 0
     
     label .connectDialog.l_serv -text "Server"
     entry .connectDialog.serv -width 20
+    .connectDialog.serv configure -background white
     label .connectDialog.l_port -text "Port"
     entry .connectDialog.port -width 10 -textvariable DEFAULT_PORT
+    .connectDialog.port configure -background white
     label .connectDialog.l_nick -text "Nick"
     entry .connectDialog.nick -width 20
+    .connectDialog.nick configure -background white
     button .connectDialog.go -text "Connect"
     
     grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
@@ -141,12 +147,14 @@ proc Main::showConnectDialog { } {
 proc Main::showJoinDialog { } {
     global DEFAULT_PORT;
     
+    destroy .joinDialog
     toplevel .joinDialog -padx 10 -pady 10
     wm transient .joinDialog .
     wm resizable .joinDialog 0 0
     
     label .joinDialog.l_chan -text "Channel"
     entry .joinDialog.chan -width 20
+    .joinDialog.chan configure -background white
     button .joinDialog.go -text "Join"
     
     grid config .joinDialog.l_chan -row 0 -column 0 -sticky "w"
