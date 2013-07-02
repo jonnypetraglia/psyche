@@ -353,6 +353,53 @@ snit::type tab {
 	#DEBUG
 	debug $msg
 	
+	#/connect
+	#/join
+	#/msg
+	#/part
+	#/partall
+	#/quit
+	#/me
+	#/nick
+	    #"You are now known as"
+	#/notice
+	#/ping
+	#/query?
+	#/ignore
+	#/chat
+	#/help
+	#/whois
+	#/who
+	#/whowas
+	#/ison
+	#/cycle?
+	#/motd
+	#/lusers
+	#/map
+	#/version
+	#/links
+	#/admin
+	#/userhost
+	#/topic
+	#/away
+	#/watch
+	#/helpop
+	#/list
+	#/knock
+	#/setname
+	#/vhost
+	#/modes
+	#/credits
+	#/license
+	#/time
+	#/botmotd
+	#/identify
+	#/dns
+	#/userip
+	#/stats
+	#/module
+	
+	
 	#/me
 	if [regexp {^/me (.+)} $msg -> action] {
 	    set msg "\001ACTION $action\001"
