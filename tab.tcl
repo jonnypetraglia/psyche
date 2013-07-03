@@ -41,14 +41,14 @@ snit::type tab {
     }
     
     ############## Get server string ##############
-    method joinChan {chan} {
+    method joinChan {chan pass} {
 		if { [string length $server] > 0 } {
-		    set channelMap($chan) [tab %AUTO% $self $chan]
+		    set channelMap($chan) [tab %AUTO% CHAN $self $chan $pass]
 		    lappend activeChannels $channelMap($chan)
 		    $Main::notebook raise [$channelMap($chan) getId]
 		    $self updateToolbar $chan
 		} else {
-		    $ServerRef joinChan $chan
+		    $ServerRef joinChan $chan $pass
 		}
     }
     
@@ -59,15 +59,16 @@ snit::type tab {
 
     ############## Constructor ##############
     # Server:
-    #        args = irc.geekshed.net 6697 nick
+    #        args = SERV irc.geekshed.net 6697 nick
     # Channel:
-    #        args = tab::server #jupiterbroadcasting
+    #        args = CHAN tab::server #jupiterbroadcasting pass
     constructor {args} {
 		variable temp
 		set server ""
 		
+		# If it has no args it's a dummy tab for measurement
 		if { [string length $args] > 0 } {
-		    $self init [lindex $args 0] [lindex $args 1] [lindex $args 2]
+		    $self init [lindex $args 0] [lindex $args 1] [lindex $args 2] [lindex $args 3]
 		} else {
 		    set channel Temp
 		    set id_var measure_tab
@@ -75,37 +76,38 @@ snit::type tab {
 		
 		$self init_ui
 		
-		if [expr { [string length $args] > 0 }] {
+		if { [string length $args] > 0 } {
 		    if [expr { [string length $server] > 0 }] {
-			$self initServer
+				$self initServer
 		    } else {
-			$self initChan
+				$self initChan [lindex $args 3]
 		    }
 		}
     }
     
     ############## Initialize the variables ##############
-    method init {arg0 arg1 arg2} {
-	set nickList [list]
-	set activeChannels [list]
-	set nick [string trim $arg2]
-	# blank if is channel, a string if is server
-	
-	debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
-	debug "  nick: !$nick!"
-	
-	if { [string length $nick] == 0} {
-	    set ServerRef $arg0
-	    set channel $arg1
-	    set temp [$ServerRef getServer]
-	    set id_var [concat $temp " " $channel]
-	    debug "  Channel: $channel"
-	} else {
-	    set server $arg0
-	    set port $arg1
-	    set id_var "$server"
-	    debug "  Server: $server"
-	}
+    method init {arg0 arg1 arg2 arg3} {
+		set nickList [list]
+		set activeChannels [list]
+
+		# blank if is channel, a string if is server
+		
+		debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
+		debug "  nick: !$arg0!"
+		
+		if { $arg0 == "CHAN"} {
+		    set ServerRef $arg1
+		    set channel $arg2
+		    set temp [$ServerRef getServer]
+		    set id_var [concat $temp " " $channel]
+		    debug "  Channel: $channel"
+		} else {
+		    set server $arg1
+		    set port $arg2
+		    set id_var "$server"
+		    set nick [string trim $arg3]
+		    debug "  Server: $server"
+		}
     }
     
     ############## GUI stuff ##############
@@ -219,8 +221,8 @@ snit::type tab {
     }
     
     ############## Init Channel ##############
-    method initChan {} {
-		$self _send "JOIN $channel"
+    method initChan {pass} {
+		$self _send "JOIN $channel $pass"
     }
     
     ############## Append text to chat log ##############
@@ -252,7 +254,7 @@ snit::type tab {
 		}
 		
 		# Numbered message - sent to channel, user, or no one (mTarget could be blank)
-		if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] =?(\[^:\]*):(.*)" $line -> mServer mCode mTarget mMsg]} {
+		if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] \[=@\]?(\[^:\]*):(.*)" $line -> mServer mCode mTarget mMsg]} {
 		    debug MIDDLE
 		    set mTarget [string trim $mTarget]
 		    set mMsg [string trim $mMsg]

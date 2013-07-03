@@ -184,11 +184,11 @@ proc Main::joinChannel {} {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     
-    $Main::servers($serv) joinChan $chan
+    $Main::servers($serv) joinChan $chan ""
 }
 
 proc Main::createConnection {serv por nick} {
-    set Main::servers($serv) [tab %AUTO% $serv $por $nick]
+    set Main::servers($serv) [tab %AUTO% SERV $serv $por $nick]
     $Main::notebook raise [$Main::servers($serv) getId]
 }
 

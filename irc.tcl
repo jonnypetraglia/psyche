@@ -114,17 +114,22 @@ proc performSpecialCase {msg obj} {
 	puts "!!!!!!$msg"
 
 	#/connect
-	if [regexp {^connect ([^ ]+) ?[0-9]*} $msg -> serv port] {
+	if [regexp {^connect ([^ ]+) ?([0-9]*)} $msg -> serv port] {
 		if {[string length $port] == 0} {
 			set port $Main::DEFAULT_PORT
 		}
+		debug "Connecting: $serv $port"
 		Main::createConnection $serv $port [$obj getNick]
-		puts "CONNECT: $msg"
+		return true
 	}
-
+	#/join
+	if [regexp {^join ([^ ]+) ?(.*)} $msg -> chann channPass] {
+		debug "Joining: $"
+		$obj joinChan $chann $channPass
+	}
 	return true
 
-	#/join
+	
 	#/msg
 	#/part
 	#/partall
