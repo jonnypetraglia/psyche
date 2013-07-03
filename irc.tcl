@@ -99,9 +99,17 @@ proc getTitle {mCode} {
 	    #RPL_ENDOFMOTD
 	    return \[MOTD\]
 	}
+	433 {
+		#ERR_NICKNAMEINUSE 
+		return \[ERROR\]
+	}
 	477 {
 	    #ERR_NEEDREGGEDNICK
-	    return \[Err\]
+	    return \[ERROR\]
+	}
+	486 {
+		#ERR_NONONREG 
+		return \[ERROR\]
 	}
 	default {
 	    return \[$mCode\]

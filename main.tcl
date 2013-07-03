@@ -39,6 +39,11 @@ namespace eval Main {
     variable toolbar_away
 }
 
+namespace eval Pref {
+    variable raiseNewTabs
+    set raiseNewTabs false
+}
+
 source tab.tcl
 source toolbar.tcl
 
@@ -188,7 +193,12 @@ proc Main::joinChannel {} {
 }
 
 proc Main::createConnection {serv por nick} {
-    set Main::servers($serv) [tab %AUTO% SERV $serv $por $nick]
+    if [info exists Main::servers($serv)] {
+        $Main::servers($serv) _setData $por $nick
+        $Main::servers($serv) initServer
+    } else {
+        set Main::servers($serv) [tab %AUTO% SERV $serv $por $nick]
+    }
     $Main::notebook raise [$Main::servers($serv) getId]
 }
 

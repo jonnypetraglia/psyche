@@ -26,6 +26,15 @@ snit::type tab {
 		}
 		return [$ServerRef getNick]
     }
+
+    method _setData {newport newnick} {
+    	if { [string length $server] > 0 } {
+    		set nick $newnick
+    		set port $newport
+    	} else {
+    		$ServerRef _setNick $newport $newnick
+    	}
+    }
     
     ############## Get server string ##############
     method isServer {} {
@@ -62,6 +71,9 @@ snit::type tab {
     #        args = SERV irc.geekshed.net 6697 nick
     # Channel:
     #        args = CHAN tab::server #jupiterbroadcasting pass
+    # PM:
+    #		 args = CHAN tab::server userhost
+    #		need to manually set the tab name?
     constructor {args} {
 		variable temp
 		set server ""
@@ -222,7 +234,9 @@ snit::type tab {
     
     ############## Init Channel ##############
     method initChan {pass} {
-		$self _send "JOIN $channel $pass"
+    	if {[string index $channel 0] == "#"} {
+			$self _send "JOIN $channel $pass"
+    	}
     }
     
     ############## Append text to chat log ##############
@@ -231,6 +245,16 @@ snit::type tab {
 		$chat insert end $txt $stylez
 		$chat configure -state disabled
     }
+
+
+    method updateTabName {theHost newName} {
+    	if {$newName != $channel} {
+    		set channel $newName
+			$Main::notebook itemconfigure [$self getId] -text $channel
+    	}
+    }
+
+
     
     ############## Internal Function ##############
     method _recv {} {
@@ -245,11 +269,26 @@ snit::type tab {
 		}
 		
 		# Private message - sent to channel or user
-		if {[regexp {:([^!]*)![^ ].* +PRIVMSG ([^ :]+) +:(.*)} $line -> mNick mTarget mMsg]} {
+		if {[regexp {:([^!]*)(![^ ]+) +PRIVMSG ([^ :]+) +:(.*)} $line -> mFrom mHost mTo mMsg]} {
 		    debug TOP
-		    if {[expr {$mNick != "IRC"} ]} {
-			$channelMap($mTarget) handleReceived $timestamp <$mNick> bold $mMsg ""
-			return
+		    puts "FROM: $mFrom  TO: $mTo"
+		    # PM
+		    if {$mFrom != "IRC"} {
+			    if {$mTo == [$self getNick]} {
+			    	if {![info exists channelMap($mHost)]} {
+			    		set channelMap($mHost) [tab %AUTO% CHAN $self $mFrom]
+			    		if { $Pref::raiseNewTabs} {
+		    				$Main::notebook raise [$channelMap($mHost) getId]
+			    		}
+			    	}
+			    	$channelMap($mHost) updateTabName $mHost $mFrom
+			    	$channelMap($mHost) handleReceived $timestamp <$mFrom> bold $mMsg ""
+			    	return
+		    	# Message to channel
+			    } else {
+					$channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
+					return
+			    }
 		    }
 		}
 		
@@ -301,10 +340,10 @@ snit::type tab {
 		    }
 		    debug "$mCode!!!$mTarget"
 		    if [info exists channelMap($mTarget)] {
-			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
-			return
+				$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
+				return
 		    } else {
-			$self handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
+				$self handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
 			return
 		    }
 		}
