@@ -1,7 +1,7 @@
 proc Main::init_toolbar { } {
     set toolbar  [$Main::mainframe addtoolbar]
     
-    set icondir [pwd]/icons/kgn_icons
+    set icondir [pwd]/icons
         
     ### Connection ###
     set bbox [ButtonBox $toolbar.bbox1 -spacing 0 -padx 1 -pady 1]
