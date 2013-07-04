@@ -1,122 +1,148 @@
-#input is mCode, mTarget (channel? nick?), mMsg
 
+#Unreal ircu Hybrid IRCnet aircd Bahamut PTLink KineIRCd AustHex Anothernet GameSurge Ithildin RatBox
+set IrcCodes(290_Unreal) Help 
+set IrcCodes(290_aircd) Info
+set IrcCodes(290_QuakeNet) Data
+set IrcCodes(292_Unreal) Help 
+set IrcCodes(292_aircd) Info
+
+# https://www.alien.net.au/irc/irc2numerics.html
 proc getTitle {mCode} {
     switch $mCode {
 	001 {
-	    #RPL_WELCOME
+	    #RPL_WELCOME (RFC2812)
 	    return \[Welcome\]
 	}
 	002 {
-	    #RPL_YOURHOST
+	    #RPL_YOURHOST (RFC2812)
 	    return \[Welcome\]
 	}
 	003 {
-	    #RPL_CREATED
+	    #RPL_CREATED (RFC2812)
 	    return \[Welcome\]
 	}
 	004 {
-	    #RPL_MYINFO
+	    #RPL_MYINFO (KineIRCd)
 	    return \[Welcome\]
 	}
 	005 {
-	    #RPL_BOUNCE
+	    #RPL_BOUNCE (RFC2812)
 	    return \[Support\]
 	}
 	250 {
-	    #RPL_STATSDLINE (Freenode)
+	    #RPL_STATSDLINE (RFC1459)
+	    #RPL_STATSCONN (ircu, Unreal)
 	    return \[Stats\]
 	}
 	251 {
-	    #RPL_LUSERCLIENT
+	    #RPL_LUSERCLIENT (RFC2812)
 	    return \[Users\]
 	}
 	252 {
-	    #RPL_LUSEROP
-	    return \[Users\]
-	}
-	254 {
-	    #RPL_LUSERCHANNELS
+	    #RPL_LUSEROP (RFC2812)
 	    return \[Users\]
 	}
 	253 {
-	    #RPL_LUSERUNKNOWN 
+	    #RPL_LUSERUNKNOWN (RFC2812)
+	    return \[Users\]
+	}
+	254 {
+	    #RPL_LUSERCHANNELS (RFC2812)
 	    return \[Users\]
 	}
 	255 {
-	    #RPL_LUSERME
+	    #RPL_LUSERME (RFC2812)
 	    return \[Users\]
 	}
 	265 {
-	    #RPL_LOCALUSERS
+	    #RPL_LOCALUSERS (aircd, Hybrid, Bahamut)
 	    return \[Users\]
 	}
 	266 {
-	    #RPL_GLOBALUSERS
+	    #RPL_GLOBALUSERS (aircd, Hybrid, Bahamut)
 	    return \[Users\]
 	}
+	290 {
+	    #RPL_HELPHDR (Unreal)
+	    return \[Help\]
+	    #RPL_CHANINFO_OPERS (aircd)
+	    #RPL_DATASTR (QuakeNet)
+	}
+	292 {
+	    #RPL_HELPTLR (Unreal)
+	    return \[Help\]
+	    #RPL_CHANINFO_BANS (aircd)
+	}
 	321 {
-	    #RPL_LISTSTART
+	    #RPL_LISTSTART (RFC1459)
 	    return \[List\]
 	}
 	322 {
-	    #RPL_LIST 
+	    #RPL_LIST (RFC1459)
 	    # Use this to update channel list
 	    return \[List\]
 	}
 	323 {
-	    #RPL_LISTEND
+	    #RPL_LISTEND (RFC1459)
 	    # Use this to update channel list
 	    return \[List\]
 	}
 	328 {
-	    #RPL_CHANNEL_URL 
+	    #RPL_CHANNEL_URL (Bahamut, AustHex)
 	    # ???
 	    # Received after joining a channel, I think
 	}
 	332 {
-	    #RPL_TOPIC
+	    #RPL_TOPIC (RFC1459)
 	    return \[Topic\]
 	}
 	333 {
-	    #RPL_TOPICWHOTIME
+	    #RPL_TOPICWHOTIME (ircu)
 	    return \[Topic\]
 	}
 	353 {
-	    #RPL_NAMREPLY 
+	    #RPL_NAMREPLY (RFC1459)
 	    # Use this to update nicklist
 	    return ""
 	}
 	366 {
-	    #RPL_ENDOFNAMES
+	    #RPL_ENDOFNAMES (RFC1459)
 	    # Use this to update nicklist
 	    return ""
 	}
 	372 {
-	    #RPL_MOTD
+	    #RPL_MOTD (RFC1459)
 	    return \[MOTD\]
 	}
 	375 {
-	    #RPL_MOTDSTART
+	    #RPL_MOTDSTART (RFC1459)
 	    return \[MOTD\]
 	}
 	376 {
-	    #RPL_ENDOFMOTD
+	    #RPL_ENDOFMOTD (RFC1459)
 	    return \[MOTD\]
 	}
 	401 {
-	    #ERR_NOSUCHNICK 
+	    #ERR_NOSUCHNICK (RFC1459)
 	    return \[ERROR\]
 	}
 	433 {
-	    #ERR_NICKNAMEINUSE 
+	    #ERR_NICKNAMEINUSE (RFC1459)
 	    return \[ERROR\]
 	}
 	477 {
-	    #ERR_NEEDREGGEDNICK
+	    #ERR_NEEDREGGEDNICK (Bahamut, ircu, Unreal)
+	    #ERR_NOCHANMODES (RFC1459)
+	    return \[ERROR\]
+	}
+	482 {
+	    #ERR_CHANOPRIVSNEEDED 
 	    return \[ERROR\]
 	}
 	486 {
-	    #ERR_NONONREG 
+	    #ERR_NONONREG (???)
+	    #ERR_HTMDISABLED (Unreal)
+	    #ERR_ACCOUNTONLY (QuakeNet)
 	    return \[ERROR\]
 	}
 	default {
@@ -187,8 +213,41 @@ proc performSpecialCase {msg obj} {
 	    $obj handleReceived $timestamp " \*" bold "[$obj getNick] $msg" italic
 	    return true
 	}
+	
+	#/invite
+	set thingsToChannelizePost "(invite)"
+	if [regexp "^$thingsToChannelizePost \(.*\)" $msg -> cmd target] {
+	    debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
+	    if [regexp "\(\[^ \]+\) \(\[[$obj getChannPrefixes]\].*\)" $msg -> target chann] {
+		set chann $chann
+	    } else {
+		set chann [$obj getChannel]
+	    }
+	    debug "INVITE: $target $chann"
+	    $obj _send "$cmg $target $chann"
+	    return true
+	}
+	
+	#/kick
+	#/topic
+	set thingsToChannelize "(kick|topic)"
+	if [regexp "^$thingsToChannelize \(.*\)" $msg -> cmd target] {
+	    debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
+	    if [regexp "^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)" $msg -> chann target] {
+		set chann $chann
+	    } else {
+		set chann [$obj getChannel]
+	    }
+	    debug "CMD: $cmd $chann $target"
+	    $obj _send "$cmd $chann $target"
+	    return true
+	}
 	#/list
-	if [regexp {^list(.*)} $msg -> newnick] {
+	#/help
+	#/motd
+	#/credits
+	set thingsToIgnore "(list|help|motd|credits)"
+	if [regexp "^$thingsToIgnore\(.*\)" $msg -> cmd derp] {
 	    return false
 	}
 	return true
@@ -200,13 +259,11 @@ proc performSpecialCase {msg obj} {
 	#/query?
 	#/ignore
 	#/chat
-	#/help
 	#/whois
 	#/who
 	#/whowas
 	#/ison
 	#/cycle?
-	#/motd
 	#/lusers
 	#/map
 	#/version

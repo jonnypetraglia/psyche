@@ -9,6 +9,10 @@ snit::type tab {
     variable activeChannels
     variable id_var
     variable irc_conn
+    variable channelPrefixes
+    variable serverType
+    # ^ Unreal3.2.8-gs.9
+    # ^ ircd-seven-1.1.3
     
 	# Next two can be blank, if the tab is a server
 	# channel can be a nick if it's a PM
@@ -70,6 +74,12 @@ snit::type tab {
 	    return ""
 	}
 	return $channel
+    }
+    method getChannPrefixes {} {
+	if {[string length $server] > 0} {
+	    return [$SeverRef getChannPrefixes]
+	}
+	return $channelPrefixes
     }
 
 
@@ -305,6 +315,7 @@ snit::type tab {
     
     ############## Internal Function ##############
     method _recv {} {
+	global compareNickString;
 	gets $fileDesc line
 	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	debug $line
@@ -346,11 +357,17 @@ snit::type tab {
 	}
 	
 	# Numbered message - sent to channel, user, or no one (mTarget could be blank)
-	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] \[=@\]?(\[^:\]*):(.*)" $line -> mServer mCode mTarget mMsg]} {
+	#  Type A: Has an intended target, even if that target is blank;
+	#          Following the nick, there is a string of length 0 or more, then a space, then a colon
+	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
 	    debug MIDDLE
 	    set mTarget [string trim $mTarget]
 	    set mMsg [string trim $mMsg]
 	    switch $mCode {
+		002 {
+		    #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
+		    #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
+		}
 		333 {
 		    #RPL_TOPICWHOTIME
 		    regexp {^ChanServ (.*)} $mMsg -> mMsg
@@ -410,10 +427,31 @@ snit::type tab {
 		return
 	    }
 	}
-	# Numbered message #2
+	#  Type B: Is stil a numbered message, but the content immediately follows the nick
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
 	    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg ""
 	    debug MIDDLE2
+	    switch $mCode {
+		005 {
+		    # Pull out CHANTYPES (prefixes for channels)
+		    if [regexp {.*CHANTYPES=([^ ]+) .*} $mMsg -> derp] {
+			#set channelPrefixes ""
+			#foreach m $derp {
+			#    set channelPrefixes "$channelPrefixes$m|"
+			#}
+			#set i [string length $channelPrefixes]
+			#incr i -2
+			#set channelPrefixes [string range $channelPrefixes 0 $i]
+			
+			puts "~!!~!~!~!~!~!~!~!~$channelPrefixes"
+		    }
+		    
+		    # Pull out PREFIX (user modes, e.g. ~&@%+)
+		    if [regexp {.*PREFIX=([^ ]+) .*} $mMsg -> userModes] {
+			set compareNickString $channelPrefixes
+		    }
+		}
+	    }
 	    return
 	}
 	
@@ -586,38 +624,44 @@ snit::type tab {
 # % = halfop
 # + = voice
     
-variable compareMap
-set compareMap(~) 0
-set compareMap(&) 1
-set compareMap(@) 2
-set compareMap(%) 3
-set compareMap(+) 4
+variable compareNickMap
+variable compareNickString
+#set compareNickMap(~) 0
+#set compareNickMap(&) 1
+#set compareNickMap(@) 2
+#set compareNickMap(%) 3
+#set compareNickMap(+) 4
     
 proc compareNick {a b} {
-    global compareMap;
+    global compareNickMap;
+    global compareNickString;
     set av 10
     set bv 10
     set a0 [lindex $a 0]
     set b0 [lindex $b 0]
     
+    puts "!!!!!!!!!!!DERP $compareNickString"
+    
     # Determine if either start with a special symbol
-    if {[regexp {^[~&@%+].*} $a0]} {
-		set av $compareMap([string index $a0 0])
+    if {[regexp "^\[$compareNickString\].*" $a0]} {
+	set av [string first [string index $a0 0] $compareNickString ]
+	#set av $compareNickMap([string index $a0 0])
     }
-    if {[regexp {^[~&@%+].*} $b0]} {
-		set bv $compareMap([string index $b0 0])
+    if {[regexp "^\[$compareNickString\].*" $b0]} {
+	set bv [string first [string index $b0 0] $compareNickString ]
+	#set bv $compareNickMap([string index $b0 0])
     }
 
     # If they are the same class (e.g. both ops OR both normal (10))
     if {$av == $bv } {
-		return [string compare [lindex $a 1] [lindex $b 1]]
+	return [string compare [lindex $a 1] [lindex $b 1]]
     } else {
-		if {$av < $bv} {
-		    return -1
-		} elseif {$av > $bv} {
-		    return 1
-		} else {
-			return 0
-		}
+	if {$av < $bv} {
+	    return -1
+	} elseif {$av > $bv} {
+	    return 1
+	} else {
+		return 0
+	}
     }
 }
