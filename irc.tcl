@@ -151,7 +151,6 @@ proc performSpecialCase {msg obj} {
 	    #$obj _send "PRIVMSG notbryant Hello"
 	    return true
 	}
-	
 	#/quit
 	if [regexp {^quit ?(.*)} $msg -> reason] {
 	    debug "Quitting: $reason"
@@ -174,11 +173,18 @@ proc performSpecialCase {msg obj} {
 	    return true
 	}
 	#/nick
-	if [regexp {^nick (.*)} $msg -> newnick] {
+	if [regexp {^nick ([^ ]+)} $msg -> newnick] {
 	    debug "Newnick: $newnick"
 	    #Sends what is, essentially, a request to the server to change the nick.
 	    #The server responds, and then [$obj nickChanged] handles the response
 	    $obj _send "NICK $newnick"
+	    return true
+	}
+	#/me
+	if [regexp {^me (.*)} $msg -> msg] {
+	    $obj _send "PRIVMSG [$obj getChannel] :\001ACTION $msg\001"
+	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	    $obj handleReceived $timestamp " \*" bold "[$obj getNick] $msg" italic
 	    return true
 	}
 	#/list
@@ -189,7 +195,6 @@ proc performSpecialCase {msg obj} {
 
 	
 	#/partall
-	#/me
 	#/notice
 	#/ping
 	#/query?

@@ -281,15 +281,19 @@ snit::type tab {
 	}
     }
 
-    ############## Send a Private Message to a user...or maybe channel? ##############
+    ############## Send a Private Message to a user...or maybe channel? ##############    
     method sendPM { mNick mMsg} {
 	if { [string length $server] == 0 } {
 	    $ServerRef sendPM $mNick $mMsg
 	    return
 	}
 	$self _send "PRIVMSG $mNick $mMsg"
+	$self createPMTabIfNotExist $mNick
 	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
-	puts "DERP [info exists channelMap($mNick)]"
+	$channelMap($mNick) handleReceived $timestamp <$mNick> bold $mMsg ""
+    }
+    
+    method createPMTabIfNotExist { mNick } {
 	if {![info exists channelMap($mNick)]} {
 	    set channelMap($mNick) [tab %AUTO% CHAN $self $mNick]
 	    if { $Pref::raiseNewTabs} {
@@ -297,7 +301,6 @@ snit::type tab {
 	    }
 	}
 	$channelMap($mNick) updateTabName $mNick
-	$channelMap($mNick) handleReceived $timestamp <[$self getNick]> bold $mMsg ""
     }
     
     ############## Internal Function ##############
@@ -316,16 +319,29 @@ snit::type tab {
 	if {[regexp {:([^!]*)(![^ ]+) +PRIVMSG ([^ :]+) +:(.*)} $line -> mFrom mHost mTo mMsg]} {
 	    debug TOP
 	    puts "FROM: $mFrom  TO: $mTo"
-	    # PM
+	    # PRIVMSG
 	    if {$mFrom != "IRC"} {
+		# PM to me
 		if {$mTo == [$self getNick]} {
-		    $self sendPM $mFrom $mMsg
-		    return
-		# Message to channel
+		    $self createPMTabIfNotExist $mFrom
+		    # PM - /me
+		    if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+			$channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		    # PM - general
+		    } else {
+			$channelMap($mNick) handleReceived $timestamp <$mNick> bold $mMsg ""
+		    }
+		# Msg to channel
 		} else {
-			    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
-			    return
+		    # Msg - /me
+		    if [regexp {\001ACTION(.+)\001} $mMsg -> mMsg] {
+			$channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		    # Msg - general
+		    } else {
+			$channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
+		    }
 		}
+		return
 	    }
 	}
 	
