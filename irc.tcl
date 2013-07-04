@@ -7,6 +7,7 @@ set IrcCodes(292_Unreal) Help
 set IrcCodes(292_aircd) Info
 
 # https://www.alien.net.au/irc/irc2numerics.html
+# http://www.godspeak.net/chat/basic_irc.html
 proc getTitle {mCode} {
     switch $mCode {
 	001 {
@@ -126,6 +127,14 @@ proc getTitle {mCode} {
 	    #ERR_NOSUCHNICK (RFC1459)
 	    return \[ERROR\]
 	}
+	409 {
+	    #ERR_NOORIGIN
+	    return \[ERROR\]
+	}
+	421 {
+	    #ERR_UNKNOWNCOMMAND
+	    return \[ERROR\]
+	}
 	433 {
 	    #ERR_NICKNAMEINUSE (RFC1459)
 	    return \[ERROR\]
@@ -170,8 +179,8 @@ proc performSpecialCase {msg obj} {
 	    $obj joinChan $chann $channPass
 	    return true
 	}
-	#/msg
-	if [regexp {^msg ([^ ]+) (.*)} $msg -> nick msg] {
+	#/msg OR /query
+	if [regexp {^(msg|query) ([^ ]+) (.*)} $msg -> derp nick msg] {
 	    debug "Msging: $nick"
 	    $obj sendPM $nick $msg
 	    #$obj _send "PRIVMSG notbryant Hello"
@@ -214,20 +223,6 @@ proc performSpecialCase {msg obj} {
 	    return true
 	}
 	
-	#/invite
-	set thingsToChannelizePost "(invite)"
-	if [regexp "^$thingsToChannelizePost \(.*\)" $msg -> cmd target] {
-	    debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
-	    if [regexp "\(\[^ \]+\) \(\[[$obj getChannPrefixes]\].*\)" $msg -> target chann] {
-		set chann $chann
-	    } else {
-		set chann [$obj getChannel]
-	    }
-	    debug "INVITE: $target $chann"
-	    $obj _send "$cmg $target $chann"
-	    return true
-	}
-	
 	#/kick
 	#/topic
 	set thingsToChannelize "(kick|topic)"
@@ -242,50 +237,75 @@ proc performSpecialCase {msg obj} {
 	    $obj _send "$cmd $chann $target"
 	    return true
 	}
-	#/list
-	#/help
-	#/motd
+	
+	#/invite
+	set thingsToChannelizePost "(invite)"
+	if [regexp "^$thingsToChannelizePost \(.*\)" $msg -> cmd target] {
+	    debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
+	    if [regexp "\(\[^ \]+\) \(\[[$obj getChannPrefixes]\].*\)" $msg -> target chann] {
+		set chann $chann
+	    } else {
+		set chann [$obj getChannel]
+	    }
+	    debug "INVITE: $target $chann"
+	    $obj _send "$cmg $target $chann"
+	    return true
+	}
+	
+	
+	#/ping
+	if [regexp "^ping \(.*\)" $msg -> target] {
+	    $obj _send "PRIVMSG $target :\001PING [clock seconds]\001"
+	    return true
+	}
+	
+	#/admin
 	#/credits
-	set thingsToIgnore "(list|help|motd|credits)"
+	#/help
+	#/ignore
+	#/list
+	#/map
+	#/motd
+	#/notify
+	#/time
+	#/who
+	#/whois
+	#/whowas
+	set thingsToIgnore "(admin|credits|help|ignore|list|map|motd|notify|time|whowhois)"
 	if [regexp "^$thingsToIgnore\(.*\)" $msg -> cmd derp] {
 	    return false
 	}
 	return true
 
-	
-	#/partall
 	#/notice
-	#/ping
-	#/query?
-	#/ignore
+	#/partall
+	
+	#/away
+	#/botmotd
 	#/chat
-	#/whois
-	#/who
-	#/whowas
-	#/ison
+	    #/clear
+	    #/ctcp {nick} {ping|finger|version|time|userinfo|clientinfo}
 	#/cycle?
+	#/dns
+	#/helpop
+	#/identify
+	#/ison
+	#/knock
+	#/license
+	#/links
+	#/list
 	#/lusers
 	#/map
-	#/version
-	#/links
-	#/admin
-	#/userhost
-	#/topic
-	#/away
-	#/watch
-	#/helpop
-	#/list
-	#/knock
-	#/setname
-	#/vhost
+	    #/mode {#channel|nick} [[+|-]modechars [parameters]]
 	#/modes
-	#/credits
-	#/license
-	#/time
-	#/botmotd
-	#/identify
-	#/dns
-	#/userip
-	#/stats
 	#/module
+	#/setname
+	#/silence {+/-nick}
+	#/slap {nick}
+	#/stats
+	#/userhost
+	#/userip
+	#/watch
+	#/version
+	#/vhost
 }

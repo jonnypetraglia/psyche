@@ -334,14 +334,20 @@ snit::type tab {
 	    if {$mFrom != "IRC"} {
 		# PM to me
 		if {$mTo == [$self getNick]} {
-		    $self createPMTabIfNotExist $mFrom
 		    # PM - /me
 		    if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+			$self createPMTabIfNotExist $mFrom
 			$channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
 		    # PM - general
+		    } elseif [regexp {PING ([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9])} $mMsg -> mTime] {
+			$self handleReceived $timestamp \[CTCP\] bold "Ping from $mFrom" ""
+			$self _send "NOTICE $mFrom :\001PING $mTime\001"
+			#$self _send "PRIVMSG $mFrom :\001PING $mTime\001"
 		    } else {
-			$channelMap($mNick) handleReceived $timestamp <$mNick> bold $mMsg ""
+			$self createPMTabIfNotExist $mFrom
+			$channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg ""
 		    }
+		    
 		# Msg to channel
 		} else {
 		    # Msg - /me
@@ -443,6 +449,7 @@ snit::type tab {
 			#incr i -2
 			#set channelPrefixes [string range $channelPrefixes 0 $i]
 			
+			set channelPrefixes $derp
 			puts "~!!~!~!~!~!~!~!~!~$channelPrefixes"
 		    }
 		    
@@ -452,6 +459,12 @@ snit::type tab {
 		    }
 		}
 	    }
+	    return
+	}
+	
+	# Response from CTCP PING
+	if {[regexp ":(\[^!\]*)!.* NOTICE [$self getNick] :.?PING \(\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\).?" $line -> mTarget mTime]} {
+	    $self handleReceived $timestamp \[CTCP\] bold "Ping Response: [expr {[clock seconds] - $mTime}] seconds" ""
 	    return
 	}
 	
