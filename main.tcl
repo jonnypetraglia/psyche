@@ -273,6 +273,7 @@ proc Main::channelList {} {
 			-font [list Courier 12] ]
     button .channelList.join -text "Join"
     button .channelList.refresh -text "Refresh"
+    bind .channelList.lb <Double-1> Main::joinChannelList
     bind .channelList.join <ButtonPress> Main::joinChannelList
     bind .channelList.refresh <ButtonPress> Main::refreshChannelList
     
@@ -288,7 +289,6 @@ proc Main::channelList {} {
 proc Main::joinChannelList {} {
     set chanName [.channelList.lb get [.channelList.lb curselection] ]
     regexp {(#[^ ]+) .*} $chanName -> chanName
-    puts $chanName
 
     grab release .channelList
     grab set .
@@ -297,7 +297,7 @@ proc Main::joinChannelList {} {
     set parts [split [$Main::notebook raise] "*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
-    $Main::servers($serv) joinChan $chanName
+    $Main::servers($serv) joinChan $chanName ""
 }
 
 proc Main::refreshChannelList {} {

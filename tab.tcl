@@ -352,22 +352,26 @@ snit::type tab {
 		}
 		322 {
 		    #RPL_LIST 
-		    if {[regexp {(#[^ ]+) ([0-9]+)} $mTarget -> mTarget mUserCount]} {
-			#TODO: Fix regex to remove modes
-			regexp { ?\[.*\] (.*)} $mMsg -> mMsg
-			set whspc [string length $mTarget]
-			set whspc [expr {33 - $whspc}]
-			set whspc [string repeat " " $whspc]
-			set sss [$self getServer]
-			lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
+		    if {[wm state .channelList]=="normal"} {
+			if {[regexp {(#[^ ]+) ([0-9]+)} $mTarget -> mTarget mUserCount]} {
+			    #TODO: Fix regex to remove modes
+			    regexp { ?\[.*\] (.*)} $mMsg -> mMsg
+			    set whspc [string length $mTarget]
+			    set whspc [expr {33 - $whspc}]
+			    set whspc [string repeat " " $whspc]
+			    set sss [$self getServer]
+			    lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
+			}
+			return
 		    }
-		    return
 		}
 		323 {
 		    #RPL_LISTEND
-		    set sss [$self getServer]
-		    set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
-		    return
+		    if {[wm state .channelList]=="normal"} {
+			set sss [$self getServer]
+			set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
+			return
+		    }
 		}
 		328 {
 			#RPL_CHANNEL_URL

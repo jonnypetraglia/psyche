@@ -57,12 +57,12 @@ proc getTitle {mCode} {
 	322 {
 	    #RPL_LIST 
 	    # Use this to update channel list
-	    return ""
+	    return \[List\]
 	}
 	323 {
 	    #RPL_LISTEND
 	    # Use this to update channel list
-	    return ""
+	    return \[List\]
 	}
 	328 {
 	    #RPL_CHANNEL_URL 
@@ -182,8 +182,6 @@ proc performSpecialCase {msg obj} {
 	
 	#/partall
 	#/me
-	#/nick
-	    #"You are now known as"
 	#/notice
 	#/ping
 	#/query?
