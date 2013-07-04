@@ -350,6 +350,12 @@ snit::type tab {
 		    $channelMap($mTarget) sortUsers
 		    return
 		}
+		321 {
+		    #RPL_LISTSTART
+		    if {[wm state .channelList]=="normal"} {
+			return
+		    }
+		}
 		322 {
 		    #RPL_LIST 
 		    if {[wm state .channelList]=="normal"} {

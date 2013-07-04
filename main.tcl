@@ -339,6 +339,7 @@ proc Main::showNickDialog {} {
 proc Main::nickDialogConfirm {} {
     set newnick [.nickDialog.nick get]
     set newpass [.nickDialog.pass get]
+    wm state .nickDialog withdrawn
 
     set parts [split [$Main::notebook raise] "*"]
     set serv [lindex $parts 0]
@@ -355,4 +356,6 @@ proc Main::foreground_win { w } {
     wm deiconify $w
 }
 
+toplevel .channelList -padx 10 -pady 10
+wm state .channelList withdrawn
 Main::init

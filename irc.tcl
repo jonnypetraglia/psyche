@@ -54,6 +54,10 @@ proc getTitle {mCode} {
 	    #RPL_GLOBALUSERS
 	    return \[Users\]
 	}
+	321 {
+	    #RPL_LISTSTART
+	    return \[List\]
+	}
 	322 {
 	    #RPL_LIST 
 	    # Use this to update channel list
@@ -176,6 +180,10 @@ proc performSpecialCase {msg obj} {
 	    #The server responds, and then [$obj nickChanged] handles the response
 	    $obj _send "NICK $newnick"
 	    return true
+	}
+	#/list
+	if [regexp {^list(.*)} $msg -> newnick] {
+	    return false
 	}
 	return true
 
