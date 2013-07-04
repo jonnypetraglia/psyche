@@ -19,6 +19,16 @@ proc Main::init_toolbar { } {
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Disconnect" -state disabled \
         -command Main::disconnect]
+    set Main::toolbar_channellist [\
+    $bbox add -image [image create photo -file $icondir/channels.gif] \
+        -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
+        -helptext "Channel List" -state disabled \
+        -command Main::channelList]
+    set Main::toolbar_nick [\
+    $bbox add -image [image create photo -file $icondir/nick.gif] \
+        -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
+        -helptext "Change Nick" -state disabled \
+        -command Main::showNickDialog]
     pack $bbox -side left -anchor w
     set sep [Separator $toolbar.sep1 -orient vertical]
     pack $sep -side left -fill y -padx 4 -anchor w
@@ -39,11 +49,6 @@ proc Main::init_toolbar { } {
     $bbox add -image [image create photo -file $icondir/properties.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Server/Channel Properties" -state disabled]
-    set Main::toolbar_channellist [\
-    $bbox add -image [image create photo -file $icondir/channels.gif] \
-        -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Channel List" -state disabled \
-        -command Main::channelList]
     set Main::toolbar_away [\
     $bbox add -image [image create photo -file $icondir/away.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \

@@ -32,10 +32,11 @@ namespace eval Main {
     
     variable toolbar_reconnect
     variable toolbar_disconnect
+    variable toolbar_channellist
     variable toolbar_join
     variable toolbar_part
+    variable toolbar_nick
     variable toolbar_properties
-    variable toolbar_channellist
     variable toolbar_away
 }
 
@@ -304,6 +305,31 @@ proc Main::refreshChannelList {} {
     # Clear the list & update
     set Main::channelList($serv) [list]
     $Main::servers($serv) _send LIST
+}
+
+proc Main::showNickDialog {} {
+    destroy .nickDialog
+    toplevel .nickDialog -padx 10 -pady 10
+    wm transient .nickDialog .
+    wm resizable .nickDialog 0 0
+    
+    label .nickDialog.l_nick -text "Channel"
+    entry .nickDialog.nick -width 20
+    .nickDialog.nick configure -background white
+    button .nickDialog.change -text "Change"
+    
+    grid config .nickDialog.l_nick -row 0 -column 0 -sticky "w"
+    grid config .nickDialog.nick   -row 1 -column 0
+    grid config .nickDialog.change     -row 1 -column 1
+    bind .nickDialog.change <ButtonPress> Main::nickDialogConfirm
+    
+    foreground_win .nickDialog
+    grab release .
+    grab set .nickDialog
+}
+
+proc Main::nickDialogConfirm {} {
+    
 }
 
 proc Main::foreground_win { w } {
