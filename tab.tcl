@@ -43,8 +43,12 @@ snit::type tab {
     ############## Get server string ##############
     method joinChan {chan pass} {
 	if { [string length $server] > 0 } {
-	    set channelMap($chan) [tab %AUTO% CHAN $self $chan $pass]
-	    lappend activeChannels $channelMap($chan)
+	    if [info exists channelMap($chan)] {
+		$channelMap($chan) initChan $pass
+	    } else {
+		set channelMap($chan) [tab %AUTO% CHAN $self $chan $pass]
+	    }
+	    lappend activeChannels $chan
 	    $Main::notebook raise [$channelMap($chan) getId]
 	    $self updateToolbar $chan
 	} else {
@@ -55,6 +59,18 @@ snit::type tab {
     ############## getId ##############
     method getId {} { return $id_var }
     method getfileDesc {} { return $fileDesc }
+    method isServer {} {
+	if {[string length $server] > 0} {
+	    return 1
+	}
+	return 0
+    }
+    method getChannel {} {
+	if {[string length $server] > 0} {
+	    return ""
+	}
+	return $channel
+    }
 
 
     ############## Constructor ##############
@@ -166,7 +182,7 @@ snit::type tab {
     ############## Update the toolbar's statuses ##############
     method updateToolbar {mTarget} {
 	if [info exists channelMap($mTarget)] {
-	    $channelMap($mTarget) updateToolbar ""
+	    $channelMap($mTarget) updateToolbar $mTarget
 	    return
 	}
 	
@@ -197,7 +213,8 @@ snit::type tab {
 	    #Is connected
 	    if { [string length [$ServerRef getfileDesc] ] > 0 } {
 		#Is connected to this channel
-		if { [lsearch $activeChannels $mTarget] != -1 } {
+		puts "UPDATETOOLBAR: $mTarget [lsearch $activeChannels $mTarget]"
+		if { [$ServerRef isChannelConnected $mTarget] } {
 		    $Main::toolbar_part configure -state normal
 		} else {
 		    $Main::toolbar_part configure -state disabled
@@ -217,6 +234,17 @@ snit::type tab {
 		$Main::toolbar_channellist configure -state disabled
 		$Main::toolbar_away configure -state disabled
 	    }
+	}
+    }
+    
+    method isChannelConnected {chann} {
+	if { [string length $server] > 0 } {
+	    if {[lsearch $activeChannels $chann] != -1} {
+		return true
+	    }
+	    return false
+	} else {
+	    return [$ServerRef isChannelConnected $chann]
 	}
     }
     
@@ -246,14 +274,31 @@ snit::type tab {
     }
 
     ############## Change the tab name ##############
-    method updateTabName {theHost newName} {
+    method updateTabName {newName} {
 	if {$newName != $channel} {
 	    set channel $newName
 	    $Main::notebook itemconfigure [$self getId] -text $channel
 	}
     }
 
-
+    ############## Send a Private Message to a user...or maybe channel? ##############
+    method sendPM { mNick mMsg} {
+	if { [string length $server] == 0 } {
+	    $ServerRef sendPM $mNick $mMsg
+	    return
+	}
+	$self _send "PRIVMSG $mNick $mMsg"
+	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	puts "DERP [info exists channelMap($mNick)]"
+	if {![info exists channelMap($mNick)]} {
+	    set channelMap($mNick) [tab %AUTO% CHAN $self $mNick]
+	    if { $Pref::raiseNewTabs} {
+		    $Main::notebook raise [$channelMap($mNick) getId]
+	    }
+	}
+	$channelMap($mNick) updateTabName $mNick
+	$channelMap($mNick) handleReceived $timestamp <[$self getNick]> bold $mMsg ""
+    }
     
     ############## Internal Function ##############
     method _recv {} {
@@ -274,14 +319,7 @@ snit::type tab {
 	    # PM
 	    if {$mFrom != "IRC"} {
 		if {$mTo == [$self getNick]} {
-		    if {![info exists channelMap($mHost)]} {
-			    set channelMap($mHost) [tab %AUTO% CHAN $self $mFrom]
-			    if { $Pref::raiseNewTabs} {
-				    $Main::notebook raise [$channelMap($mHost) getId]
-			    }
-		    }
-		    $channelMap($mHost) updateTabName $mHost $mFrom
-		    $channelMap($mHost) handleReceived $timestamp <$mFrom> bold $mMsg ""
+		    $self sendPM $mFrom $mMsg
 		    return
 		# Message to channel
 		} else {
@@ -356,12 +394,11 @@ snit::type tab {
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug BOTTOM
-	    # MODE
-	    #if {[expr {$mServer == $nick} ]} {
+	    if {$mSomething == "NICK" } {
+		$self nickChanged $mMsg
+	    } else {
 		$self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
-	    #} else {
-		#$self handleReceived $mServer bold $mMsg "" 
-	    #}
+	    }
 	    return
 	}
 	debug "WHAT: $line"
@@ -468,23 +505,38 @@ snit::type tab {
 	} else {
 	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	    $self _send "PART $chann $reason"
-	    $self handleReceived $timestamp " \[PART\] " bold "You have left the channel" ""
+	    $self handleReceived $timestamp \[PART\] bold "You have left the channel" ""
 	    
-	    
-	    set idx [lsearch $activeChannels $chann]
-	    set activeChannels [lreplace $activeChannels $idx $idx]
+	    $ServerRef removeActiveChannel $chann
 
 	    set parts [split [$Main::notebook raise] "*"]
 	    set serv [lindex $parts 0]
 	    set chan [lindex $parts 1]
 	    regsub -all "_" $serv "." serv
-	    $Main::servers($serv) updateToolbar $chan
+	    $self updateToolbar $chan
 	}
     }
     
-    ############## Change the nick ##############
-    method changeNick {newnick} {
-	#nick = $newnick
+    method removeActiveChannel {chann} {
+	if { [string length $server] > 0 } {
+	    puts "REMOVING: $activeChannels"
+	    set idx [lsearch $activeChannels $chann]
+	    set activeChannels [lreplace $activeChannels $idx $idx]
+	}
+    }
+    
+    ############## Nick has been changed ##############
+    method nickChanged {newnick} {
+	if { [string length $server] > 0 } {
+	    set nick $newnick
+	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	    foreach key [array names $activeChannels] {
+		$activeChannels($key) handleReceived $timestamp "***" bold "You are now known as $nick" ""
+	    }
+	    $self handleReceived $timestamp "***" bold "You are now known as $nick" ""
+	} else {
+	    $ServerRef nickChanged $newnick
+	}
     }
     
     

@@ -23,8 +23,8 @@ proc getTitle {mCode} {
 	    return \[Support\]
 	}
 	250 {
-		#RPL_STATSDLINE (Freenode)
-		return \[Stats\]
+	    #RPL_STATSDLINE (Freenode)
+	    return \[Stats\]
 	}
 	251 {
 	    #RPL_LUSERCLIENT
@@ -99,17 +99,21 @@ proc getTitle {mCode} {
 	    #RPL_ENDOFMOTD
 	    return \[MOTD\]
 	}
+	401 {
+	    #ERR_NOSUCHNICK 
+	    return \[ERROR\]
+	}
 	433 {
-		#ERR_NICKNAMEINUSE 
-		return \[ERROR\]
+	    #ERR_NICKNAMEINUSE 
+	    return \[ERROR\]
 	}
 	477 {
 	    #ERR_NEEDREGGEDNICK
 	    return \[ERROR\]
 	}
 	486 {
-		#ERR_NONONREG 
-		return \[ERROR\]
+	    #ERR_NONONREG 
+	    return \[ERROR\]
 	}
 	default {
 	    return \[$mCode\]
@@ -123,25 +127,60 @@ proc performSpecialCase {msg obj} {
 
 	#/connect
 	if [regexp {^connect ([^ ]+) ?([0-9]*)} $msg -> serv port] {
-		if {[string length $port] == 0} {
-			set port $Main::DEFAULT_PORT
-		}
-		debug "Connecting: $serv $port"
-		Main::createConnection $serv $port [$obj getNick]
-		return true
+	    if {[string length $port] == 0} {
+		    set port $Main::DEFAULT_PORT
+	    }
+	    debug "Connecting: $serv $port"
+	    Main::createConnection $serv $port [$obj getNick]
+	    return true
 	}
 	#/join
 	if [regexp {^join ([^ ]+) ?(.*)} $msg -> chann channPass] {
-		debug "Joining: $"
-		$obj joinChan $chann $channPass
+	    debug "Joining: $chann"
+	    $obj joinChan $chann $channPass
+	    return true
+	}
+	#/msg
+	if [regexp {^msg ([^ ]+) (.*)} $msg -> nick msg] {
+	    debug "Msging: $nick"
+	    $obj sendPM $nick $msg
+	    #$obj _send "PRIVMSG notbryant Hello"
+	    return true
+	}
+	
+	#/quit
+	if [regexp {^quit ?(.*)} $msg -> reason] {
+	    debug "Quitting: $reason"
+	    $obj quit $reason
+	    return true
+	}
+	#/part
+	if [regexp {^part ?(.*)} $msg -> msg] {
+	    debug "Parting: $msg"
+	    if [$obj isServer] {
+		regexp {([^ ]+) (.*)} $msg -> channs msg
+		set channlist [split $channs ","]
+		#TODO: Test this
+		foreach chann $channlist {
+		    $obj part $chann $msg
+		}
+	    } else {
+		$obj part [$obj getChannel] $msg
+	    }
+	    return true
+	}
+	#/nick
+	if [regexp {^nick (.*)} $msg -> newnick] {
+	    debug "Newnick: $newnick"
+	    #Sends what is, essentially, a request to the server to change the nick.
+	    #The server responds, and then [$obj nickChanged] handles the response
+	    $obj _send "NICK $newnick"
+	    return true
 	}
 	return true
 
 	
-	#/msg
-	#/part
 	#/partall
-	#/quit
 	#/me
 	#/nick
 	    #"You are now known as"

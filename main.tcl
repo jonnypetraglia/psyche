@@ -113,7 +113,7 @@ proc Main::init { } {
 }
 
 proc Main::pressTab { args} {
-    set parts [split $args "*"]
+    set parts [split $args "\*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
@@ -125,6 +125,7 @@ proc Main::showConnectDialog { } {
     
     destroy .connectDialog
     toplevel .connectDialog -padx 10 -pady 10
+    wm title .connectDialog "Connect"
     wm transient .connectDialog .
     wm resizable .connectDialog 0 0
     
@@ -158,6 +159,7 @@ proc Main::showJoinDialog { } {
     
     destroy .joinDialog
     toplevel .joinDialog -padx 10 -pady 10
+    wm title .joinDialog "Join"
     wm transient .joinDialog .
     wm resizable .joinDialog 0 0
     
@@ -262,6 +264,7 @@ proc Main::channelList {} {
 
     destroy .channelList
     toplevel .channelList -padx 10 -pady 10
+    wm title .channelList "Channel List"
     wm transient .channelList .
     wm resizable .channelList 400 300
 
@@ -310,17 +313,22 @@ proc Main::refreshChannelList {} {
 proc Main::showNickDialog {} {
     destroy .nickDialog
     toplevel .nickDialog -padx 10 -pady 10
+    wm title .nickDialog "Change Nick"
     wm transient .nickDialog .
     wm resizable .nickDialog 0 0
     
-    label .nickDialog.l_nick -text "Channel"
+    label .nickDialog.l_nick -text "New Nick"
     entry .nickDialog.nick -width 20
+    label .nickDialog.l_pass -text "NickServ pass\n(if registered)"
+    entry .nickDialog.pass -width 20
     .nickDialog.nick configure -background white
     button .nickDialog.change -text "Change"
     
     grid config .nickDialog.l_nick -row 0 -column 0 -sticky "w"
-    grid config .nickDialog.nick   -row 1 -column 0
-    grid config .nickDialog.change     -row 1 -column 1
+    grid config .nickDialog.nick   -row 0 -column 1
+    grid config .nickDialog.l_pass -row 1 -column 0 -sticky "w"
+    grid config .nickDialog.pass   -row 1 -column 1
+    grid config .nickDialog.change     -row 2 -column 1
     bind .nickDialog.change <ButtonPress> Main::nickDialogConfirm
     
     foreground_win .nickDialog
@@ -329,7 +337,17 @@ proc Main::showNickDialog {} {
 }
 
 proc Main::nickDialogConfirm {} {
+    set newnick [.nickDialog.nick get]
+    set newpass [.nickDialog.pass get]
+
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
     
+    $Main::servers($serv) _send "NICK $newnick"
+    if {[string length $newpass] > 0 } {
+	$Main::servers($serv) _send "PRIVMSG NickServ identify $newpass"
+    }
 }
 
 proc Main::foreground_win { w } {
