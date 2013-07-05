@@ -569,10 +569,13 @@ snit::type tab {
 
     ############## Internal function ##############
     method handleReceived {timestamp title style1 message style2} {
+	set isAtBottom [lindex [$chat yview] 1]
 	$self append $timestamp\  timestamp
 	$self append $title\  $style1
 	$self append $message\n $style2
-	$chat yview end
+	if {$isAtBottom==1.0} {
+	    $chat yview end
+	}
     }
     
     ############## Send Message ##############
@@ -688,7 +691,7 @@ snit::type tab {
     }
     
     ############## Used by the server to notify its children that it is away ##############
-    method awaySignalServer { reason } {
+    method awaySignalServer {reason} {
 	if { [string length $server] > 0 } {
 	    foreach key $activeChannels {
 		$channelMap($key) away $reason
@@ -724,6 +727,7 @@ snit::type tab {
 	grid $awayLabel
     }
     
+     ############## Toggles away status ##############
     method toggleAway {} {
 	set reason [$awayLabel cget -text]
 	# Is away, come back
@@ -747,22 +751,7 @@ snit::type tab {
     }
 }
 
-############## in: determines if an element is in a list? ##############
-    proc in {list element} {expr {[lsearch -exact $list $element]>=0}}
-    
-# ~ = admin
-# & = owner
-# @ = op
-# % = halfop
-# + = voice
-    
 variable compareNickString
-#variable compareNickMap
-#set compareNickMap(~) 0
-#set compareNickMap(&) 1
-#set compareNickMap(@) 2
-#set compareNickMap(%) 3
-#set compareNickMap(+) 4
     
 proc compareNick {a b} {
     global compareNickString;
@@ -775,11 +764,9 @@ proc compareNick {a b} {
     # Determine if either start with a special symbol
     if {[regexp "^\[$compareNickString\].*" $a0]} {
 	set av [string first [string index $a0 0] $compareNickString ]
-	#set av $compareNickMap([string index $a0 0])
     }
     if {[regexp "^\[$compareNickString\].*" $b0]} {
 	set bv [string first [string index $b0 0] $compareNickString ]
-	#set bv $compareNickMap([string index $b0 0])
     }
 
     # If they are the same class (e.g. both ops OR both normal (10))

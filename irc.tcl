@@ -345,9 +345,8 @@ proc performSpecialCase {msg obj} {
 	#/away
 	if [regexp "^away ?\(.*\)" $msg -> reason] {
 	    $obj _send "AWAY $reason"
-	    if {[string length $reason] >0 } {
-		$obj awaySignalServer $reason
-	    }
+	    # This is the only place we can get the reason, so we have to signal from here
+	    $obj awaySignalServer $reason
 	    return true
 	}
 	
@@ -407,6 +406,7 @@ proc performSpecialCase {msg obj} {
 	return false
 
 	
+	############TODO
 	#/chat
 	#/notice
 	#/partall
@@ -417,5 +417,4 @@ proc performSpecialCase {msg obj} {
 	#/modes
 	#/setname
 	#/silence {+/-nick}
-	#/watch
 }
