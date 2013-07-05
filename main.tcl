@@ -386,6 +386,14 @@ proc Main::nickDialogConfirm {} {
     }
 }
 
+proc Main::showProperties {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    
+    $Main::servers($serv) showProperties
+}
+
 proc Main::foreground_win { w } {
     wm withdraw $w
     wm deiconify $w

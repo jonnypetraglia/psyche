@@ -4,12 +4,25 @@ snit::type tab {
     variable nick
     variable server
     variable ServerRef
-    variable fileDesc
+    variable connDesc
     variable channelMap
     variable activeChannels
     variable id_var
-    variable irc_conn
-    variable channelPrefixes
+    
+    # Server
+    variable CreationTime
+    variable MOTD
+    variable ChannelPrefixes
+    variable NickPrefixes
+    variable NetworkName
+    variable ServerName
+    variable ServerDaemon
+    
+    # Channel
+    variable Topic
+    variable TopicTime
+    
+    #TODO
     variable serverType
     # ^ Unreal3.2.8-gs.9
     # ^ ircd-seven-1.1.3
@@ -68,7 +81,7 @@ snit::type tab {
     
     ############## getId ##############
     method getId {} { return $id_var }
-    method getfileDesc {} { return $fileDesc }
+    method getconnDesc {} { return $connDesc }
     method isServer {} {
 	if {[string length $server] > 0} {
 	    return 1
@@ -85,7 +98,7 @@ snit::type tab {
 	if {[string length $server] > 0} {
 	    return [$SeverRef getChannPrefixes]
 	}
-	return $channelPrefixes
+	return $ChannelPrefixes
     }
 
 
@@ -231,7 +244,7 @@ snit::type tab {
 	#Is Server
 	if { [string length $server] > 0 } {
 	    #Is connected
-	    if { [string length $fileDesc] > 0 } {
+	    if { [string length $connDesc] > 0 } {
 		$Main::toolbar_join configure -state normal
 		$Main::toolbar_disconnect configure -state normal
 		$Main::toolbar_reconnect configure -state disabled
@@ -255,7 +268,7 @@ snit::type tab {
 	#Is Channel
 	} else {
 	    #Is connected
-	    if { [string length [$ServerRef getfileDesc] ] > 0 } {
+	    if { [string length [$ServerRef getconnDesc] ] > 0 } {
 		#Is connected to this channel
 		puts "UPDATETOOLBAR: $mTarget [lsearch $activeChannels $mTarget]"
 		if { [$ServerRef isChannelConnected $mTarget] } {
@@ -294,12 +307,12 @@ snit::type tab {
     
     ############## Init Server ##############
     method initServer {} {
-	set fileDesc [socket $server $port]
-	puts $fileDesc
+	set connDesc [socket $server $port]
+	puts $connDesc
 	$self _send "NICK $nick"
 	#TODO: What is this
-	$self _send "USER $nick 0 * :PicoIRC user"
-	fileevent $fileDesc readable [mymethod _recv]
+	$self _send "USER $nick 0 * :Psyche user"
+	fileevent $connDesc readable [mymethod _recv]
 	$self updateToolbar ""
     }
     
@@ -350,8 +363,7 @@ snit::type tab {
     
     ############## Internal Function ##############
     method _recv {} {
-	global compareNickString;
-	gets $fileDesc line
+	gets $connDesc line
 	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	debug $line
 	
@@ -431,6 +443,10 @@ snit::type tab {
 		002 {
 		    #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
 		    #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
+		    regexp {^Your host is ([^,]+), running version (.*)} $mMsg -> ServerName ServerDaemon
+		}
+		003 {
+		    regexp {^This server was created (.*)} $mMsg -> CreationTime
 		}
 		303 {
 		    #RPL_ISON
@@ -452,6 +468,7 @@ snit::type tab {
 		    if {[string length $mMsg] == 0} {
 			set mMsg "(No topic set)"
 		    }
+		    set Topic $mMsg
 		}
 		353 {
 		    #RPL_NAMREPLY
@@ -483,7 +500,6 @@ snit::type tab {
 		    return
 		}
 	    }
-	    debug "$mCode!!!$mTarget"
 	    if [info exists channelMap($mTarget)] {
 			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
 			return
@@ -500,13 +516,15 @@ snit::type tab {
 		005 {
 		    # Pull out CHANTYPES (prefixes for channels)
 		    if [regexp {.*CHANTYPES=([^ ]+) .*} $mMsg -> derp] {
-			set channelPrefixes $derp
+			set ChannelPrefixes $derp
 		    }
 		    
 		    # Pull out PREFIX (user modes, e.g. ~&@%+)
 		    if [regexp {.*PREFIX=([^ ]+) .*} $mMsg -> userModes] {
-			set compareNickString $userModes
+			set NickPrefixes $userModes
 		    }
+		    
+		    regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
 		}
 		322 {
 		    #RPL_LIST 
@@ -535,23 +553,75 @@ snit::type tab {
 	    return
 	}
 	
-	# Server message with no numbers but sent explicitely from server
-	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
-	    debug BOTTOM
-	    switch $mSomething {
+	#:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
+	if {[regexp {:([^!]*)!.* ([^ ]*) [^:]*:(.*)} $line -> mNick mSomething mMsg]} {
+		switch $mSomething {
 		"NICK" {
-		    $self nickChanged $mMsg
+		    if {$mNick == [$self getNick]} {
+			$self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
+			$self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
+			$self nickChanged $mMsg
+		    } else {
+			#$self handleReceived $timestamp "***" bold "$mNick is now known as $mMsg" ""
+			$self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" ""
+		    }
+		    return
 		}
 		"JOIN" {
-		    $self joinChan $mMsg ""
+		    if {$mNick == [$self getNick]} {
+			$self joinChan $mMsg ""
+		    } else {
+			$channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" ""
+		    }
+		    return
 		}
 		default {
 		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
 		}
 	    }
-	    return
+	}
+	
+	
+	# Server message with no numbers but sent explicitely from server
+	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
+	    debug BOTTOM
+	    debug "!!!!!!!!!$line"
 	}
 	debug "WHAT: $line"
+    }
+    
+    method propogateMessage {what timestamp title titleStyle msg msgStyle} {
+	if { [string length $server] > 0 } {
+	    foreach key $activeChannels {
+		$channelMap($key) propogateMessage $what $timestamp $title $titleStyle $msg $msgStyle
+	    }
+	    return
+	}
+	
+	puts "WHAT: $what"
+	
+	#if what is NICK, check the nick list
+	if {$what == "NICK"} {
+	    regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
+	    set ind [lsearch $nickList $oldNick]
+	    #TODO ^ -sorted
+	    if {$ind > -1} {
+		lset nickList $ind $newNick
+		set nickList [lsort -command [mymethod compareNick] $nickList]
+	    } else { return }
+	}
+	
+	if {$what == "MYNICK"} {
+	    regexp {You are now known as (.*)} $msg -> newNick
+	    set ind [lsearch $nickList [$self getNick]]
+	    #TODO ^ -sorted
+	    if {$ind > -1} {
+		lset nickList $ind $newNick
+		set nickList [lsort -command [mymethod compareNick] $nickList]
+	    }
+	}
+	
+	$self handleReceived $timestamp $title $titleStyle $msg $msgStyle
     }
     
     ############## Add a batch of users to the nick list ##############
@@ -564,7 +634,7 @@ snit::type tab {
     
     ############## Sort the nick list ##############
     method sortUsers {} {
-	set nickList [lsort -command compareNick $nickList]
+	set nickList [lsort -command [mymethod compareNick] $nickList]
     }
 
     ############## Internal function ##############
@@ -617,7 +687,7 @@ snit::type tab {
     ############## Internal function ##############
     method _send {str} {
 	if { [string length $server] > 0 } {
-	    puts $fileDesc $str; flush $fileDesc
+	    puts $connDesc $str; flush $connDesc
 	} else {
 	    $ServerRef _send $str
 	}
@@ -628,14 +698,12 @@ snit::type tab {
 	if { [string length $server] > 0 } {
 	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	    $self _send "QUIT $reason"
-	    close $fileDesc
-	    set fileDesc ""
+	    close $connDesc
+	    set connDesc ""
 	    $self handleReceived $timestamp " \[QUIT\] " bold "You have left the server" ""
 	    $self updateToolbar ""
 	    
-	    #foreach cha $channelMap {
-		#TODO: Print in each Channel's tab
-	    #}
+	    $self propogateMessage ALL $timestamp " \[QUIT\] " bold "You have left the server" ""
 	} else {
 	    $ServerRef quit $reason
 	}
@@ -674,10 +742,11 @@ snit::type tab {
 	if { [string length $server] > 0 } {
 	    set nick $newnick
 	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
-	    foreach key [array names $activeChannels] {
-		$activeChannels($key) handleReceived $timestamp "***" bold "You are now known as $nick" ""
-	    }
-	    $self handleReceived $timestamp "***" bold "You are now known as $nick" ""
+	    #foreach key $activeChannels {
+		#$activeChannels($key) handleReceived $timestamp "***" bold "You are now known as $nick" ""
+	    #}
+	    #$self propogateMessage ALL $timestamp "***" bold "You are now known as $nick" ""
+	    #$self handleReceived $timestamp "***" bold "You are now known as $nick" ""
 	} else {
 	    $ServerRef nickChanged $newnick
 	}
@@ -741,6 +810,21 @@ snit::type tab {
     
     
     
+    method showProperties {} {
+	if { [string length $server] > 0 } {
+	    puts $CreationTime
+	    puts $ChannelPrefixes
+	    puts $NickPrefixes
+	    puts $NetworkName
+	    puts $ServerName
+	    puts $ServerDaemon
+	} else {
+	    puts $Topic
+	    puts $TopicTime
+	}
+    }
+    
+    
     method _setData {newport newnick} {
 	if { [string length $server] > 0 } {
 		set nick $newnick
@@ -749,36 +833,34 @@ snit::type tab {
 		$ServerRef _setNick $newport $newnick
 	}
     }
-}
+    
+    
+    method compareNick {a b} {
+	set av 10
+	set bv 10
+	set a0 [lindex $a 0]
+	set b0 [lindex $b 0]
+	
+	
+	# Determine if either start with a special symbol
+	if {[regexp "^\[[myvar NickPrefixes]\].*" $a0]} {
+	    set av [string first [string index $a0 0] [myvar NickPrefixes] ]
+	}
+	if {[regexp "^\[[myvar NickPrefixes]\].*" $b0]} {
+	    set bv [string first [string index $b0 0] [myvar NickPrefixes] ]
+	}
 
-variable compareNickString
-    
-proc compareNick {a b} {
-    global compareNickString;
-    set av 10
-    set bv 10
-    set a0 [lindex $a 0]
-    set b0 [lindex $b 0]
-    
-    
-    # Determine if either start with a special symbol
-    if {[regexp "^\[$compareNickString\].*" $a0]} {
-	set av [string first [string index $a0 0] $compareNickString ]
-    }
-    if {[regexp "^\[$compareNickString\].*" $b0]} {
-	set bv [string first [string index $b0 0] $compareNickString ]
-    }
-
-    # If they are the same class (e.g. both ops OR both normal (10))
-    if {$av == $bv } {
-	return [string compare [lindex $a 1] [lindex $b 1]]
-    } else {
-	if {$av < $bv} {
-	    return -1
-	} elseif {$av > $bv} {
-	    return 1
+	# If they are the same class (e.g. both ops OR both normal (10))
+	if {$av == $bv } {
+	    return [string compare [lindex $a 1] [lindex $b 1]]
 	} else {
-		return 0
+	    if {$av < $bv} {
+		return -1
+	    } elseif {$av > $bv} {
+		return 1
+	    } else {
+		    return 0
+	    }
 	}
     }
 }

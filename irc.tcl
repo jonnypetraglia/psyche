@@ -297,7 +297,6 @@ proc performSpecialCase {msg obj} {
 	}
 	#/nick
 	if [regexp {^nick ([^ ]+)} $msg -> newnick] {
-	    debug "Newnick: $newnick"
 	    #Sends what is, essentially, a request to the server to change the nick.
 	    #The server responds, and then [$obj nickChanged] handles the response
 	    $obj _send "NICK $newnick"

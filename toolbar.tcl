@@ -48,7 +48,8 @@ proc Main::init_toolbar { } {
     set Main::toolbar_properties [\
     $bbox add -image [image create photo -file $icondir/properties.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Server/Channel Properties" -state disabled]
+        -helptext "Server/Channel Properties" -state disabled \
+        -command Main::showProperties]
     set Main::toolbar_away [\
     $bbox add -image [image create photo -file $icondir/away.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
