@@ -42,7 +42,10 @@ namespace eval Main {
 
 namespace eval Pref {
     variable raiseNewTabs
+    variable defaultAway
+    
     set raiseNewTabs false
+    set defaultAway "I'm away"
 }
 
 source tab.tcl
@@ -89,7 +92,8 @@ proc Main::init { } {
     # NoteBook creation
     set frame    [$Main::mainframe getframe]
     set Main::notebook [NoteBook $frame.nb]
-    $Main::notebook bindtabs <ButtonPress> { Main::pressTab }
+    $Main::notebook bindtabs <1> { Main::pressTab }
+    $Main::notebook bindtabs <3> { Main::tabContext }
     
     
     $Main::notebook compute_size
@@ -103,7 +107,15 @@ proc Main::init { } {
     set Main::servers(1) [tab %AUTO%]
     $Main::notebook compute_size
     wm title . "$Main::APP_NAME v$Main::APP_VERSION"
-    wm minsize . [winfo width .] [winfo height .]
+    
+    # Measure the GUI
+    bind . <Configure> { 
+	if {"%W" == ".mainframe.status.prgf"} {
+	    bind . <Configure> ""
+	    wm minsize . [winfo width .] [winfo height .]
+	    puts "MinSize: [winfo width .]x[winfo height .]"
+	}
+    }
     $Main::notebook delete [$Main::servers(1) getId] 1
     unset Main::servers(1)
     
@@ -119,6 +131,28 @@ proc Main::pressTab { args} {
     set chan [lindex $parts 1]
     
     $Main::servers($serv) updateToolbar $chan
+}
+
+proc Main::tabContext { args} {
+    puts "RIGHTCLICKED"
+}
+
+proc Main::pressAway { args } {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    $Main::servers($serv) toggleAway
+}
+
+proc Main::updateAwayButton {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    $Main::servers($serv) updateToolbarAway $chan
 }
 
 proc Main::showConnectDialog { } {
@@ -192,7 +226,8 @@ proc Main::joinChannel {} {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     
-    $Main::servers($serv) joinChan $chan ""
+    $Main::servers($serv) _send "JOIN $chan"
+    #$Main::servers($serv) joinChan $chan ""
 }
 
 proc Main::createConnection {serv por nick} {
@@ -356,6 +391,6 @@ proc Main::foreground_win { w } {
     wm deiconify $w
 }
 
+Main::init
 toplevel .channelList -padx 10 -pady 10
 wm state .channelList withdrawn
-Main::init

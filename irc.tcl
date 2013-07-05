@@ -1,10 +1,14 @@
 
 #Unreal ircu Hybrid IRCnet aircd Bahamut PTLink KineIRCd AustHex Anothernet GameSurge Ithildin RatBox
+set IrcCodes(232_Unreal) Rules
 set IrcCodes(290_Unreal) Help 
 set IrcCodes(290_aircd) Info
 set IrcCodes(290_QuakeNet) Data
 set IrcCodes(292_Unreal) Help 
 set IrcCodes(292_aircd) Info
+set IrcCodes(309_aircd) Trace
+set IrcCodes(309_Bahamut) Admin
+set IrcCodes(309_AustHex) WhoIs
 
 # https://www.alien.net.au/irc/irc2numerics.html
 # http://www.godspeak.net/chat/basic_irc.html
@@ -29,6 +33,28 @@ proc getTitle {mCode} {
 	005 {
 	    #RPL_BOUNCE (RFC2812)
 	    return \[Support\]
+	}
+	006 {
+	    #RPL_MAP (Unreal)
+	    return \[Map\]
+	}
+	007 {
+	    #RPL_MAPEND (Unreal)
+	    return \[Map\]
+	}
+	210 {
+	    #RPL_TRACERECONNECT (RFC2812)
+	    #RPL_STATS (aircd)
+	    return \[Stats\]
+	}
+	219 {
+	    #RPL_ENDOFSTATS (RFC1459)
+	    return \[Stats\]
+	}
+	232 {
+	    #RPL_RULES (Unreal)
+	    return \[Rules\]
+	    #RPL_ENDOFSERVICES (RFC1459)
 	}
 	250 {
 	    #RPL_STATSDLINE (RFC1459)
@@ -74,6 +100,29 @@ proc getTitle {mCode} {
 	    return \[Help\]
 	    #RPL_CHANINFO_BANS (aircd)
 	}
+	302 {
+	    #RPL_USERHOST
+	    return \[UserHost\]
+	}
+	303 {
+	    #RPL_ISON (RFC1459)
+	    return \[IsOn\]
+	}
+	305 {
+	    #RPL_UNAWAY (RFC1459)
+	    return \[Away\]
+	}
+	306 {
+	    #RPL_NOWAWAY (RFC1459)
+	    return \[Away\]
+	}
+	309 {
+	    #RPL_NICKTRACE (aircd)
+	    #RPL_WHOISSADMIN (Bahamut)
+	    #RPL_ENDOFRULES (Unreal)
+	    return \[Rules\]
+	    #RPL_WHOISHELPER (AustHex)
+	}
 	321 {
 	    #RPL_LISTSTART (RFC1459)
 	    return \[List\]
@@ -101,19 +150,43 @@ proc getTitle {mCode} {
 	    #RPL_TOPICWHOTIME (ircu)
 	    return \[Topic\]
 	}
+	340 {
+	    #RPL_USERIP (ircu)
+	    return \[UserIP\]
+	}
+	351 {
+	    #RPL_VERSION (RFC1459)
+	    return \[Version\]
+	}
 	353 {
 	    #RPL_NAMREPLY (RFC1459)
 	    # Use this to update nicklist
 	    return ""
+	}
+	364 {
+	    #RPL_LINKS
+	    return \[Links\]
+	}
+	365 {
+	    #RPL_ENDOFLINKS 
+	    return \[Links\]
 	}
 	366 {
 	    #RPL_ENDOFNAMES (RFC1459)
 	    # Use this to update nicklist
 	    return ""
 	}
+	371 {
+	    #RPL_INFO
+	    return \[Info\]
+	}
 	372 {
 	    #RPL_MOTD (RFC1459)
 	    return \[MOTD\]
+	}
+	374 {
+	    #RPL_ENDOFINFO
+	    return \[Info\]
 	}
 	375 {
 	    #RPL_MOTDSTART (RFC1459)
@@ -125,6 +198,10 @@ proc getTitle {mCode} {
 	}
 	401 {
 	    #ERR_NOSUCHNICK (RFC1459)
+	    return \[ERROR\]
+	}
+	402 {
+	    #ERR_NOSUCHSERVER
 	    return \[ERROR\]
 	}
 	409 {
@@ -139,9 +216,18 @@ proc getTitle {mCode} {
 	    #ERR_NICKNAMEINUSE (RFC1459)
 	    return \[ERROR\]
 	}
+	442 {
+	    #ERR_NOTONCHANNEL (RFC1459)
+	    return \[ERROR\]
+	}
 	477 {
 	    #ERR_NEEDREGGEDNICK (Bahamut, ircu, Unreal)
 	    #ERR_NOCHANMODES (RFC1459)
+	    return \[ERROR\]
+	}
+	480 {
+	    #ERR_NOULINE (AustHex)
+	    #ERR_CANNOTKNOCK (Unreal)
 	    return \[ERROR\]
 	}
 	482 {
@@ -160,6 +246,8 @@ proc getTitle {mCode} {
     }
 }
 
+# http://static.quadpoint.org/irssi-docs/help-full.html
+# http://www.user-com.undernet.org/documents/ctcpdcc.txt
 # returns 1 if it was handled (if it was a special case), 0 otherwise
 proc performSpecialCase {msg obj} {
 	puts "!!!!!!$msg"
@@ -176,7 +264,7 @@ proc performSpecialCase {msg obj} {
 	#/join
 	if [regexp {^join ([^ ]+) ?(.*)} $msg -> chann channPass] {
 	    debug "Joining: $chann"
-	    $obj joinChan $chann $channPass
+	    $obj _send "$msg"
 	    return true
 	}
 	#/msg OR /query
@@ -225,7 +313,8 @@ proc performSpecialCase {msg obj} {
 	
 	#/kick
 	#/topic
-	set thingsToChannelize "(kick|topic)"
+	#/identify
+	set thingsToChannelize "(kick|topic|identify)"
 	if [regexp "^$thingsToChannelize \(.*\)" $msg -> cmd target] {
 	    debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
 	    if [regexp "^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)" $msg -> chann target] {
@@ -253,42 +342,42 @@ proc performSpecialCase {msg obj} {
 	}
 	
 	
+	#/away
+	if [regexp "^away ?\(.*\)" $msg -> reason] {
+	    $obj _send "AWAY $reason"
+	    if {[string length $reason] >0 } {
+		$obj awaySignalServer $reason
+	    }
+	    return true
+	}
+	
 	#/ping
 	if [regexp "^ping \(.*\)" $msg -> target] {
 	    $obj _send "PRIVMSG $target :\001PING [clock seconds]\001"
 	    return true
 	}
 	
-	#/admin
-	#/credits
-	#/help
-	#/ignore
-	#/list
-	#/map
-	#/motd
-	#/notify
-	#/time
-	#/who
-	#/whois
-	#/whowas
-	set thingsToIgnore "(admin|credits|help|ignore|list|map|motd|notify|time|whowhois)"
-	if [regexp "^$thingsToIgnore\(.*\)" $msg -> cmd derp] {
-	    return false
+	#/ctcp
+	if [regexp {^ctcp ([^ ]+) ?(.*)} $msg -> target cmd] {
+	    $obj _send "PRIVMSG $target :\001$cmd\001"
+	    return true
 	}
-	return true
-
-	#/notice
-	#/partall
 	
-	#/away
+	#/clear
+	if [regexp {^clear.*} $msg] {
+	    $obj clearScrollback
+	    return true
+	}
+	
+	
+	#### Misc commands that are tested to work ###
+	#/admin
 	#/botmotd
-	#/chat
-	    #/clear
-	    #/ctcp {nick} {ping|finger|version|time|userinfo|clientinfo}
-	#/cycle?
+	#/credits
 	#/dns
+	#/help
 	#/helpop
-	#/identify
+	#/ignore
 	#/ison
 	#/knock
 	#/license
@@ -296,16 +385,37 @@ proc performSpecialCase {msg obj} {
 	#/list
 	#/lusers
 	#/map
-	    #/mode {#channel|nick} [[+|-]modechars [parameters]]
-	#/modes
 	#/module
-	#/setname
-	#/silence {+/-nick}
-	#/slap {nick}
+	#/motd
+	#/notify | /watch
+	#/rules
 	#/stats
+	#/time
 	#/userhost
 	#/userip
-	#/watch
-	#/version
+	#/version (to Server)
 	#/vhost
+	#/who
+	#/whois
+	#/whowas
+	set thingsToIgnore "(admin|botmotd|credits|dns|help|helpop|ignore|ison|license|links|list|lusers|map|motd|module|notify|watch|stats|time|userhost|userip|version|vhost|who|whois|whowas)"
+	if [regexp "^$thingsToIgnore\(.*\)" $msg -> cmd derp] {
+	    return false
+	}
+	#return true
+	puts "SENDING:    $msg"
+	return false
+
+	
+	#/chat
+	#/notice
+	#/partall
+	#/slap {nick}
+	
+	#/cycle?
+	    #/mode {#channel|nick} [[+|-]modechars [parameters]]
+	#/modes
+	#/setname
+	#/silence {+/-nick}
+	#/watch
 }

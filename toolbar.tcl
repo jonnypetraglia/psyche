@@ -52,7 +52,8 @@ proc Main::init_toolbar { } {
     set Main::toolbar_away [\
     $bbox add -image [image create photo -file $icondir/away.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Away/Back" -state disabled]
+        -helptext "Away/Back" -state disabled \
+        -command Main::pressAway]
     pack $bbox -side left -anchor w
     set sep [Separator $toolbar.sep2 -orient vertical]
     pack $sep -side left -fill y -padx 4 -anchor w

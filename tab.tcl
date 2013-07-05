@@ -22,6 +22,7 @@ snit::type tab {
     variable chat
     variable input
     variable nickList
+    variable awayLabel
 
     ############## Get nick string
     method getNick {} {
@@ -51,6 +52,11 @@ snit::type tab {
 		$channelMap($chan) initChan $pass
 	    } else {
 		set channelMap($chan) [tab %AUTO% CHAN $self $chan $pass]
+		set reason [$awayLabel cget -text]
+		if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
+		    $channelMap($chan) away $reason
+		    $channelMap($chan) _showAway
+		}
 	    }
 	    lappend activeChannels $chan
 	    $Main::notebook raise [$channelMap($chan) getId]
@@ -107,9 +113,9 @@ snit::type tab {
 	
 	if { [string length $args] > 0 } {
 	    if [expr { [string length $server] > 0 }] {
-			$self initServer
+		$self initServer
 	    } else {
-			$self initChan [lindex $args 3]
+		$self initChan [lindex $args 3]
 	    }
 	}
     }
@@ -156,23 +162,31 @@ snit::type tab {
 	# Magic bullshit
 	set frame [$Main::notebook insert end $id_var -text $name]
 	set topf  [frame $frame.topf]
+	
 	# Create the chat text widget
-	set chat [text $topf.chat -height 30 -wrap word -font {Arial 11}]
+	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11}]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
-	#$chat tag config blue   -foreground blue
+	$chat tag config blue   -foreground blue
 	$chat configure -background white
 	$chat configure -state disabled
 	
+	set lowerFrame [frame $topf.f]
+	
+	# Create the away label
+	set awayLabel [label $lowerFrame.l_away -text ""]
+	
 	# Create the input widget
-	set input [entry $topf.input]
+	set input [entry $lowerFrame.input]
 	$input configure -background white
 	bind $input <Return> [mymethod sendMessage]
-	
-	# Add widgets to GUI - Order matters here!
-	pack $input -side bottom -fill x
-	
+
+	grid $awayLabel -row 0 -column 0
+	grid $input -row 0 -column 1 -sticky ew
+	grid columnconfigure $lowerFrame 1 -weight 1
+	pack $lowerFrame -side bottom -fill x
+
 	# Create the nicklist widget
 	if { [string length $server] == 0 } {
 	    set nicklistPanedWindow [PanedWindow $topf.pw -side top]
@@ -187,8 +201,26 @@ snit::type tab {
 	
 	pack $chat -fill both -expand 1
 	pack $topf -fill both -expand 1
+	
+	grid remove $awayLabel
     }
 	
+    ############## Update the specific Away button ##############
+    method updateToolbarAway {mTarget} {
+	if [info exists channelMap($mTarget)] {
+	    $channelMap($mTarget) updateToolbarAway $mTarget
+	    return
+	}
+	
+	set icondir [pwd]/icons
+	set reason [$awayLabel cget -text]
+	if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
+	    $Main::toolbar_away configure -image [image create photo -file $icondir/back.gif] -helptext "Back"
+	} else {
+	    $Main::toolbar_away configure -image [image create photo -file $icondir/away.gif] -helptext "Away"
+	}
+    }
+    
     ############## Update the toolbar's statuses ##############
     method updateToolbar {mTarget} {
 	if [info exists channelMap($mTarget)] {
@@ -207,6 +239,7 @@ snit::type tab {
 		$Main::toolbar_channellist configure -state normal
 		$Main::toolbar_nick configure -state normal
 		$Main::toolbar_away configure -state normal
+		$self updateToolbarAway $mTarget
 	    } else {
 		$Main::toolbar_join configure -state disabled
 		$Main::toolbar_disconnect configure -state disabled
@@ -214,6 +247,7 @@ snit::type tab {
 		$Main::toolbar_properties configure -state disabled
 		$Main::toolbar_channellist configure -state disabled
 		$Main::toolbar_away configure -state disabled
+		$Main::toolbar_away configure -image [image create photo -file $icondir/away.gif]
 	    }
 	    $Main::toolbar_part configure -state disabled
 	    
@@ -272,7 +306,8 @@ snit::type tab {
     ############## Init Channel ##############
     method initChan {pass} {
 	if {[string index $channel 0] == "#"} {
-	    $self _send "JOIN $channel $pass"
+	    puts "HERP"
+	    #$self _send "JOIN $channel $pass"
 	}
     }
     
@@ -320,46 +355,69 @@ snit::type tab {
 	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	debug $line
 	
-	#PING
+	# PING
 	if {[regexp {^PING :(.*)} $line -> mResponse]} {
 	    $self _send "PONG :$mResponse"
 	    return
 	}
 	
+	# CTCP - EXCEPT for 
+	if {[regexp ":(\[^!\]*)!.* (\[^ \]*) [$self getNick] :\001\(\[^ \]*\) ?\(.*\)\001" \
+		$line -> mFrom mThing mCmd mContent]} {
+	    # mFrom    = User that sent CTCP msg
+	    # mThing   = NOTICE for response, PRIVMSG for initiation
+	    # mCmd     = VERSION, PING, etc
+	    # mContent = timestamp for PING, empty for VERSION, etc
+	    set mContent [string trim $mContent]
+	    switch $mCmd {
+		"PING" {
+		    if {$mThing == "NOTICE"} {
+			$self handleReceived $timestamp \[CTCP\] bold "Ping response from $mFrom: [expr {[clock seconds] - $mContent}] seconds" ""
+		    } else {
+			$self _send "NOTICE $mFrom :\001PING $mContent\001"
+			$self handleReceived $timestamp \[CTCP\] bold "Ping request from $mFrom" ""
+		    }
+		}
+		"VERSION" {
+		    if {$mThing == "NOTICE"} {
+			$self handleReceived $timestamp \[CTCP\] bold "Version response from $mFrom: $mContent" ""
+		    } else {
+			$self _send "NOTICE $mFrom :\001VERSION $Main::APP_NAME v$Main::APP_VERSION (C) 2013 Jon Petraglia"
+			$self handleReceived $timestamp \[CTCP\] bold "Version request from $mFrom" ""
+		    }
+		}
+	    }
+	    return
+	}
+	
+	
 	# Private message - sent to channel or user
 	if {[regexp {:([^!]*)(![^ ]+) +PRIVMSG ([^ :]+) +:(.*)} $line -> mFrom mHost mTo mMsg]} {
 	    debug TOP
 	    puts "FROM: $mFrom  TO: $mTo"
-	    # PRIVMSG
-	    if {$mFrom != "IRC"} {
-		# PM to me
-		if {$mTo == [$self getNick]} {
-		    # PM - /me
-		    if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
-			$self createPMTabIfNotExist $mFrom
-			$channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
-		    # PM - general
-		    } elseif [regexp {PING ([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9])} $mMsg -> mTime] {
-			$self handleReceived $timestamp \[CTCP\] bold "Ping from $mFrom" ""
-			$self _send "NOTICE $mFrom :\001PING $mTime\001"
-			#$self _send "PRIVMSG $mFrom :\001PING $mTime\001"
-		    } else {
-			$self createPMTabIfNotExist $mFrom
-			$channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg ""
-		    }
-		    
-		# Msg to channel
+	    # PM to me
+	    if {$mTo == [$self getNick]} {
+		# PM - /me
+		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+		    $self createPMTabIfNotExist $mFrom
+		    $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		# PM - general
 		} else {
-		    # Msg - /me
-		    if [regexp {\001ACTION(.+)\001} $mMsg -> mMsg] {
-			$channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
-		    # Msg - general
-		    } else {
-			$channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
-		    }
+		    $self createPMTabIfNotExist $mFrom
+		    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg ""
 		}
-		return
+		
+	    # Msg to channel
+	    } else {
+		# Msg - /me
+		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+		    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		# Msg - general
+		} else {
+		    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
+		}
 	    }
+	    return
 	}
 	
 	# Numbered message - sent to channel, user, or no one (mTarget could be blank)
@@ -374,10 +432,26 @@ snit::type tab {
 		    #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
 		    #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
 		}
-		333 {
-		    #RPL_TOPICWHOTIME
-		    regexp {^ChanServ (.*)} $mMsg -> mMsg
-		    set mMsg [clock format $mMsg]
+		303 {
+		    #RPL_ISON
+		    set mMsg "$mMsg is online"
+		}
+		305 {
+		    #RPL_UNAWAY
+		    $self _hideAway
+		    $self awaySignalServer ""
+		    Main::updateAwayButton
+		}
+		306 {
+		    #RPL_NOWAWAY
+		    $self _showAway
+		    Main::updateAwayButton
+		}
+		332 {
+		    #RPL_TOPIC
+		    if {[string length $mMsg] == 0} {
+			set mMsg "(No topic set)"
+		    }
 		}
 		353 {
 		    #RPL_NAMREPLY
@@ -395,33 +469,18 @@ snit::type tab {
 			return
 		    }
 		}
-		322 {
-		    #RPL_LIST 
-		    if {[wm state .channelList]=="normal"} {
-			if {[regexp {(#[^ ]+) ([0-9]+)} $mTarget -> mTarget mUserCount]} {
-			    #TODO: Fix regex to remove modes
-			    regexp { ?\[.*\] (.*)} $mMsg -> mMsg
-			    set whspc [string length $mTarget]
-			    set whspc [expr {33 - $whspc}]
-			    set whspc [string repeat " " $whspc]
-			    set sss [$self getServer]
-			    lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
-			}
-			return
-		    }
-		}
 		323 {
 		    #RPL_LISTEND
-		    if {[wm state .channelList]=="normal"} {
 			set sss [$self getServer]
 			set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
+		    if {[wm state .channelList]=="normal"} {
 			return
 		    }
 		}
 		328 {
-			#RPL_CHANNEL_URL
-			# Ignore
-			return
+		    #RPL_CHANNEL_URL
+		    # Ignore
+		    return
 		}
 	    }
 	    debug "$mCode!!!$mTarget"
@@ -441,40 +500,54 @@ snit::type tab {
 		005 {
 		    # Pull out CHANTYPES (prefixes for channels)
 		    if [regexp {.*CHANTYPES=([^ ]+) .*} $mMsg -> derp] {
-			#set channelPrefixes ""
-			#foreach m $derp {
-			#    set channelPrefixes "$channelPrefixes$m|"
-			#}
-			#set i [string length $channelPrefixes]
-			#incr i -2
-			#set channelPrefixes [string range $channelPrefixes 0 $i]
-			
 			set channelPrefixes $derp
-			puts "~!!~!~!~!~!~!~!~!~$channelPrefixes"
 		    }
 		    
 		    # Pull out PREFIX (user modes, e.g. ~&@%+)
 		    if [regexp {.*PREFIX=([^ ]+) .*} $mMsg -> userModes] {
-			set compareNickString $channelPrefixes
+			set compareNickString $userModes
+		    }
+		}
+		322 {
+		    #RPL_LIST 
+		    if {[regexp {(#[^ ]+) ([0-9]+)} $mMsg -> mTarget mUserCount]} {
+			#TODO: Fix regex to remove modes
+			regexp { ?\[.*\] (.*)} $mMsg -> mMsg
+			set whspc [string length $mTarget]
+			set whspc [expr {33 - $whspc}]
+			set whspc [string repeat " " $whspc]
+			set sss [$self getServer]
+			puts "$mTarget$whspc$mMsg"
+			lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
+		    }
+		    if {[wm state .channelList]=="normal"} {
+			return
+		    }
+		}
+		333 {
+		    #RPL_TOPICWHOTIME
+		    if {[regexp {(#[^ ]+) ([^ ]+) ([0-9]+)} $mMsg -> mTarget mBy mTopicTime]} {
+			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy at [clock format $mTopicTime]" ""
+			return
 		    }
 		}
 	    }
 	    return
 	}
 	
-	# Response from CTCP PING
-	if {[regexp ":(\[^!\]*)!.* NOTICE [$self getNick] :.?PING \(\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\[1-9\]\).?" $line -> mTarget mTime]} {
-	    $self handleReceived $timestamp \[CTCP\] bold "Ping Response: [expr {[clock seconds] - $mTime}] seconds" ""
-	    return
-	}
-	
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug BOTTOM
-	    if {$mSomething == "NICK" } {
-		$self nickChanged $mMsg
-	    } else {
-		$self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+	    switch $mSomething {
+		"NICK" {
+		    $self nickChanged $mMsg
+		}
+		"JOIN" {
+		    $self joinChan $mMsg ""
+		}
+		default {
+		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+		}
 	    }
 	    return
 	}
@@ -487,15 +560,11 @@ snit::type tab {
 	foreach usr $users {
 	    lappend nickList $usr
 	}
-	debug "TESTX"
-	debug $nickList
     }
     
     ############## Sort the nick list ##############
     method sortUsers {} {
 	set nickList [lsort -command compareNick $nickList]
-	debug "TEST366 $channel"
-	debug $nickList
     }
 
     ############## Internal function ##############
@@ -523,14 +592,8 @@ snit::type tab {
 		}
 	}
 
-	#/me
-	#if [regexp {^/me (.+)} $msg -> action] {
-	#    set msg "\001ACTION $action\001"
-	#}
 	
 	set style ""
-	
-	#if [regexp {\001ACTION(.+)\001} $msg -> msg] {set style italic}
 	
 	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
 	# Send to server
@@ -594,6 +657,7 @@ snit::type tab {
 	}
     }
     
+    ############## SERVER: Removes a channel from the active list ##############
     method removeActiveChannel {chann} {
 	if { [string length $server] > 0 } {
 	    puts "REMOVING: $activeChannels"
@@ -613,6 +677,61 @@ snit::type tab {
 	    $self handleReceived $timestamp "***" bold "You are now known as $nick" ""
 	} else {
 	    $ServerRef nickChanged $newnick
+	}
+    }
+    
+    ############## Clears the chat view ##############
+    method clearScrollback {} {
+	$chat configure -state normal
+	$chat delete 0.0 end
+	$chat configure -state disabled
+    }
+    
+    ############## Used by the server to notify its children that it is away ##############
+    method awaySignalServer { reason } {
+	if { [string length $server] > 0 } {
+	    foreach key $activeChannels {
+		$channelMap($key) away $reason
+	    }
+	    $self away $reason
+	} else {
+	    $ServerRef awaySignalServer $reason
+	}
+    }
+    
+    ############## Modifies the message away ##############
+    method away {reason } {
+	$awayLabel configure -text "(Away: $reason)"
+    }
+    
+    ############## Hides GUI element ##############
+    method _hideAway {} {
+	if { [string length $server] > 0 } {
+	    foreach key $activeChannels {
+		$channelMap($key) _hideAway
+	    }
+	}
+	grid remove $awayLabel
+    }
+    
+    ############## Shows GUI element ##############
+    method _showAway {} {
+	if { [string length $server] > 0 } {
+	    foreach key $activeChannels {
+		$channelMap($key) _showAway
+	    }
+	}
+	grid $awayLabel
+    }
+    
+    method toggleAway {} {
+	set reason [$awayLabel cget -text]
+	# Is away, come back
+	if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
+	    performSpecialCase "away" $self
+	# Is back, go away
+	} else {
+	    performSpecialCase "away $Pref::defaultAway" $self
 	}
     }
     
@@ -637,8 +756,8 @@ snit::type tab {
 # % = halfop
 # + = voice
     
-variable compareNickMap
 variable compareNickString
+#variable compareNickMap
 #set compareNickMap(~) 0
 #set compareNickMap(&) 1
 #set compareNickMap(@) 2
@@ -646,14 +765,12 @@ variable compareNickString
 #set compareNickMap(+) 4
     
 proc compareNick {a b} {
-    global compareNickMap;
     global compareNickString;
     set av 10
     set bv 10
     set a0 [lindex $a 0]
     set b0 [lindex $b 0]
     
-    puts "!!!!!!!!!!!DERP $compareNickString"
     
     # Determine if either start with a special symbol
     if {[regexp "^\[$compareNickString\].*" $a0]} {
