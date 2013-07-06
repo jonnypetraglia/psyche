@@ -389,9 +389,9 @@ proc Main::nickDialogConfirm {} {
 proc Main::showProperties {} {
     set parts [split [$Main::notebook raise] "*"]
     set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
-    
-    $Main::servers($serv) showProperties
+    $Main::servers($serv) showProperties $chan
 }
 
 proc Main::foreground_win { w } {

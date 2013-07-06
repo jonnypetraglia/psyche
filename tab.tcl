@@ -21,6 +21,9 @@ snit::type tab {
     # Channel
     variable Topic
     variable TopicTime
+    variable TopicAuthor
+    variable ModeList
+    variable BanList
     
     #TODO
     variable serverType
@@ -137,11 +140,9 @@ snit::type tab {
     method init {arg0 arg1 arg2 arg3} {
 	set nickList [list]
 	set activeChannels [list]
-
-	# blank if is channel, a string if is server
 	
 	debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
-	debug "  nick: !$arg0!"
+	debug "  type: !$arg0!"
 	
 	if { $arg0 == "CHAN"} {
 	    set ServerRef $arg1
@@ -159,7 +160,6 @@ snit::type tab {
     }
     
     ############## GUI stuff ##############
-    # name should probably not be blank
     # id_var definitely should not be blank
     method init_ui {} {
 	variable name
@@ -307,8 +307,34 @@ snit::type tab {
     
     ############## Init Server ##############
     method initServer {} {
-	set connDesc [socket $server $port]
-	puts $connDesc
+	if {[catch {set connDesc [socket $server $port]} fid] } {
+	    tk_messageBox -message "$fid" -parent . -title "Error" -icon error -type ok
+	    return
+	}
+	set nickList [list]
+	set activeChannels [list]
+	if [info exists CreationTime] {
+	    unset CreationTime
+	}
+	if [info exists MOTD] {
+	    unset MOTD
+	}
+	if [info exists ChannelPrefixes] {
+	    unset ChannelPrefixes
+	}
+	if [info exists NickPrefixes] {
+	    unset NickPrefixes
+	}
+	if [info exists NetworkName] {
+	    unset NetworkName
+	}
+	if [info exists ServerName] {
+	    unset ServerName
+	}
+	if [info exists ServerDaemon] {
+	    unset ServerDaemon
+	}
+	
 	$self _send "NICK $nick"
 	#TODO: What is this
 	$self _send "USER $nick 0 * :Psyche user"
@@ -319,8 +345,25 @@ snit::type tab {
     ############## Init Channel ##############
     method initChan {pass} {
 	if {[string index $channel 0] == "#"} {
-	    puts "HERP"
-	    #$self _send "JOIN $channel $pass"
+	    set nickList [list]
+	    if [info exists Topic] {
+		unset Topic
+	    }
+	    if [info exists TopicTime] {
+		unset TopicTime
+	    }
+	    if [info exists TopicAuthor] {
+		unset TopicAuthor
+	    }
+	    if [info exists ModeList] {
+		unset ModeList
+	    }
+	    if [info exists BanList] {
+		unset BanList
+	    }
+	    
+	    $self _send "MODE $channel"
+	    $self _send "MODE $channel +b"
 	}
     }
     
@@ -376,6 +419,7 @@ snit::type tab {
 	# CTCP - EXCEPT for 
 	if {[regexp ":(\[^!\]*)!.* (\[^ \]*) [$self getNick] :\001\(\[^ \]*\) ?\(.*\)\001" \
 		$line -> mFrom mThing mCmd mContent]} {
+	    debug "REC: CTCP"
 	    # mFrom    = User that sent CTCP msg
 	    # mThing   = NOTICE for response, PRIVMSG for initiation
 	    # mCmd     = VERSION, PING, etc
@@ -405,8 +449,7 @@ snit::type tab {
 	
 	# Private message - sent to channel or user
 	if {[regexp {:([^!]*)(![^ ]+) +PRIVMSG ([^ :]+) +:(.*)} $line -> mFrom mHost mTo mMsg]} {
-	    debug TOP
-	    puts "FROM: $mFrom  TO: $mTo"
+	    debug "REC: PRIVMSG"
 	    # PM to me
 	    if {$mTo == [$self getNick]} {
 		# PM - /me
@@ -432,11 +475,11 @@ snit::type tab {
 	    return
 	}
 	
-	# Numbered message - sent to channel, user, or no one (mTarget could be blank)
+	# Numbered message from a SERVER - sent to channel, user, or no one (mTarget could be blank)
 	#  Type A: Has an intended target, even if that target is blank;
 	#          Following the nick, there is a string of length 0 or more, then a space, then a colon
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
-	    debug MIDDLE
+	    debug "REC: Numbered from server"
 	    set mTarget [string trim $mTarget]
 	    set mMsg [string trim $mMsg]
 	    switch $mCode {
@@ -463,12 +506,31 @@ snit::type tab {
 		    $self _showAway
 		    Main::updateAwayButton
 		}
+		321 {
+		    #RPL_LISTSTART
+		    if {[wm state .channelList]=="normal"} {
+			return
+		    }
+		}
+		323 {
+		    #RPL_LISTEND
+		    set sss [$self getServer]
+		    set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
+		    if {[wm state .channelList]=="normal"} {
+			return
+		    }
+		}
+		328 {
+		    #RPL_CHANNEL_URL
+		    # Ignore
+		    return
+		}
 		332 {
 		    #RPL_TOPIC
 		    if {[string length $mMsg] == 0} {
 			set mMsg "(No topic set)"
 		    }
-		    set Topic $mMsg
+		    $channelMap($mTarget) setTopic $mMsg
 		}
 		353 {
 		    #RPL_NAMREPLY
@@ -480,24 +542,14 @@ snit::type tab {
 		    $channelMap($mTarget) sortUsers
 		    return
 		}
-		321 {
-		    #RPL_LISTSTART
-		    if {[wm state .channelList]=="normal"} {
-			return
-		    }
-		}
-		323 {
-		    #RPL_LISTEND
-			set sss [$self getServer]
-			set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
-		    if {[wm state .channelList]=="normal"} {
-			return
-		    }
-		}
-		328 {
-		    #RPL_CHANNEL_URL
-		    # Ignore
+		368 {
+		    #RPL_ENDOFBANLIST
+		    #TODO Do things
 		    return
+		}
+		474 {
+		    #ERR_BANNEDFROMCHAN
+		    set mMsg "$mMsg - $mTarget"
 		}
 	    }
 	    if [info exists channelMap($mTarget)] {
@@ -508,10 +560,9 @@ snit::type tab {
 		return
 	    }
 	}
-	#  Type B: Is stil a numbered message, but the content immediately follows the nick
+	#  Type B: Is still a numbered message, but the content immediately follows the nick
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
-	    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg ""
-	    debug MIDDLE2
+	    debug "REC: Numbered2 from server"
 	    switch $mCode {
 		005 {
 		    # Pull out CHANTYPES (prefixes for channels)
@@ -520,15 +571,18 @@ snit::type tab {
 		    }
 		    
 		    # Pull out PREFIX (user modes, e.g. ~&@%+)
-		    if [regexp {.*PREFIX=([^ ]+) .*} $mMsg -> userModes] {
+		    #if [regexp {.*PREFIX=\([^)]\)([^ ]+) .*} $mMsg -> userModes] 
+		    if [regexp {.*STATUSMSG=([^ ]+) .*} $mMsg -> userModes] {
 			set NickPrefixes $userModes
+			puts "#####NickPrefixes $NickPrefixes"
 		    }
 		    
 		    regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
+		    
 		}
 		322 {
-		    #RPL_LIST 
-		    if {[regexp {(#[^ ]+) ([0-9]+)} $mMsg -> mTarget mUserCount]} {
+		    #RPL_LIST
+		    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mUserCount]} {
 			#TODO: Fix regex to remove modes
 			regexp { ?\[.*\] (.*)} $mMsg -> mMsg
 			set whspc [string length $mTarget]
@@ -542,41 +596,118 @@ snit::type tab {
 			return
 		    }
 		}
+		324 {
+		    #RPL_CHANNELMODEIS
+		    regexp "(\[^ \]*) .(.*)" $mMsg -> mTarget mModes
+		    if [info exists channelMap($mTarget)] {
+			# If it was auto-requested the first time, don't print it
+			if {[$channelMap($mTarget) setModes $mModes] > 0} {
+			    return
+			}
+			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel modes: +$mModes" ""
+		    }
+		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget modes: +$mModes" ""
+		    return
+		}
+		329 {
+		    #RPL_CREATIONTIME
+		    regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
+		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" ""
+		    #if [info exists channelMap($mTarget)] {
+			#$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" ""
+		    #}
+		    return
+		}
 		333 {
 		    #RPL_TOPICWHOTIME
-		    if {[regexp {(#[^ ]+) ([^ ]+) ([0-9]+)} $mMsg -> mTarget mBy mTopicTime]} {
-			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy at [clock format $mTopicTime]" ""
+		    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mBy mTime]} {
+			$channelMap($mTarget) setTopicInfo $mBy $mTime
+			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" ""
 			return
 		    }
+		}
+		367 {
+		    #RPL_BANLIST
+		    puts "RPL_BANLIST"
+		    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mEntry mCreator mTime]} {
+			#Send to server if it exists
+			puts "RPL_BANLIST"
+			if [info exists channelMap($mTarget)] {
+			    if {[$channelMap($mTarget) addBanEntry $mEntry $mCreator $mTime] == 0 } {
+				return
+			    }
+			    catch {
+			    if {[wm state .propDialog]!="normal"} {
+				$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" ""
+			    }
+			    }
+			#Otherwise just print it here
+			} else {
+			    $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" ""
+			}
+			return
+		    }
+		}
+		default {
+		    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg ""
 		}
 	    }
 	    return
 	}
 	
 	#:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
-	if {[regexp {:([^!]*)!.* ([^ ]*) [^:]*:(.*)} $line -> mNick mSomething mMsg]} {
+	if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^:]*:(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
+		debug "REC: Special: $mSomething"
 		switch $mSomething {
 		"NICK" {
-		    if {$mNick == [$self getNick]} {
+		    puts "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
+		    if {[string equal $mNick [$self getNick]]} {
 			$self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
 			$self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
 			$self nickChanged $mMsg
 		    } else {
-			#$self handleReceived $timestamp "***" bold "$mNick is now known as $mMsg" ""
 			$self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" ""
 		    }
 		    return
 		}
 		"JOIN" {
-		    if {$mNick == [$self getNick]} {
+		    if {[string equal $mNick [$self getNick]]} {
 			$self joinChan $mMsg ""
 		    } else {
 			$channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" ""
+			$channelMap($mMsg) NLadd $mNick
+		    }
+		    return
+		}
+		"KICK" {
+		    if {$mTarget == [$self getNick]} {
+			$channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" ""
+			$self removeActiveChannel $mChannel
+		    } else {
+			$self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" ""
+			$channelMap($mChannel) NLremove $mTarget
 		    }
 		    return
 		}
 		default {
 		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+		}
+	    }
+	}
+	
+	#:ChanServ!services@geekshed.net MODE #qweex +qo notbryant notbryant
+	if {[regexp {:([^!]*)![^ ]* ([^ ]*) ([^ ]*) (.*)} $line -> mNick mSomething mChann mMsg]} {
+	    debug "REC: Special2: $mSomething"
+	    switch $mSomething {
+		"MODE" {
+		    #User mode
+		    if { [regexp {([^ ]+) ([^ ]+) ([^ ]+)} $mMsg -> mModes mNick1 mNick2] } {
+			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mNick1 or $mNick2" ""
+		    #Channel mode
+		    } else {
+			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" ""
+		    }
+		    return
 		}
 	    }
 	}
@@ -590,6 +721,51 @@ snit::type tab {
 	debug "WHAT: $line"
     }
     
+    method setModes {mModes} {
+	set result [llength mModes]
+	set ModeList [split $mModes {}]
+	puts "MODEEEEEEES: $ModeList"
+	return $result
+    }
+    
+    method getNickPrefixes {} {
+	if { [string length $server] > 0 } {
+	    return $NickPrefixes
+	}
+	return [$ServerRef getNickPrefixes]
+    }
+    
+    # 1 if it was found, 0 otherwise
+    method NLedit {oldNick newNick} {
+	set temp [$self getNickPrefixes]
+	set ind [lsearch -regexp $nickList "\[$temp\]$oldNick"]
+	#TODO ^ -sorted
+	if {$ind > -1} {
+	    set prefix ""
+	    regexp "\(\[$temp\]\)$oldNick" [lindex $nickList $ind] -> prefix
+	    lset nickList $ind "$prefix$newNick"
+	    set nickList [lsort -command [mymethod compareNick] $nickList]
+	    return 1
+	} else {
+	    return 0
+	}
+    }
+    
+    method NLremove {target} {
+	set idx [lsearch $nickList $target]
+	set nickList [lsort -command [mymethod compareNick] [lreplace $nickList $idx $idx]]
+    }
+    
+    method NLadd {target} {
+	set nickList [lsort -command [mymethod compareNick] [linsert $nickList 1 $target]]
+    }
+    
+    method addBanEntry {mEntry mCreator mTime} {
+	set res [array size BanList]
+	set BanList($mEntry) "$mCreator $mTime"
+	return $res
+    }
+    
     method propogateMessage {what timestamp title titleStyle msg msgStyle} {
 	if { [string length $server] > 0 } {
 	    foreach key $activeChannels {
@@ -598,27 +774,18 @@ snit::type tab {
 	    return
 	}
 	
-	puts "WHAT: $what"
-	
+	puts "Propogating message: $what  $title  $msg"
 	#if what is NICK, check the nick list
-	if {$what == "NICK"} {
+	if {[string equal $what "NICK"]} {
 	    regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
-	    set ind [lsearch $nickList $oldNick]
-	    #TODO ^ -sorted
-	    if {$ind > -1} {
-		lset nickList $ind $newNick
-		set nickList [lsort -command [mymethod compareNick] $nickList]
-	    } else { return }
-	}
-	
-	if {$what == "MYNICK"} {
-	    regexp {You are now known as (.*)} $msg -> newNick
-	    set ind [lsearch $nickList [$self getNick]]
-	    #TODO ^ -sorted
-	    if {$ind > -1} {
-		lset nickList $ind $newNick
-		set nickList [lsort -command [mymethod compareNick] $nickList]
+	    if {[$self NLedit $oldNick $newNick] != 1 } {
+		return
 	    }
+	}
+	if {[string equal $what "MYNICK"]} {
+	    regexp {You are now known as (.*)} $msg -> newNick
+	    #TODO ^ -sorted
+	    $self NLedit $oldNick $newNick
 	}
 	
 	$self handleReceived $timestamp $title $titleStyle $msg $msgStyle
@@ -630,6 +797,15 @@ snit::type tab {
 	foreach usr $users {
 	    lappend nickList $usr
 	}
+    }
+    
+    method setTopic {newTopic} {
+	set Topic $newTopic
+    }
+    
+    method setTopicInfo {author time} {
+	set TopicTime [clock format $time]
+	set TopicAuthor $author
     }
     
     ############## Sort the nick list ##############
@@ -810,7 +986,18 @@ snit::type tab {
     
     
     
-    method showProperties {} {
+    method showProperties {chann} {
+	if { [string length $chann] > 0 } {
+	    $channelMap($chann) showProperties ""
+	    return
+	}
+	
+	destroy .propDialog
+	toplevel .propDialog -padx 10 -pady 10
+	wm title .propDialog "Properties"
+	wm transient .propDialog .
+	wm resizable .propDialog 0 0
+	
 	if { [string length $server] > 0 } {
 	    puts $CreationTime
 	    puts $ChannelPrefixes
@@ -818,11 +1005,58 @@ snit::type tab {
 	    puts $NetworkName
 	    puts $ServerName
 	    puts $ServerDaemon
+	    
+	    
 	} else {
 	    puts $Topic
 	    puts $TopicTime
+	    puts $TopicAuthor
+	    
+	    puts $ModeList
+	    puts [array names BanList]
+	    
+	    label .propDialog.l_topic -text "Topic" -font {-size 16}
+	    text .propDialog.topic  -width 60 -height 7 -background white
+	    text .propDialog.topicA -width 29 -height 1 -background white
+	    text .propDialog.topicT -width 29 -height 1 -background white
+	    .propDialog.topic insert end $Topic ""
+	    .propDialog.topic configure -state disabled
+	    .propDialog.topicA insert end $TopicAuthor ""
+	    .propDialog.topicA configure -state disabled
+	    .propDialog.topicT insert end $TopicTime ""
+	    .propDialog.topicT configure -state disabled
+	    
+	    label .propDialog.sep1 -font {-size 16} -text " "
+	    label .propDialog.l_mode -text "Modes" -font {-size 16}
+	    listbox .propDialog.mode -listvariable [myvar ModeList] \
+				    -height 5 -width 25 -highlightthickness 0
+				    
+	    label .propDialog.l_bans -text "Bans" -font {-size 16}
+	    listbox .propDialog.bans \
+				    -height 5 -width 25 -highlightthickness 0
+	    
+	    set banlistnames [array names BanList]
+	    foreach key $banlistnames {
+		.propDialog.bans insert end $key
+	    }
+	    
+	    grid config .propDialog.l_topic -row 0 -column 0 -sticky "w"
+	    grid config .propDialog.topic   -row 1 -column 0 -columnspan 2
+	    grid config .propDialog.topicA  -row 2 -column 0
+	    grid config .propDialog.topicT  -row 2 -column 1
+	    
+	    grid config .propDialog.sep1    -row 3 -column 0 -columnspan 2
+	    grid config .propDialog.l_mode  -row 4 -column 0 -sticky "w"
+	    grid config .propDialog.mode    -row 5 -column 0
+	    grid config .propDialog.l_bans  -row 4 -column 1 -sticky "w"
+	    grid config .propDialog.bans    -row 5 -column 1
 	}
+	
+	Main::foreground_win .propDialog
+	grab release .
+	grab set .propDialog
     }
+    
     
     
     method _setData {newport newnick} {
@@ -841,12 +1075,11 @@ snit::type tab {
 	set a0 [lindex $a 0]
 	set b0 [lindex $b 0]
 	
-	
 	# Determine if either start with a special symbol
-	if {[regexp "^\[[myvar NickPrefixes]\].*" $a0]} {
+	if {[regexp "^\[[$self getNickPrefixes]\].*" $a0]} {
 	    set av [string first [string index $a0 0] [myvar NickPrefixes] ]
 	}
-	if {[regexp "^\[[myvar NickPrefixes]\].*" $b0]} {
+	if {[regexp "^\[[$self getNickPrefixes]\].*" $b0]} {
 	    set bv [string first [string index $b0 0] [myvar NickPrefixes] ]
 	}
 

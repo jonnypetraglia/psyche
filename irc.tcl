@@ -137,6 +137,14 @@ proc getTitle {mCode} {
 	    # Use this to update channel list
 	    return \[List\]
 	}
+	324 {
+	    #RPL_CHANNELMODEIS (RFC1459)
+	    return \[Mode\]
+	}
+	329 {
+	    #RPL_CREATIONTIME (Bahamut)
+	    return \[Info\]
+	}
 	328 {
 	    #RPL_CHANNEL_URL (Bahamut, AustHex)
 	    # ???
@@ -176,6 +184,14 @@ proc getTitle {mCode} {
 	    # Use this to update nicklist
 	    return ""
 	}
+	367 {
+	    #RPL_BANLIST (RFC1459)
+	    return \[Banlist\]
+	}
+	368 {
+	    #RPL_ENDOFBANLIST (RFC1459)
+	    return \[Banlist\]
+	}
 	371 {
 	    #RPL_INFO
 	    return \[Info\]
@@ -204,6 +220,10 @@ proc getTitle {mCode} {
 	    #ERR_NOSUCHSERVER
 	    return \[ERROR\]
 	}
+	404 {
+	    #ERR_CANNOTSENDTOCHAN
+	    return \[ERROR\]
+	}
 	409 {
 	    #ERR_NOORIGIN
 	    return \[ERROR\]
@@ -218,6 +238,10 @@ proc getTitle {mCode} {
 	}
 	442 {
 	    #ERR_NOTONCHANNEL (RFC1459)
+	    return \[ERROR\]
+	}
+	474 {
+	    #ERR_BANNEDFROMCHAN (RFC1459)
 	    return \[ERROR\]
 	}
 	477 {
