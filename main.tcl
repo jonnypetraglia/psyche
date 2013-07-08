@@ -23,6 +23,7 @@ namespace eval Main {
     variable channelList
     
     variable descmenu
+    variable bookmarkMenu
     variable mainframe
     variable toolbar
     variable status_text
@@ -30,6 +31,7 @@ namespace eval Main {
     variable notebook
     variable nicklist
     
+    variable toolbar
     variable toolbar_reconnect
     variable toolbar_disconnect
     variable toolbar_channellist
@@ -40,14 +42,7 @@ namespace eval Main {
     variable toolbar_away
 }
 
-namespace eval Pref {
-    variable raiseNewTabs
-    variable defaultAway
-    
-    set raiseNewTabs false
-    set defaultAway "I'm away"
-}
-
+source pref.tcl
 source tab.tcl
 source toolbar.tcl
 
@@ -78,6 +73,7 @@ proc Main::init { } {
 	    }
 	}
     }
+    
     
     # Status Bar & Toolbar
     set mainframe [MainFrame .mainframe \
@@ -394,11 +390,22 @@ proc Main::showProperties {} {
     $Main::servers($serv) showProperties $chan
 }
 
+proc Main::openBookmark {target} {
+    set serv [lindex $Pref::bookmarks($target) 0]
+    set por [lindex $Pref::bookmarks($target) 1]
+    set nic [lindex $Pref::bookmarks($target) 2]
+    Main::createConnection $serv $por $nic
+    for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
+	$Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
+    }
+}
+
 proc Main::foreground_win { w } {
     wm withdraw $w
     wm deiconify $w
 }
 
+Pref::readPrefs
 Main::init
 toplevel .channelList -padx 10 -pady 10
 wm state .channelList withdrawn

@@ -9,6 +9,9 @@ snit::type tab {
     variable activeChannels
     variable id_var
     
+    #Server - list
+    variable joinWhenPossible
+    
     # Server
     variable CreationTime
     variable MOTD
@@ -39,6 +42,7 @@ snit::type tab {
     variable input
     variable nickList
     variable awayLabel
+    variable nicklistCtrl
 
     ############## Get nick string
     method getNick {} {
@@ -71,7 +75,7 @@ snit::type tab {
 		set reason [$awayLabel cget -text]
 		if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
 		    $channelMap($chan) away $reason
-		    $channelMap($chan) _showAway
+		    $channelMap($chan) _showAwayLabel
 		}
 	    }
 	    lappend activeChannels $chan
@@ -210,12 +214,19 @@ snit::type tab {
 	    
 	    $nicklistScrolledWindow setwidget $nicklistCtrl
 	    pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
+	    bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
 	}
 	
 	pack $chat -fill both -expand 1
 	pack $topf -fill both -expand 1
 	
 	grid remove $awayLabel
+    }
+    
+    method DoubleclickNicklist {} {
+	set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
+	puts $nickName
+	$self createPMTabIfNotExist $nickName
     }
 	
     ############## Update the specific Away button ##############
@@ -241,6 +252,7 @@ snit::type tab {
 	    return
 	}
 	
+	set icondir [pwd]/icons
 	#Is Server
 	if { [string length $server] > 0 } {
 	    #Is connected
@@ -497,13 +509,13 @@ snit::type tab {
 		}
 		305 {
 		    #RPL_UNAWAY
-		    $self _hideAway
+		    $self _hideAwayLabel
 		    $self awaySignalServer ""
 		    Main::updateAwayButton
 		}
 		306 {
 		    #RPL_NOWAWAY
-		    $self _showAway
+		    $self _showAwayLabel
 		    Main::updateAwayButton
 		}
 		321 {
@@ -578,7 +590,7 @@ snit::type tab {
 		    }
 		    
 		    regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
-		    
+	    
 		}
 		322 {
 		    #RPL_LIST
@@ -689,6 +701,25 @@ snit::type tab {
 		    }
 		    return
 		}
+		"PART" {
+		    if {$mTarget == [$self getNick]} {
+			$self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" ""
+			$channelMap($mChannel) NLremove $mNick
+			$self removeActiveChannel $mChannel
+		    } else {
+			$self handleReceived $timestamp "***" bold "You have left ($mMsg)" ""
+			$channelMap($mChannel) NLremove $mNick
+		    }
+		}
+		"QUIT" {
+		    if {$mTarget == [$self getNick]} {
+			puts "You quit? What the hell?"
+			#$self removeActiveChannel $mChannel
+		    } else {
+			$self handleReceived $timestamp "***" bold "$mNick has quit ($mMsg)" ""
+			$self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" ""
+		    }
+		}
 		default {
 		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
 		}
@@ -786,6 +817,11 @@ snit::type tab {
 	    regexp {You are now known as (.*)} $msg -> newNick
 	    #TODO ^ -sorted
 	    $self NLedit $oldNick $newNick
+	}
+	
+	if {[string equal $what "QUIT"]} {
+	    regexp {([^ ]+) has quit.* } $msg -> newNick
+	    $self NLremove $newNick
 	}
 	
 	$self handleReceived $timestamp $title $titleStyle $msg $msgStyle
@@ -953,26 +989,26 @@ snit::type tab {
     }
     
     ############## Hides GUI element ##############
-    method _hideAway {} {
+    method _hideAwayLabel {} {
 	if { [string length $server] > 0 } {
 	    foreach key $activeChannels {
-		$channelMap($key) _hideAway
+		$channelMap($key) _hideAwayLabel
 	    }
 	}
 	grid remove $awayLabel
     }
     
     ############## Shows GUI element ##############
-    method _showAway {} {
+    method _showAwayLabel {} {
 	if { [string length $server] > 0 } {
 	    foreach key $activeChannels {
-		$channelMap($key) _showAway
+		$channelMap($key) _showAwayLabel
 	    }
 	}
 	grid $awayLabel
     }
     
-     ############## Toggles away status ##############
+     ############## Toggles away status; for use with the button ##############
     method toggleAway {} {
 	set reason [$awayLabel cget -text]
 	# Is away, come back

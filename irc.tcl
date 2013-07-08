@@ -301,12 +301,18 @@ proc performSpecialCase {msg obj} {
 	#/quit
 	if [regexp {^quit ?(.*)} $msg -> reason] {
 	    debug "Quitting: $reason"
+	    if { [string length $reason] > 0 } {
+		set reason $Pref::defaultQuit
+	    }
 	    $obj quit $reason
 	    return true
 	}
 	#/part
 	if [regexp {^part ?(.*)} $msg -> msg] {
 	    debug "Parting: $msg"
+	    if { [string length $msg] > 0 } {
+		set reason $Pref::defaultPart
+	    }
 	    if [$obj isServer] {
 		regexp {([^ ]+) (.*)} $msg -> channs msg
 		set channlist [split $channs ","]
@@ -389,6 +395,25 @@ proc performSpecialCase {msg obj} {
 	if [regexp {^clear.*} $msg] {
 	    $obj clearScrollback
 	    return true
+	}
+	
+	#/mode
+	if [regexp {^mode ?(.*)} $msg -> msg] {
+	    if [regex {^([^ ]+) (.*)} $msg -> channOrNick msg] {
+		puts herp
+	    } else {
+		set channOrNick [$obj getChannel]
+	    }
+	    
+	    # Ban
+	    if [regex {+b ([^ ]+) ?(.*)} $msg -> target reason] {
+		if { [string length $reason] > 0 } {
+		    set reason $Pref::defaultBan
+		}
+		$obj _send "mode +b $target $reason"
+		return true
+	    }
+
 	}
 	
 	
