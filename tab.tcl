@@ -379,7 +379,6 @@ snit::type tab {
 	}
 	
 	# Set the readable (received) event handler
-	fileevent $connDesc readable [mymethod _recv]
 	
 	# Initiate variables & unset ones that may be left over for some reason
 	set nickList [list]
@@ -409,6 +408,7 @@ snit::type tab {
 	$self _send "NICK $nick"
 	#TODO: What is this
 	$self _send "USER $nick 0 * :Psyche user"
+	fileevent $connDesc readable [mymethod _recv]
 	$self updateToolbar ""
     }
     
@@ -801,7 +801,6 @@ snit::type tab {
 	    }
 	}
 	
-	
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug "REC: Etc: $mSomething $mTarget"
@@ -1165,22 +1164,23 @@ snit::type tab {
     
     
     method compareNick {a b} {
-	set av 10
-	set bv 10
+	set av 100
+	set bv 100
 	set a0 [lindex $a 0]
 	set b0 [lindex $b 0]
 	
 	# Determine if either start with a special symbol
 	if {[regexp "^\[[$self getNickPrefixes]\].*" $a0]} {
-	    set av [string first [string index $a0 0] [myvar NickPrefixes] ]
+	    set av [string first [string index $a0 0] [$self getNickPrefixes] ]
 	}
 	if {[regexp "^\[[$self getNickPrefixes]\].*" $b0]} {
-	    set bv [string first [string index $b0 0] [myvar NickPrefixes] ]
+	    set bv [string first [string index $b0 0] [$self getNickPrefixes] ]
 	}
+	
 
 	# If they are the same class (e.g. both ops OR both normal (10))
 	if {$av == $bv } {
-	    return [string compare [lindex $a 1] [lindex $b 1]]
+	    return [string compare -nocase $a $b]
 	} else {
 	    if {$av < $bv} {
 		return -1
