@@ -222,8 +222,10 @@ proc Main::joinChannel {} {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     
-    $Main::servers($serv) _send "JOIN $chan"
-    #$Main::servers($serv) joinChan $chan ""
+    if { [string length [$Main::servers($serv) getconnDesc]] > 0 } {
+        $Main::servers($serv) _send "JOIN $chan"
+        #$Main::servers($serv) joinChan $chan ""
+    }
 }
 
 proc Main::createConnection {serv por nick} {
@@ -395,8 +397,10 @@ proc Main::openBookmark {target} {
     set por [lindex $Pref::bookmarks($target) 1]
     set nic [lindex $Pref::bookmarks($target) 2]
     Main::createConnection $serv $por $nic
-    for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
-	$Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
+    if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
+	for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
+	    $Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
+	}
     }
 }
 

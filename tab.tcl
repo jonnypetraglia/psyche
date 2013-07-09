@@ -88,7 +88,13 @@ snit::type tab {
     
     ############## getId ##############
     method getId {} { return $id_var }
-    method getconnDesc {} { return $connDesc }
+    method getconnDesc {} {
+	if [info exists connDesc] {
+	    return $connDesc
+	} else {
+	    return ""
+	}
+    }
     method isServer {} {
 	if {[string length $server] > 0} {
 	    return 1
@@ -319,10 +325,63 @@ snit::type tab {
     
     ############## Init Server ##############
     method initServer {} {
-	if {[catch {set connDesc [socket $server $port]} fid] } {
-	    tk_messageBox -message "$fid" -parent . -title "Error" -icon error -type ok
+	global connectStatus
+	set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	$self handleReceived $timestamp \[Connect\] bold "Connecting to $server on port $port..." ""
+	set connectStatus "unknown"
+	# Try to connect; an error can be caused by two reasons:
+	#   1. Exception - e.g. failure to connect
+	#   2. Etc - e.g. timeout, basically if it's unable to connect and we don't know why
+	if {[catch {
+		# Set up the timeout; trip the flag only if it has not been set to "ok"
+		after $Pref::timeout {
+		    if {![info exists connectStatus] || ($connectStatus == "unknown")} {
+			set connectStatus timeout
+		    }}
+		# Create the connection; -async means it will continue on until it hits vwait
+		set connDesc [socket -async $server $port]
+		# Dummy handler to detect when the socket is writeable (i.e. open)
+		fileevent $connDesc w {set connectStatus ok}
+		# Wait for either the socket to become writable, or the 
+		vwait connectStatus
+	    } problemDesc]} {
+	    # Catch any exceptions thrown
+	    set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+	    $self handleReceived $timestamp \[Connect\] bold $problemDesc ""
+	    tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
+	    unset connDesc
 	    return
 	}
+	# Remove the dummy listener
+	fileevent $connDesc w {}
+	
+	# Catch any errors
+	
+	switch $connectStatus {
+	    "ok" {
+		puts "Connect ok!"
+	    }
+	    "timeout" {
+		unset connDesc
+		set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+		$self handleReceived $timestamp \[Connect\] bold "Connection timed out" ""
+		tk_messageBox -message "Connection timed out" -parent . -title "Error" -icon error -type ok
+		return
+	    }
+	    default {
+		puts "timeout $connectStatus"
+		unset connDesc
+		set timestamp [clock format [clock seconds] -format \[%H:%M\] ]
+		$self handleReceived $timestamp \[Connect\] bold "Unable to connect" ""
+		tk_messageBox -message "An unknown error has occurred; the world is probably ending" -parent . -title "Error" -icon error -type ok
+		return
+	    }
+	}
+	
+	# Set the readable (received) event handler
+	fileevent $connDesc readable [mymethod _recv]
+	
+	# Initiate variables & unset ones that may be left over for some reason
 	set nickList [list]
 	set activeChannels [list]
 	if [info exists CreationTime] {
@@ -350,7 +409,6 @@ snit::type tab {
 	$self _send "NICK $nick"
 	#TODO: What is this
 	$self _send "USER $nick 0 * :Psyche user"
-	fileevent $connDesc readable [mymethod _recv]
 	$self updateToolbar ""
     }
     
@@ -746,8 +804,9 @@ snit::type tab {
 	
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
-	    debug BOTTOM
-	    debug "!!!!!!!!!$line"
+	    debug "REC: Etc: $mSomething $mTarget"
+	    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+	    return
 	}
 	debug "WHAT: $line"
     }

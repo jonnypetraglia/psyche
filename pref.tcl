@@ -4,7 +4,7 @@ namespace eval Pref {
     variable configDir
     set configDir $::env(HOME)
 
-    variable prefFile
+    variable timeout
     variable raiseNewTabs
     variable defaultQuit
     variable defaultBan
@@ -12,13 +12,18 @@ namespace eval Pref {
     variable defaultAway
     variable bookmarks
 
-    set prefFile [pwd]/test.cfg
+    set timeout 5000
     set raiseNewTabs false
     set defaultQuit "Quittin'"
     set defaultBan "Please stop that"
     set defaultPart "Partin'"
     set defaultAway "I'm away"
+    
+    
+    #This is for debug
+    set prefFile [pwd]/test.cfg
 }
+
 
 proc Pref::readPrefs {} {
     if {[file exists $Pref::prefFile]} {
