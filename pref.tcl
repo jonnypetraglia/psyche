@@ -2,7 +2,8 @@ package require BWidget
 
 namespace eval Pref {
     variable configDir
-    set configDir $::env(HOME)
+    #NOT a preference; for reference
+    set CONFIG_DIR $::env(HOME)/.psyche
 
     variable timeout
     variable raiseNewTabs
@@ -11,6 +12,7 @@ namespace eval Pref {
     variable defaultPart
     variable defaultAway
     variable bookmarks
+    variable logDir
 
     set timeout 5000
     set raiseNewTabs false
@@ -18,6 +20,7 @@ namespace eval Pref {
     set defaultBan "Please stop that"
     set defaultPart "Partin'"
     set defaultAway "I'm away"
+    set logDir "$CONFIG_DIR/log"
     
     
     #This is for debug
@@ -45,8 +48,8 @@ proc Pref::readPrefs {} {
 	    }
 # 		puts "set [subst Pref::$key] $val"
 
-	    if {[catch {eval "set [subst Pref::$key] $val"}]} {
-		puts "ERROR: Unable to load preference: '$key'"
+	    if {[catch {eval "set [subst Pref::$key] $val"} prob]} {
+		puts "ERROR: Unable to load preference: '$key'\n$prob"
 	    }
 	}
     }
