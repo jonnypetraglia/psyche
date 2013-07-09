@@ -115,6 +115,11 @@ proc Main::init { } {
     $Main::notebook delete [$Main::servers(1) getId] 1
     unset Main::servers(1)
     
+    
+    # Create the tab menu
+    menu .tabMenu -tearoff true -title Bookmarks
+    .tabMenu add command -label "Add connect" -command Main::showJoinDialog 
+    
     #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
     #$Main::notebook raise [$Main::servers(1) getId]
     #$Main::servers(1) joinChan #jupiterBroadcasting
@@ -131,6 +136,8 @@ proc Main::pressTab { args} {
 
 proc Main::tabContext { args} {
     puts "RIGHTCLICKED"
+    regexp {.*x([0-9]+)\+([0-9]+)\+([0-9]+)} [winfo geometry $Main::toolbar] -> wh wx wy
+    tk_popup .tabMenu [expr [winfo rootx .] + $wx] [expr [winfo rooty .] + $wy + $wh]
 }
 
 proc Main::pressAway { args } {
