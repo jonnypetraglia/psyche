@@ -1,7 +1,6 @@
 package require Tk
-package require snit
 package require BWidget
-package require irc
+package require snit
 
 proc debug {arg} {
     puts $arg

@@ -41,6 +41,48 @@ Further notes
 As much as I have enjoyed working on Psyche so far, I have more of an obligation to my open-source apps
 that I already have existing, so Psyche will most likely be an 'on the weekends' thing....hopefully.
 
+
+Dependencies
+----
+Psyche uses just a few dependencies, all of which are written in pure Tcl/Tk:
+
+## Tk ##
+
+Duh!
+
+## tcllib ##
+Psyche mainly uses parts of a library called **tcllib**, which is available in most Linux repositories, in MacPorts, or can be downloaded for any of Linux/Mac/Windows. You can also download just the separate libraries and manually install them.
+tcllib is released under the same [BSD-style license](http://www.tcl.tk/software/tcltk/license.html) used by Tcl and Tk.
+
+[tcllib Website](http://core.tcl.tk/tcllib/home)
+[tcllib Download](http://core.tcl.tk/tcllib/wiki?name=Downloads)
+[tcllib Github](https://github.com/tcltk/tcllib)
+[tcllib Gutter](http://www.flightlab.com/~joe/gutter/packages/tcllib.html)
+
+### BWidget ###
+
+BWidget provides a variety of advanced widgets for Tk and is written in pure Tcl/Tk.
+
+The current version of Psyched was tested with BWidget **1.9.6**.
+
+[BWidget Download](http://sourceforge.net/projects/tcllib/files/BWidget)
+[BWidget Github](https://github.com/tcltk/bwidget)
+[BWidget Gutter](http://www.flightlab.com/~joe/gutter/packages/bwidget.html)
+
+### snit ###
+
+snit is a "type system", which means that it's kinda sorta like OO for Tcl.
+
+The current version of Psyched was tested with snit **2.3.2**.
+
+[snit Home](http://www.flightlab.com/~joe/gutter/packages/snit.html)
+[snit Github](https://github.com/tcltk/tcllib/tree/master/modules/snit)
+[snit Gutter](http://www.flightlab.com/~joe/gutter/packages/snit.html)
+
+
+At the time of starting Psyche, I didn't know of the existence of [stooop](http://jfontain.free.fr/stooop.html), a very C++like extension for Tcl OO. Which is exactly what I wanted when starting the project. snit works fine for now, but I think eventually I will transfer to stooop, since it seems better to be able to handle inheritance.
+
+
 License
 ---
 I've decided to go ahead and release Psyche under the BSD license. Because Fuck yeah, free software!
