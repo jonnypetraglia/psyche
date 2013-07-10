@@ -87,3 +87,15 @@ proc Main::init_toolbar { } {
         
     pack $bbox -side left -anchor w
 }
+
+proc Main::clearToolbar {} {
+    set icondir [pwd]/icons
+    $Main::toolbar_join configure -state disabled
+    $Main::toolbar_disconnect configure -state disabled
+    $Main::toolbar_reconnect configure -state disabled
+    $Main::toolbar_properties configure -state disabled
+    $Main::toolbar_channellist configure -state disabled
+    $Main::toolbar_nick configure -state disabled
+    $Main::toolbar_away configure -state disabled
+    $Main::toolbar_away configure -image [image create photo -file $icondir/away.gif]
+}

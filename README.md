@@ -59,7 +59,7 @@ tcllib is released under the same [BSD-style license](http://www.tcl.tk/software
 [tcllib Github](https://github.com/tcltk/tcllib)
 [tcllib Gutter](http://www.flightlab.com/~joe/gutter/packages/tcllib.html)
 
-### BWidget ###
+#### BWidget ####
 
 BWidget provides a variety of advanced widgets for Tk and is written in pure Tcl/Tk.
 
@@ -69,7 +69,9 @@ The current version of Psyched was tested with BWidget **1.9.6**.
 [BWidget Github](https://github.com/tcltk/bwidget)
 [BWidget Gutter](http://www.flightlab.com/~joe/gutter/packages/bwidget.html)
 
-### snit ###
+I chose BWidget purely for the Notebook (tabs) widget. It's pure Tcl, doesn't look like crap, and is included inside tcllib.
+
+#### snit ####
 
 snit is a "type system", which means that it's kinda sorta like OO for Tcl.
 
@@ -80,7 +82,7 @@ The current version of Psyched was tested with snit **2.3.2**.
 [snit Gutter](http://www.flightlab.com/~joe/gutter/packages/snit.html)
 
 
-At the time of starting Psyche, I didn't know of the existence of [stooop](http://jfontain.free.fr/stooop.html), a very C++like extension for Tcl OO. Which is exactly what I wanted when starting the project. snit works fine for now, but I think eventually I will transfer to stooop, since it seems better to be able to handle inheritance.
+I chose snit as the "OO-esque" extension because it really doesn't get in your way, and it doesn't seem out of place in Tcl. Another extension I've looked at is [stooop](http://jfontain.free.fr/stooop.html), which is very C++like, but really doesn't fit well with Tcl (imo). The only real plus I saw in stooop that is not in snit is inheritance, but that went out the window when I realized that because Tcl does not do type checking, inheritance doesn't really play too much of a role; you can just create two very similar snit types and yeah, you have to copy a few functions between both, but you don't gain abstraction by overriding functions differently. You can do that anyway.
 
 
 License

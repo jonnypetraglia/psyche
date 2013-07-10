@@ -6,14 +6,12 @@ proc debug {arg} {
     puts $arg
 }
 
-#Icons: https://github.com/kgn/kgn_icons
-#Logo:  http://www.iconarchive.com/show/free-spring-icons-by-ergosign/butterfly-icon.html
 
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
-    set APP_VERSION 0.02
     set APP_NAME Psyche
+    set APP_VERSION 0.02
 
     variable DEFAULT_PORT
     set DEFAULT_PORT 6667
@@ -90,7 +88,7 @@ proc Main::init { } {
     set frame    [$Main::mainframe getframe]
     set Main::notebook [NoteBook $frame.nb]
     $Main::notebook bindtabs <1> { Main::pressTab }
-    $Main::notebook bindtabs <3> { Main::tabContext }
+    $Main::notebook bindtabs <ButtonRelease-3> { Main::tabContext %x %y}
     
     
     $Main::notebook compute_size
@@ -118,12 +116,38 @@ proc Main::init { } {
     
     
     # Create the tab menu
-    menu .tabMenu -tearoff true -title Bookmarks
-    .tabMenu add command -label "Add connect" -command Main::showJoinDialog 
+    menu .tabMenu -tearoff false -title Bookmarks
+    .tabMenu add command -label "Join channel" -command Main::showJoinDialog
+    .tabMenu add command -label "Part channel" -command Main::part
+    .tabMenu add command -label "Close tab" -command Main::closeTab
     
     #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
     #$Main::notebook raise [$Main::servers(1) getId]
     #$Main::servers(1) joinChan #jupiterBroadcasting
+}
+
+proc Main::closeTab {} {
+    set target [$Main::notebook raise]
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    puts "closing: $serv $chan"
+    
+    if {[string length $chan] > 0} {
+	Main::part
+	$Main::servers($serv) closeChannel $chan
+    } else {
+	Main::disconnect
+	$Main::servers($serv) closeAllChannelTabs
+	$Main::notebook delete $target
+	unset Main::servers($serv)
+    }
+    
+    if {[llength [$Main::notebook pages]] == 0} {
+	Main::clearToolbar
+    }
 }
 
 proc Main::pressTab { args} {
@@ -132,13 +156,15 @@ proc Main::pressTab { args} {
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
-    $Main::servers($serv) updateToolbar $chan
+    if [info exists Main::servers($serv)] {
+	$Main::servers($serv) updateToolbar $chan
+    }
 }
 
-proc Main::tabContext { args} {
-    puts "RIGHTCLICKED"
-    regexp {.*x([0-9]+)\+([0-9]+)\+([0-9]+)} [winfo geometry $Main::toolbar] -> wh wx wy
-    tk_popup .tabMenu [expr [winfo rootx .] + $wx] [expr [winfo rooty .] + $wy + $wh]
+proc Main::tabContext { x y tabId } {
+    $Main::notebook raise $tabId
+    Main::pressTab $tabId
+    tk_popup .tabMenu [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
 }
 
 proc Main::pressAway { args } {
@@ -243,6 +269,7 @@ proc Main::createConnection {serv por nick} {
     } else {
         set Main::servers($serv) [tabServer %AUTO% $serv $por $nick]
     }
+    .tabMenu unpost
     $Main::notebook raise [$Main::servers($serv) getId]
 }
 
@@ -276,7 +303,7 @@ proc Main::disconnect {} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
-    $Main::servers($serv) quit "Leavin"
+    $Main::servers($serv) quit $Pref::defaultQuit
 }
 
 proc Main::part {} {
@@ -284,7 +311,7 @@ proc Main::part {} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
-    $Main::servers($serv) part $chan "Leavin"
+    $Main::servers($serv) part $chan $Pref::defaultPart
 }
 
 proc Main::channelList {} {

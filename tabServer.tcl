@@ -112,7 +112,7 @@ snit::type tabServer {
 	
 	set icondir [pwd]/icons
         #Is connected
-        if { [string length $connDesc] > 0 } {
+        if [info exists connDesc] {
             $Main::toolbar_join configure -state normal
             $Main::toolbar_disconnect configure -state normal
             $Main::toolbar_reconnect configure -state disabled
@@ -155,6 +155,7 @@ snit::type tabServer {
             }
         }
         lappend activeChannels $chan
+        .tabMenu unpost
         $Main::notebook raise [$channelMap($chan) getId]
         $self updateToolbar $chan
     }
@@ -364,20 +365,19 @@ snit::type tabServer {
                 debug "Attempting to connect $server $port"
 		set connDesc [socket -async $server $port]
 		# Dummy handler to detect when the socket is writeable (i.e. open)
-		fileevent $connDesc w {set connectStatus ok}
+		fileevent $connDesc readable {set connectStatus ok}
 		# Wait for either the socket to become writable, or the 
 		vwait connectStatus
 	    } problemDesc]} {
 	    # Catch any exceptions thrown
 	    $self handleReceived [$self getTimestamp] \[Connect\] bold $problemDesc ""
 	    tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
-            if [info exists connectStatus] {
+            if [info exists connDesc] {
                 unset connDesc
             }
 	    return
 	}
 	# Remove the dummy listener
-	fileevent $connDesc w {}
 	
 	# Catch any errors
 	
@@ -426,10 +426,19 @@ snit::type tabServer {
 	    unset ServerDaemon
 	}
 	
-	$self _send "NICK $nick"
-	#TODO: What is this
-	$self _send "USER $nick 0 * :Psyche user"
-	fileevent $connDesc readable [mymethod _recv]
+        if {[catch {
+            $self _send "NICK $nick"
+            #TODO: What is this
+            $self _send "USER $nick 0 * :Psyche user"
+            fileevent $connDesc readable [mymethod _recv]
+        } probDesc]} {
+            if [info exists connDesc] {
+                unset connDesc
+            }
+            tk_messageBox -message "$probDesc" -parent . -title "Error" -icon error -type ok
+        }
+        
+        
 	$self updateToolbar ""
     }
     
@@ -475,7 +484,18 @@ snit::type tabServer {
         set activeChannels [lreplace $activeChannels $idx $idx]
     }
     
-        ############## Internal Function ##############
+    method closeChannel {chann} {
+	$Main::notebook delete [$channelMap($chann) getId]
+        unset channelMap($chann)
+    }
+    
+    method closeAllChannelTabs {} {
+        foreach chann [array names channelMap] {
+            $self closeChannel $chann
+        }
+    }
+    
+    ############## Internal Function ##############
     method _recv {} {
 	gets $connDesc line
 	set timestamp [$self getTimestamp]
