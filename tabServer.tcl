@@ -77,6 +77,7 @@ snit::type tabServer {
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
 	$chat tag config blue   -foreground blue
+        $chat tag config mention   -foreground blue
 	$chat configure -background white
 	$chat configure -state disabled
 	
@@ -377,10 +378,8 @@ snit::type tabServer {
             }
 	    return
 	}
-	# Remove the dummy listener
 	
 	# Catch any errors
-	
 	switch $connectStatus {
 	    "ok" {
 		puts "Connect ok!"
@@ -500,6 +499,11 @@ snit::type tabServer {
 	gets $connDesc line
 	set timestamp [$self getTimestamp]
 	debug $line
+        
+        set style ""
+        if {[regexp ".*$nick.*" $line]} {
+            set style "mention"
+        }
 	
 	# PING
 	if {[regexp {^PING :(.*)} $line -> mResponse]} {
@@ -519,18 +523,18 @@ snit::type tabServer {
 	    switch $mCmd {
 		"PING" {
 		    if {$mThing == "NOTICE"} {
-			$self handleReceived $timestamp \[CTCP\] bold "Ping response from $mFrom: [expr {[clock seconds] - $mContent}] seconds" ""
+			$self handleReceived $timestamp \[CTCP\] bold "Ping response from $mFrom: [expr {[clock seconds] - $mContent}] seconds" $style
 		    } else {
 			$self _send "NOTICE $mFrom :\001PING $mContent\001"
-			$self handleReceived $timestamp \[CTCP\] bold "Ping request from $mFrom" ""
+			$self handleReceived $timestamp \[CTCP\] bold "Ping request from $mFrom" $style
 		    }
 		}
 		"VERSION" {
 		    if {$mThing == "NOTICE"} {
-			$self handleReceived $timestamp \[CTCP\] bold "Version response from $mFrom: $mContent" ""
+			$self handleReceived $timestamp \[CTCP\] bold "Version response from $mFrom: $mContent" $style
 		    } else {
 			$self _send "NOTICE $mFrom :\001VERSION $Main::APP_NAME v$Main::APP_VERSION (C) 2013 Jon Petraglia"
-			$self handleReceived $timestamp \[CTCP\] bold "Version request from $mFrom" ""
+			$self handleReceived $timestamp \[CTCP\] bold "Version request from $mFrom" $style
 		    }
 		}
 	    }
@@ -546,21 +550,21 @@ snit::type tabServer {
 		# PM - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
 		    $self createPMTabIfNotExist $mFrom
-		    $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		    $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
 		# PM - general
 		} else {
 		    $self createPMTabIfNotExist $mFrom
-		    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg ""
+		    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
 		
 	    # Msg to channel
 	    } else {
 		# Msg - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
-		    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" italic
+		    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
 		# Msg - general
 		} else {
-		    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg ""
+		    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
 	    }
 	    return
@@ -571,6 +575,7 @@ snit::type tabServer {
 	#          Following the nick, there is a string of length 0 or more, then a space, then a colon
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
 	    debug "REC: Numbered from server"
+            set style ""
 	    set mTarget [string trim $mTarget]
 	    set mMsg [string trim $mMsg]
 	    switch $mCode {
@@ -644,10 +649,10 @@ snit::type tabServer {
 		}
 	    }
 	    if [info exists channelMap($mTarget)] {
-			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
-			return
+                $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
+                return
 	    } else {
-			$self handleReceived $timestamp [getTitle $mCode] bold $mMsg "" 
+		$self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
 		return
 	    }
 	}
@@ -695,17 +700,17 @@ snit::type tabServer {
 			if {[$channelMap($mTarget) setModes $mModes] > 0} {
 			    return
 			}
-			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel modes: +$mModes" ""
+			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel modes: +$mModes" $style
 		    }
-		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget modes: +$mModes" ""
+		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget modes: +$mModes" $style
 		    return
 		}
 		329 {
 		    #RPL_CREATIONTIME
 		    regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
-		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" ""
+		    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" $style
 		    #if [info exists channelMap($mTarget)] {
-			#$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" ""
+			#$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" $style
 		    #}
 		    return
 		}
@@ -713,7 +718,7 @@ snit::type tabServer {
 		    #RPL_TOPICWHOTIME
 		    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mBy mTime]} {
 			$channelMap($mTarget) setTopicInfo $mBy $mTime
-			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" ""
+			$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" $style
 			return
 		    }
 		}
@@ -729,18 +734,18 @@ snit::type tabServer {
 			    }
 			    catch {
 			    if {[wm state .propDialog]!="normal"} {
-				$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" ""
+				$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
 			    }
 			    }
 			#Otherwise just print it here
 			} else {
-			    $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" ""
+			    $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
 			}
 			return
 		    }
 		}
 		default {
-		    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg ""
+		    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style
 		}
 	    }
 	    return
@@ -757,7 +762,7 @@ snit::type tabServer {
 			$self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
 			$self nickChanged $mMsg
 		    } else {
-			$self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" ""
+			$self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" $style
 		    }
 		    return
 		}
@@ -765,28 +770,28 @@ snit::type tabServer {
 		    if {[string equal $mNick [$self getNick]]} {
 			$self joinChan $mMsg ""
 		    } else {
-			$channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" ""
+			$channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
 			$channelMap($mMsg) NLadd $mNick
 		    }
 		    return
 		}
 		"KICK" {
 		    if {$mTarget == [$self getNick]} {
-			$channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" ""
+			$channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" $style
 			$self removeActiveChannel $mChannel
 		    } else {
-			$self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" ""
+			$self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" $style
 			$channelMap($mChannel) NLremove $mTarget
 		    }
 		    return
 		}
 		"PART" {
 		    if {$mTarget == [$self getNick]} {
-			$self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" ""
+			$self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
 			$channelMap($mChannel) NLremove $mNick
 			$self removeActiveChannel $mChannel
 		    } else {
-			$self handleReceived $timestamp "***" bold "You have left ($mMsg)" ""
+			$self handleReceived $timestamp "***" bold "You have left ($mMsg)" $style
 			$channelMap($mChannel) NLremove $mNick
 		    }
 		}
@@ -795,12 +800,12 @@ snit::type tabServer {
 			puts "You quit? What the hell?"
 			#$self removeActiveChannel $mChannel
 		    } else {
-			$self handleReceived $timestamp "***" bold "$mNick has quit ($mMsg)" ""
-			$self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" ""
+			$self handleReceived $timestamp "***" bold "$mNick has quit ($mMsg)" $style
+			$self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
 		    }
 		}
 		default {
-		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+		    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
 		}
 	    }
 	}
@@ -812,10 +817,10 @@ snit::type tabServer {
 		"MODE" {
 		    #User mode
 		    if { [regexp {([^ ]+) ([^ ]+) ([^ ]+)} $mMsg -> mModes mNick1 mNick2] } {
-			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mNick1 or $mNick2" ""
+			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mNick1 or $mNick2" $style
 		    #Channel mode
 		    } else {
-			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" ""
+			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" $style
 		    }
 		    return
 		}
@@ -825,7 +830,7 @@ snit::type tabServer {
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug "REC: Etc: $mSomething $mTarget"
-	    $self handleReceived $timestamp \[$mSomething\] bold $mMsg ""
+	    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
 	    return
 	}
 	debug "WHAT: $line"
