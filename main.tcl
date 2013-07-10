@@ -12,7 +12,7 @@ proc debug {arg} {
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
-    set APP_VERSION 0.01
+    set APP_VERSION 0.02
     set APP_NAME Psyche
 
     variable DEFAULT_PORT
@@ -42,7 +42,9 @@ namespace eval Main {
 }
 
 source pref.tcl
-source tab.tcl
+source irc.tcl
+source tabServer.tcl
+source tabChannel.tcl
 source toolbar.tcl
 
 
@@ -99,7 +101,7 @@ proc Main::init { } {
     
     set icondir [pwd]/icons
     wm iconphoto . -default [image create photo -file $icondir/butterfly-icon_48.gif]
-    set Main::servers(1) [tab %AUTO%]
+    set Main::servers(1) [tabServer %AUTO%]
     $Main::notebook compute_size
     wm title . "$Main::APP_NAME v$Main::APP_VERSION"
     
@@ -239,7 +241,7 @@ proc Main::createConnection {serv por nick} {
         $Main::servers($serv) _setData $por $nick
         $Main::servers($serv) initServer
     } else {
-        set Main::servers($serv) [tab %AUTO% SERV $serv $por $nick]
+        set Main::servers($serv) [tabServer %AUTO% $serv $por $nick]
     }
     $Main::notebook raise [$Main::servers($serv) getId]
 }
