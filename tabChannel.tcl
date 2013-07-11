@@ -72,6 +72,7 @@ snit::type tabChannel {
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
 	$chat tag config blue   -foreground blue
+	$chat tag config mention   -foreground red
 	$chat configure -background white
 	$chat configure -state disabled
 	
@@ -154,22 +155,22 @@ snit::type tabChannel {
     
     method propogateMessage {what timestamp title titleStyle msg msgStyle} {
 	puts "Propogating message: $what  $title  $msg"
-	#if what is NICK, check the nick list
-	if {[string equal $what "NICK"]} {
-	    regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
-	    if {[$self NLedit $oldNick $newNick] != 1 } {
-		return
+	switch $what {
+	    "NICK" {
+		# If it is not in the nickList, no need to propogate it here
+		regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
+		if {[$self NLrename $oldNick $newNick] != 1 } {
+		    return
+		}
 	    }
-	}
-	if {[string equal $what "MYNICK"]} {
-	    regexp {You are now known as (.*)} $msg -> newNick
-	    #TODO ^ -sorted
-	    $self NLedit $oldNick $newNick
-	}
-	
-	if {[string equal $what "QUIT"]} {
-	    regexp {([^ ]+) has quit.* } $msg -> newNick
-	    $self NLremove $newNick
+	    "MYNICK" {
+		regexp {You are now known as (.*)} $msg -> newNick
+		$self NLrename $oldNick $newNick
+	    }
+	    "QUIT" {
+		regexp {([^ ]+) has quit.* } $msg -> newNick
+		$self NLremove $newNick
+	    }
 	}
 	
 	$self handleReceived $timestamp $title $titleStyle $msg $msgStyle
@@ -346,6 +347,11 @@ snit::type tabChannel {
 	$awayLabel configure -text "(Away: $reason)"
     }
     
+    #TODO
+    method notifyMention {mNick mMsg} {
+	tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
+    }
+    
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Init Channel ##############
     method initChan {pass} {
@@ -380,32 +386,32 @@ snit::type tabChannel {
     }
     
     ############## NickList functions ##############
-    # 1 if it was found, 0 otherwise
-    method NLedit {oldNick newNick} {
-	set temp [$self getNickPrefixes]
-	set ind [lsearch -regexp $nickList "^\[$temp\]$oldNick"]
-	#TODO ^ -sorted
-	if {$ind > -1} {
-	    set prefix ""
-	    regexp "\(\[$temp\]\)$oldNick" [lindex $nickList $ind] -> prefix
-	    lset nickList $ind "$prefix$newNick"
-	    set nickList [lsort -command [mymethod compareNick] $nickList]
-	    return 1
-	} else {
-	    return 0
+    # 1 if it was in the nicklist, 0 if not
+    method NLrename {oldNick newNick} {
+	# Iterate over mode lists looking for nick
+	set modes [split [$ServerRef getNickPrefixes] {}]
+	foreach m $modes {
+	    # Create list if not exist
+	    if {![info exists SpecialUsers($m)]} { set SpecialUsers($m) [list] }
+	    
+	    # If it's found, replace it with the new one
+	    set idx [lsearch $SpecialUsers($m) $oldNick]
+	    if {$idx > -1} {
+		set SpecialUsers($m) [lreplace $SpecialUsers($m) $idx $idx $oldNick]
+	    }
 	}
+	
+	return [$self _NLchangeTheNickAndOrUpdateItsMode $oldNick $newNick]
     }
     
     variable SpecialUsers
     
-    # Essentially the same as NLedit; just had to tweak it to not try to handle the mode
-    method NLmode {theNick modeToSet setOrUnset} {
+    # Essentially the same as NLrename; just had to tweak it to not try to handle the mode
+    method NLchmod {theNick modeToSet setOrUnset} {
+	# Create list if not exist
+	if {![info exists SpecialUsers($modeToSet)]} { set SpecialUsers($modeToSet) [list] }
 	
-	if {![info exists SpecialUsers($modeToSet)]} {
-	    set SpecialUsers($modeToSet) [list]
-	}
-	
-	#Remove from the array
+	# 
 	switch $setOrUnset {
 	    "+" {
 		lappend SpecialUsers($modeToSet) $theNick
@@ -415,40 +421,60 @@ snit::type tabChannel {
 		set SpecialUsers($modeToSet) [lreplace $SpecialUsers($modeToSet) $idx $idx]
 	    }
 	}
-	puts "SpecialUsers($modeToSet) == $SpecialUsers($modeToSet)"
-	
+	$self _NLchangeTheNickAndOrUpdateItsMode $theNick $theNick
+    }
+    
+    # 1 if it was in the nicklist, 0 if not
+    method _NLchangeTheNickAndOrUpdateItsMode {oldNick newNick} {
+	# Look through the modes -from most important to least- checking the lists
 	set modes [split [$ServerRef getNickPrefixes] {}]
 	foreach m $modes {
-	    if {![info exists SpecialUsers($m)]} {
-		set SpecialUsers($m) [list]
-	    }
+	    # Create list if not exist
+	    if {![info exists SpecialUsers($m)]} { set SpecialUsers($m) [list] }
 	    
-	    puts "  $SpecialUsers($modeToSet) >? $theNick == [lsearch $SpecialUsers($m) $theNick]"
-	    if {[lsearch $SpecialUsers($m) $theNick] != -1} {
+	    # Found!
+	    if {[lsearch $SpecialUsers($m) $oldNick] != -1} {
 		# Find last nick, even if it has a different prefix
 		set temp [$self getNickPrefixes]
-		set ind [lsearch -regexp $nickList "\[$temp\]?$theNick"]
-		puts "  FOUND! $ind"
+		# Now find it in the NickList
+		set ind [lsearch -regexp $nickList "^\[$temp\]?$oldNick\$"]
 		if {$ind > -1} {
-		    lset nickList $ind "$m$theNick"
+		    lset nickList $ind "$m$newNick"
 		    set nickList [lsort -command [mymethod compareNick] $nickList]
+		    return 1
+		} else {
+		    debugE "_NLchangeTheNickAndOrUpdateItsMode - Found $oldNick inst SpecialUsers($m), but not in the nickList"
 		}
-		return
+		return 0
 	    }
 	}
 	
 	# No modes
 	set temp [$self getNickPrefixes]
-	set ind [lsearch -regexp $nickList "\[$temp\]?$theNick"]
+	set ind [lsearch -regexp $nickList "^\[$temp\]?$oldNick\$"]
 	if {$ind > -1} {
-	    lset nickList $ind "$theNick"
+	    lset nickList $ind "$newNick"
 	    set nickList [lsort -command [mymethod compareNick] $nickList]
+	    return 1
 	}
+	return 0
     }
     
     method NLremove {target} {
 	set idx [lsearch $nickList $target]
 	set nickList [lsort -command [mymethod compareNick] [lreplace $nickList $idx $idx]]
+	
+	# Remove from modes list
+	set modes [split [$ServerRef getNickPrefixes] {}]
+	foreach m $modes {
+	    # Create list if not exist
+	    if {![info exists SpecialUsers($m)]} { set SpecialUsers($m) [list] }
+	    
+	    set idx [lsearch $SpecialUsers($m) $target]
+	    if {$idx > -1} {
+		set SpecialUsers($m) [lreplace $SpecialUsers($m) $idx $idx]
+	    }
+	}
     }
     
     method NLadd {target} {
@@ -466,7 +492,16 @@ snit::type tabChannel {
     method addUsers {users} {
 	set users [split $users]
 	foreach usr $users {
-	    lappend nickList $usr
+	    # If it's a special user add it
+	    set temp [$self getNickPrefixes]
+	    puts "Adding User: $usr   looking for ^(\[$temp\])(.*)"
+	    if {[regexp "^(\[$temp\])(.*)" $usr -> mod usr]} {
+		puts "Found"
+		lappend nickList $usr
+		$self NLchmod $usr $mod "+"
+	    } else {
+		lappend nickList $usr
+	    }
 	}
     }
     

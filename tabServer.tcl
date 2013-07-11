@@ -78,7 +78,7 @@ snit::type tabServer {
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
 	$chat tag config blue   -foreground blue
-        $chat tag config mention   -foreground blue
+        $chat tag config mention   -foreground red
 	$chat configure -background white
 	$chat configure -state disabled
 	
@@ -417,6 +417,10 @@ snit::type tabServer {
 	$awayLabel configure -text "(Away: $reason)"
     }
     
+    #TODO
+    method notifyMention {mNick mMsg} {
+	tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
+    }
     
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -576,11 +580,7 @@ snit::type tabServer {
 	gets $connDesc line
 	set timestamp [$self getTimestamp]
 	debug $line
-        
         set style ""
-        if {[regexp ".*$nick.*" $line]} {
-            set style "mention"
-        }
 	
 	# PING
 	if {[regexp {^PING :(.*)} $line -> mResponse]} {
@@ -588,7 +588,7 @@ snit::type tabServer {
 	    return
 	}
 	
-	# CTCP - EXCEPT for 
+	# CTCP - EXCEPT for ACTION
 	if {[regexp ":(\[^!\]*)!.* (\[^ \]*) [$self getNick] :\001\(\[^ \]*\) ?\(.*\)\001" \
 		$line -> mFrom mThing mCmd mContent]} {
 	    debug "REC: CTCP"
@@ -596,6 +596,10 @@ snit::type tabServer {
 	    # mThing   = NOTICE for response, PRIVMSG for initiation
 	    # mCmd     = VERSION, PING, etc
 	    # mContent = timestamp for PING, empty for VERSION, etc
+	    if {[regexp ".*$nick.*" $mContent]} {
+		set style "mention"
+		$self notifyMention $mFrom $mContent
+	    }
 	    set mContent [string trim $mContent]
 	    switch $mCmd {
 		"PING" {
@@ -624,6 +628,8 @@ snit::type tabServer {
 	    debug "REC: PRIVMSG"
 	    # PM to me
 	    if {$mTo == [$self getNick]} {
+		set style "mention"
+		$channelMap($mFrom) notifyMention $mFrom $mMsg
 		# PM - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
 		    $self createPMTabIfNotExist $mFrom
@@ -636,6 +642,10 @@ snit::type tabServer {
 		
 	    # Msg to channel
 	    } else {
+		if {[regexp ".*$nick.*" $mMsg]} {
+		    set style "mention"
+		    $channelMap($mTo) notifyMention $mFrom $mMsg
+		}
 		# Msg - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
 		    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
@@ -652,7 +662,7 @@ snit::type tabServer {
 	#          Following the nick, there is a string of length 0 or more, then a space, then a colon
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
 	    debug "REC: Numbered from server"
-            set style ""
+            set style "" ;# TODO: Can numbered messages be addressed to me?
 	    set mTarget [string trim $mTarget]
 	    set mMsg [string trim $mMsg]
 	    switch $mCode {
@@ -740,6 +750,7 @@ snit::type tabServer {
 	#  Type B: Is still a numbered message, but the content immediately follows the nick
 	if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
 	    debug "REC: Numbered2 from server"
+	    set style ""	;#TODO: Can a numbered message be addressed to me?
 	    switch $mCode {
 		005 {
 		    # Pull out CHANTYPES (prefixes for channels)
@@ -842,6 +853,10 @@ snit::type tabServer {
 			$self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
 			$self nickChanged $mMsg
 		    } else {
+			if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+			    set style "mention"
+			    #$channelMap($mChannel) notifyMention $mNick $mMsg
+			}
 			$self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" $style
 		    }
 		    return
@@ -850,6 +865,10 @@ snit::type tabServer {
 		    if {[string equal $mNick [$self getNick]]} {
 			$self joinChan $mMsg ""
 		    } else {
+			if {[regexp ".*$nick.*" "$mNick"]} {
+			    set style "mention"
+			    $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
+			}
 			$channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
 			$channelMap($mMsg) NLadd $mNick
 		    }
@@ -859,7 +878,13 @@ snit::type tabServer {
 		    if {$mTarget == [$self getNick]} {
 			$channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" $style
 			$self removeActiveChannel $mChannel
+			set style "mention"
+			$channelMap($mMsg) notifyMention $mMsg "$mNick kicked you: $mMsg"
 		    } else {
+			if {[regexp ".*$nick.*" "$mNick$mTarget$mMsg"]} {
+			    set style "mention"
+			    $channelMap($mMsg) notifyMention $mMsg "$mNick kicked $mTarget: $mMsg"
+			}
 			$self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" $style
 			$channelMap($mChannel) NLremove $mTarget
 		    }
@@ -867,6 +892,10 @@ snit::type tabServer {
 		}
 		"PART" {
 		    if {$mTarget == [$self getNick]} {
+			if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+			    set style "mention"
+			    $channelMap($mChannel) notifyMention $mChannel "$mNick has left ($mMsg)"
+			}
 			$self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
 			$channelMap($mChannel) NLremove $mNick
 			$self removeActiveChannel $mChannel
@@ -880,6 +909,10 @@ snit::type tabServer {
 			puts "You quit? What the hell?"
 			#$self removeActiveChannel $mChannel
 		    } else {
+			if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+			    set style "mention"
+			    $self notifyMention $mChannel "$mNick has quit ($mMsg)"
+			}
 			$self handleReceived $timestamp "***" bold "$mNick has quit ($mMsg)" $style
 			$self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
 		    }
@@ -893,6 +926,10 @@ snit::type tabServer {
 	#:ChanServ!services@geekshed.net MODE #qweex +qo notbryant notbryant
 	if {[regexp {:([^!]*)![^ ]* ([^ ]*) ([^ ]*) (.*)} $line -> mNick mSomething mChann mMsg]} {
 	    debug "REC: Special2: $mSomething"
+	    if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+		set style "mention"
+		$channelMap($mChann) notifyMention $mNick $mMsg
+	    }
 	    switch $mSomething {
 		"MODE" {
 		    #User mode
@@ -910,7 +947,7 @@ snit::type tabServer {
 			    puts "?MODE: $m  $modePos  $NickPrefixesA"
 			    if {$modePos > -1 && $what!="?"} {
 				puts "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
-				$channelMap($mChann) NLmode $mTarget [string index $NickPrefixesS $modePos] $what
+				$channelMap($mChann) NLchmod $mTarget [string index $NickPrefixesS $modePos] $what
 				break
 			    }
 			}
@@ -927,6 +964,10 @@ snit::type tabServer {
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug "REC: Etc: $mSomething $mTarget"
+	    if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
+		    set style "mention"
+		    $self notifyMention $mTarget $mMsg
+	    }
 	    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
 	    return
 	}
