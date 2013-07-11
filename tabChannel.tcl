@@ -226,11 +226,6 @@ snit::type tabChannel {
     
     ############## Show properties dialog ##############
     method showProperties {chann} {
-	if { [string length $chann] > 0 } {
-	    $channelMap($chann) showProperties ""
-	    return
-	}
-	
 	destroy .propDialog
 	toplevel .propDialog -padx 10 -pady 10
 	wm title .propDialog "Properties"

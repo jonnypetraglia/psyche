@@ -17,7 +17,7 @@ snit::type tabServer {
     variable activeChannels
     
     # Server info
-    variable CreationTime
+    variable ServerCreationTime
     variable MOTD
     variable ChannelPrefixes
     variable NickPrefixes
@@ -260,13 +260,46 @@ snit::type tabServer {
 	wm transient .propDialog .
 	wm resizable .propDialog 0 0
 	
-	#TODO
-	puts $CreationTime
-	puts $ChannelPrefixes
-	puts $NickPrefixes
-	puts $NetworkName
-	puts $ServerName
-	puts $ServerDaemon
+	label .propDialog.network -text $NetworkName -font {-size 16}
+	
+	label .propDialog.server_l -text "Server Name:"
+	text .propDialog.server -width 32 -height 1 -background white
+	label .propDialog.daemon_l -text "Running:"
+	text .propDialog.daemon -width 32 -height 1 -background white
+	label .propDialog.time_l -text "Created:"
+	text .propDialog.time -width 32 -height 1 -background white
+	
+	label .propDialog.spacer -text ""
+	
+	label .propDialog.cprefixes_l -text "Channel types:"
+	text .propDialog.cprefixes -width 32 -height 1 -background white
+	label .propDialog.nprefixes_l -text "User Modes:"
+	text .propDialog.nprefixes -width 32 -height 1 -background white
+	
+	.propDialog.server insert end $ServerName ""
+	.propDialog.server configure -state disabled
+	.propDialog.daemon insert end $ServerDaemon ""
+	.propDialog.daemon configure -state disabled
+	.propDialog.time insert end $ServerCreationTime ""
+	.propDialog.time configure -state disabled
+	
+	.propDialog.cprefixes insert end $ChannelPrefixes ""
+	.propDialog.cprefixes configure -state disabled
+	.propDialog.nprefixes insert end $NickPrefixes ""
+	.propDialog.nprefixes configure -state disabled
+	
+	grid config .propDialog.network     -row 0 -column 0
+	grid config .propDialog.server_l    -row 1 -column 0 -sticky "w"
+	grid config .propDialog.server      -row 1 -column 1
+	grid config .propDialog.daemon_l    -row 2 -column 0 -sticky "w"
+	grid config .propDialog.daemon      -row 2 -column 1
+	grid config .propDialog.time_l      -row 3 -column 0 -sticky "w"
+	grid config .propDialog.time        -row 3 -column 1
+	grid config .propDialog.spacer      -row 4 -column 0
+	grid config .propDialog.cprefixes_l -row 5 -column 0 -sticky "w"
+	grid config .propDialog.cprefixes   -row 5 -column 1
+	grid config .propDialog.nprefixes_l -row 6 -column 0 -sticky "w"
+	grid config .propDialog.nprefixes   -row 6 -column 1
 	
 	Main::foreground_win .propDialog
 	grab release .
@@ -372,6 +405,7 @@ snit::type tabServer {
 	    } problemDesc]} {
 	    # Catch any exceptions thrown
 	    $self handleReceived [$self getTimestamp] \[Connect\] bold $problemDesc ""
+	    debugE "tabServer::initServer - $problemDesc"
 	    tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
             if [info exists connDesc] {
                 unset connDesc
@@ -387,6 +421,7 @@ snit::type tabServer {
 	    "timeout" {
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Connection timed out" ""
+		debugE "tabServer::initServer - Connection timed out"
 		tk_messageBox -message "Connection timed out" -parent . -title "Error" -icon error -type ok
 		return
 	    }
@@ -394,6 +429,7 @@ snit::type tabServer {
 		puts "timeout $connectStatus"
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
+		debugE "tabServer::initServer - Unknown"
 		tk_messageBox -message "An unknown error has occurred; the world is probably ending" -parent . -title "Error" -icon error -type ok
 		return
 	    }
@@ -403,8 +439,8 @@ snit::type tabServer {
 	
 	# Initiate variables & unset ones that may be left over for some reason
 	set activeChannels [list]
-	if [info exists CreationTime] {
-	    unset CreationTime
+	if [info exists ServerCreationTime] {
+	    unset ServerCreationTime
 	}
 	if [info exists MOTD] {
 	    unset MOTD
@@ -434,6 +470,7 @@ snit::type tabServer {
             if [info exists connDesc] {
                 unset connDesc
             }
+	    debugE "initServer - $probDesc"
             tk_messageBox -message "$probDesc" -parent . -title "Error" -icon error -type ok
         }
         
@@ -585,7 +622,7 @@ snit::type tabServer {
 		    regexp {^Your host is ([^,]+), running version (.*)} $mMsg -> ServerName ServerDaemon
 		}
 		003 {
-		    regexp {^This server was created (.*)} $mMsg -> CreationTime
+		    regexp {^This server was created (.*)} $mMsg -> ServerCreationTime
 		}
 		303 {
 		    #RPL_ISON

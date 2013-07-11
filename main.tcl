@@ -6,6 +6,10 @@ proc debug {arg} {
     puts $arg
 }
 
+proc debugE {arg} {
+    puts "DEBUG: $arg"
+}
+
 
 namespace eval Main {
     variable APP_VERSION
@@ -245,6 +249,7 @@ proc Main::showJoinDialog { } {
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
     if { [string length $chan] == 0 } {
+	debugE "Main::joinChannel - Insufficient data"
     	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
     	return
     }
@@ -280,6 +285,7 @@ proc Main::connectDialogConfirm {} {
     if [ expr { [string length $serv] == 0 || \
 		[string length $por] == 0  || \
 		[string length $nick] == 0}] {
+	debugE "Main::connectDialogConfirm - Insufficient data"
     	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
     	return
     }
