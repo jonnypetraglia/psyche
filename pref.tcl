@@ -13,6 +13,10 @@ namespace eval Pref {
     variable defaultAway
     variable bookmarks
     variable logDir
+    variable popupTimeout
+    variable popupLocation
+    # (n|s)(e|w)   OR   999x999 for absolute path
+    
 
     set timeout 5000
     set raiseNewTabs false
@@ -21,6 +25,17 @@ namespace eval Pref {
     set defaultPart "Partin'"
     set defaultAway "I'm away"
     set logDir "$CONFIG_DIR/log"
+    set popupTimeout 5000
+    set popupFont {Helvetica 16}
+    switch $::this(platform) {
+	"windows" {
+	    set popupLocation se
+	}
+	default {
+	    set popupLocation ne
+	}
+    }
+    
     
     
     #This is for debug
@@ -46,7 +61,7 @@ proc Pref::readPrefs {} {
 	    if [regexp {\{(.*)\}} $val -> val] {
 		set val "\[list $val \]"
 	    }
-# 		puts "set [subst Pref::$key] $val"
+	    #puts "Reading preference: '$key'\t$val"
 
 	    if {[catch {eval "set [subst Pref::$key] $val"} prob]} {
 		puts "ERROR: Unable to load preference: '$key'\n$prob"

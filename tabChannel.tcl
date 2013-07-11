@@ -349,7 +349,8 @@ snit::type tabChannel {
     
     #TODO
     method notifyMention {mNick mMsg} {
-	tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
+	#tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
+	::notebox::addmsg "$mNick - $mMsg"
     }
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

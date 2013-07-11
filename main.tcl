@@ -43,11 +43,38 @@ namespace eval Main {
     variable toolbar_away
 }
 
+set ::this(platform) windows	;#TODO This should not be necessary
+switch $tcl_platform(platform) {
+    "unix" {
+	if {$tcl_platform(os) == "Darwin"} {
+	    set ::this(platform) macosx
+	} else {
+	    set ::this(platform) unix
+	}
+    }
+    "windows" {
+	set ::this(platform) windows
+    }
+}
 source pref.tcl
 source irc.tcl
 source tabServer.tcl
 source tabChannel.tcl
 source toolbar.tcl
+source notebox.tcl
+puts $Pref::popupLocation
+
+Pref::readPrefs
+if [regexp {(.*)x(.*)} $Pref::popupLocation -> x y] {
+    puts "DERP: $x"
+    ::notebox::setposition $x $y
+} else {
+    option add *Notebox.anchor $Pref::popupLocation widgetDefault
+}
+option add *Notebox.millisecs $Pref::popupTimeout widgetDefault
+option add *Notebox.font $Pref::popupFont widgetDefault
+option add *Notebox.Message.width 500
+
 
 
 proc Main::init { } {
@@ -450,7 +477,6 @@ proc Main::foreground_win { w } {
     wm deiconify $w
 }
 
-Pref::readPrefs
 Main::init
 toplevel .channelList -padx 10 -pady 10
 wm state .channelList withdrawn
