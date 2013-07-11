@@ -20,7 +20,8 @@ snit::type tabServer {
     variable ServerCreationTime
     variable MOTD
     variable ChannelPrefixes
-    variable NickPrefixes
+    variable NickPrefixesA	;# Alphanumeric; e.g. 'q'; used in things like /mode
+    variable NickPrefixesS	;# Symbol; e.g. '~'; used in the NickList and in /lusers
     variable NetworkName
     variable ServerName
     variable ServerDaemon
@@ -174,7 +175,7 @@ snit::type tabServer {
     method getChannPrefixes {} { return $ChannPrefixes }
     method getNick {} { return $nick }
     method getServer {} { return $server }
-    method getNickPrefixes {} { return $NickPrefixes }
+    method getNickPrefixes {} { return $NickPrefixesS }
     method isServer {} { return 1 }
     
     method propogateMessage {what timestamp title titleStyle msg msgStyle} {
@@ -262,8 +263,8 @@ snit::type tabServer {
 	
 	label .propDialog.network -text $NetworkName -font {-size 16}
 	
-	label .propDialog.server_l -text "Server Name:"
-	text .propDialog.server -width 32 -height 1 -background white
+	label .propDialog.name_l -text "Server Name:"
+	text .propDialog.name -width 32 -height 1 -background white
 	label .propDialog.daemon_l -text "Running:"
 	text .propDialog.daemon -width 32 -height 1 -background white
 	label .propDialog.time_l -text "Created:"
@@ -276,8 +277,13 @@ snit::type tabServer {
 	label .propDialog.nprefixes_l -text "User Modes:"
 	text .propDialog.nprefixes -width 32 -height 1 -background white
 	
-	.propDialog.server insert end $ServerName ""
-	.propDialog.server configure -state disabled
+	label .propDialog.spacer2 -text ""
+	
+	label .propDialog.motd_l -text "MOTD:"
+	text .propDialog.motd  -width 60 -height 7 -background white
+	
+	.propDialog.name insert end $ServerName ""
+	.propDialog.name configure -state disabled
 	.propDialog.daemon insert end $ServerDaemon ""
 	.propDialog.daemon configure -state disabled
 	.propDialog.time insert end $ServerCreationTime ""
@@ -285,12 +291,15 @@ snit::type tabServer {
 	
 	.propDialog.cprefixes insert end $ChannelPrefixes ""
 	.propDialog.cprefixes configure -state disabled
-	.propDialog.nprefixes insert end $NickPrefixes ""
+	.propDialog.nprefixes insert end "$NickPrefixesA = $NickPrefixesS" ""
 	.propDialog.nprefixes configure -state disabled
 	
+	.propDialog.motd insert end $MOTD ""
+	.propDialog.motd configure -state disabled
+	
 	grid config .propDialog.network     -row 0 -column 0
-	grid config .propDialog.server_l    -row 1 -column 0 -sticky "w"
-	grid config .propDialog.server      -row 1 -column 1
+	grid config .propDialog.name_l      -row 1 -column 0 -sticky "w"
+	grid config .propDialog.name        -row 1 -column 1
 	grid config .propDialog.daemon_l    -row 2 -column 0 -sticky "w"
 	grid config .propDialog.daemon      -row 2 -column 1
 	grid config .propDialog.time_l      -row 3 -column 0 -sticky "w"
@@ -300,6 +309,36 @@ snit::type tabServer {
 	grid config .propDialog.cprefixes   -row 5 -column 1
 	grid config .propDialog.nprefixes_l -row 6 -column 0 -sticky "w"
 	grid config .propDialog.nprefixes   -row 6 -column 1
+	grid config .propDialog.spacer2     -row 7 -column 0
+	grid config .propDialog.motd_l      -row 8 -column 0 -sticky "w"
+	grid config .propDialog.motd        -row 9 -column 0 -columnspan 2
+	
+	label .propDialog.spacer3 -text ""
+	
+	# Connection info
+	label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
+	label .propDialog.server_l -text "Connection:"
+	text .propDialog.server -width 32 -height 1 -background white
+	label .propDialog.port_l -text "Port:"
+	text .propDialog.port -width 32 -height 1 -background white
+	label .propDialog.username_l -text "Created:"
+	text .propDialog.username -width 32 -height 1 -background white
+	
+	grid config .propDialog.spacer      -row 10 -column 0
+	grid config .propDialog.server_l    -row 11 -column 0
+	grid config .propDialog.server      -row 11 -column 1
+	grid config .propDialog.port_l      -row 12 -column 0
+	grid config .propDialog.port        -row 12 -column 1
+	grid config .propDialog.username_l  -row 12 -column 0
+	grid config .propDialog.username    -row 12 -column 1
+	
+	.propDialog.server insert end $server ""
+	.propDialog.server configure -state disabled
+	.propDialog.port insert end $port ""
+	.propDialog.port configure -state disabled
+	#.propDialog.username insert end $Username ""
+	#.propDialog.username configure -state disabled
+	
 	
 	Main::foreground_win .propDialog
 	grab release .
@@ -442,14 +481,15 @@ snit::type tabServer {
 	if [info exists ServerCreationTime] {
 	    unset ServerCreationTime
 	}
-	if [info exists MOTD] {
-	    unset MOTD
-	}
+	set MOTD ""
 	if [info exists ChannelPrefixes] {
 	    unset ChannelPrefixes
 	}
-	if [info exists NickPrefixes] {
-	    unset NickPrefixes
+	if [info exists NickPrefixesA] {
+	    unset NickPrefixesA
+	}
+	if [info exists NickPrefixesS] {
+	    unset NickPrefixesS
 	}
 	if [info exists NetworkName] {
 	    unset NetworkName
@@ -680,6 +720,10 @@ snit::type tabServer {
 		    #TODO Do things
 		    return
 		}
+		372 {
+		    #RPL_MOTD
+		    append MOTD "$mMsg\n"
+		}
 		474 {
 		    #ERR_BANNEDFROMCHAN
 		    set mMsg "$mMsg - $mTarget"
@@ -704,10 +748,9 @@ snit::type tabServer {
 		    }
 		    
 		    # Pull out PREFIX (user modes, e.g. ~&@%+)
-		    #if [regexp {.*PREFIX=\([^)]\)([^ ]+) .*} $mMsg -> userModes] 
-		    if [regexp {.*STATUSMSG=([^ ]+) .*} $mMsg -> userModes] {
-			set NickPrefixes $userModes
-			puts "#####NickPrefixes $NickPrefixes"
+		    if [regexp ".*PREFIX=\\((.*)\\)(\[^ \]+) .*" $mMsg -> userKeys userModes] {
+			set NickPrefixesA $userKeys
+			set NickPrefixesS $userModes
 		    }
 		    
 		    regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
@@ -853,8 +896,25 @@ snit::type tabServer {
 	    switch $mSomething {
 		"MODE" {
 		    #User mode
-		    if { [regexp {([^ ]+) ([^ ]+) ([^ ]+)} $mMsg -> mModes mNick1 mNick2] } {
-			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mNick1 or $mNick2" $style
+		    if { [regexp {([^ ]+) ([^ ]+).*} $mMsg -> mModes mTarget] } {
+			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mTarget" $style
+			
+			set modes [split $mModes {}]
+			set what "?"
+			foreach m $modes {
+			    if {$m == "+" || $m == "-"} {
+				set what $m
+				continue
+			    }
+			    set modePos [string first $m $NickPrefixesA ]
+			    puts "?MODE: $m  $modePos  $NickPrefixesA"
+			    if {$modePos > -1 && $what!="?"} {
+				puts "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
+				$channelMap($mChann) NLmode $mTarget [string index $NickPrefixesS $modePos] $what
+				break
+			    }
+			}
+			
 		    #Channel mode
 		    } else {
 			$channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" $style

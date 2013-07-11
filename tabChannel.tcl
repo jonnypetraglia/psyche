@@ -383,7 +383,7 @@ snit::type tabChannel {
     # 1 if it was found, 0 otherwise
     method NLedit {oldNick newNick} {
 	set temp [$self getNickPrefixes]
-	set ind [lsearch -regexp $nickList "\[$temp\]$oldNick"]
+	set ind [lsearch -regexp $nickList "^\[$temp\]$oldNick"]
 	#TODO ^ -sorted
 	if {$ind > -1} {
 	    set prefix ""
@@ -393,6 +393,56 @@ snit::type tabChannel {
 	    return 1
 	} else {
 	    return 0
+	}
+    }
+    
+    variable SpecialUsers
+    
+    # Essentially the same as NLedit; just had to tweak it to not try to handle the mode
+    method NLmode {theNick modeToSet setOrUnset} {
+	
+	if {![info exists SpecialUsers($modeToSet)]} {
+	    set SpecialUsers($modeToSet) [list]
+	}
+	
+	#Remove from the array
+	switch $setOrUnset {
+	    "+" {
+		lappend SpecialUsers($modeToSet) $theNick
+	    }
+	    "-" {
+		set idx [lsearch $SpecialUsers($modeToSet) $theNick]
+		set SpecialUsers($modeToSet) [lreplace $SpecialUsers($modeToSet) $idx $idx]
+	    }
+	}
+	puts "SpecialUsers($modeToSet) == $SpecialUsers($modeToSet)"
+	
+	set modes [split [$ServerRef getNickPrefixes] {}]
+	foreach m $modes {
+	    if {![info exists SpecialUsers($m)]} {
+		set SpecialUsers($m) [list]
+	    }
+	    
+	    puts "  $SpecialUsers($modeToSet) >? $theNick == [lsearch $SpecialUsers($m) $theNick]"
+	    if {[lsearch $SpecialUsers($m) $theNick] != -1} {
+		# Find last nick, even if it has a different prefix
+		set temp [$self getNickPrefixes]
+		set ind [lsearch -regexp $nickList "\[$temp\]?$theNick"]
+		puts "  FOUND! $ind"
+		if {$ind > -1} {
+		    lset nickList $ind "$m$theNick"
+		    set nickList [lsort -command [mymethod compareNick] $nickList]
+		}
+		return
+	    }
+	}
+	
+	# No modes
+	set temp [$self getNickPrefixes]
+	set ind [lsearch -regexp $nickList "\[$temp\]?$theNick"]
+	if {$ind > -1} {
+	    lset nickList $ind "$theNick"
+	    set nickList [lsort -command [mymethod compareNick] $nickList]
 	}
     }
     
