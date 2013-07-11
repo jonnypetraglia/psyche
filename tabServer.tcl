@@ -965,6 +965,11 @@ snit::type tabServer {
 	# Server message with no numbers but sent explicitely from server
 	if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
 	    debug "REC: Etc: $mSomething $mTarget"
+	    switch $mSomething {
+		"MODE" {
+		    set mMsg "$ServerName has set your personal modes: $mMsg"
+		}
+	    }
 	    if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
 		    set style "mention"
 		    $self notifyMention $mTarget $mMsg

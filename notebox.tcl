@@ -55,10 +55,9 @@ proc ::notebox::Build {} {
 
     set w $this(w)
     toplevel $w -class Notebox -bd 0 -relief flat
-    wm resizable $w 0 0 
     
     switch -- [tk windowingsystem] {
-	aquq {
+	aqua {
 	    tk::unsupported::MacWindowStyle style $w floating {sideTitlebar closeBox}
 	    frame $w.f -height 32 -width 0
 	    pack  $w.f -side left -fill y
@@ -148,16 +147,16 @@ proc ::notebox::getxyFromAnchor {} {
     set w $this(w)
     set anchor [option get $w anchor {}]
     if {[string first "n" $anchor] > -1} {
-	set this(y) [expr {0 + 50}]
+	set this(y) [expr {0 + 30}]
     } else {
-	set this(y) [expr {[winfo screenheight $w] - 50}]
+	set this(y) [expr {[winfo screenheight $w] - 30}]
 	set this(y) [expr {$this(y) - [winfo reqheight $w]}]
     }
-    puts [string first "w" $anchor]
+    
     if {[string first "w" $anchor] > -1} {
-	set this(x) [expr {0 + 50}]
+	set this(x) [expr {0 + 30}]
     } else {
-	set this(x) [expr {[winfo screenwidth $w] - 50}]
+	set this(x) [expr {[winfo screenwidth $w] - 30}]
 	set this(x) [expr {$this(x) - [winfo reqwidth $w]}]
     }
 }

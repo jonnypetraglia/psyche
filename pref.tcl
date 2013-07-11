@@ -15,6 +15,7 @@ namespace eval Pref {
     variable logDir
     variable popupTimeout
     variable popupLocation
+    variable popupFont
     # (n|s)(e|w)   OR   999x999 for absolute path
     
 
@@ -52,27 +53,20 @@ proc Pref::readPrefs {} {
     
     while {![eof $fp]} {
 	set data [gets $fp]
-	if {[lindex $data 0] == "#"} {
-	    continue
+	# Manually add the namespace
+	if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logDir |popupTimeout |popupLocation |popupFont ).*)" $data -> data]} {
+	    set data "set Pref::$data"
 	}
-	# restore some other values that might be useful
-	#set config([lindex $data 0]) [lindex $data 1]
-	if [regexp {([^=]+)=(.*)} $data -> key val] {
-	    if [regexp {\{(.*)\}} $val -> val] {
-		set val "\[list $val \]"
-	    }
-	    #puts "Reading preference: '$key'\t$val"
+	#puts "Reading preference: '$data'"
 
-	    if {[catch {eval "set [subst Pref::$key] $val"} prob]} {
-		puts "ERROR: Unable to load preference: '$key'\n$prob"
-	    }
+	if {[catch {eval "$data"} prob]} {
+	    puts "ERROR: Unable to load preference: '$data"
 	}
     }
     close $fp
     
     menu .bookmarkMenu -tearoff true -title Bookmarks
     foreach x [array names Pref::bookmarks] {
-	puts "PREF: $x"
 	.bookmarkMenu add command -label $x -command "Main::openBookmark $x"
     }
 

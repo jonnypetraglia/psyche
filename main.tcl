@@ -62,11 +62,9 @@ source tabServer.tcl
 source tabChannel.tcl
 source toolbar.tcl
 source notebox.tcl
-puts $Pref::popupLocation
 
 Pref::readPrefs
 if [regexp {(.*)x(.*)} $Pref::popupLocation -> x y] {
-    puts "DERP: $x"
     ::notebox::setposition $x $y
 } else {
     option add *Notebox.anchor $Pref::popupLocation widgetDefault
@@ -74,7 +72,6 @@ if [regexp {(.*)x(.*)} $Pref::popupLocation -> x y] {
 option add *Notebox.millisecs $Pref::popupTimeout widgetDefault
 option add *Notebox.font $Pref::popupFont widgetDefault
 option add *Notebox.Message.width 500
-
 
 
 proc Main::init { } {
