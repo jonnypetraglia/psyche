@@ -148,16 +148,16 @@ proc ::notebox::getxyFromAnchor {} {
     set w $this(w)
     set anchor [option get $w anchor {}]
     if {[string first "n" $anchor] > -1} {
-	set this(y) [expr {0 + $this(y_pad)}]
+	set this(y) [expr {0 + 50}]
     } else {
-	set this(y) [expr {[winfo screenheight $w] + $this(y_pad)}]
+	set this(y) [expr {[winfo screenheight $w] - 50}]
 	set this(y) [expr {$this(y) - [winfo reqheight $w]}]
     }
     puts [string first "w" $anchor]
     if {[string first "w" $anchor] > -1} {
-	set this(x) [expr {0 + $this(x_pad)}]
+	set this(x) [expr {0 + 50}]
     } else {
-	set this(x) [expr {[winfo screenwidth $w] + $this(x_pad)}]
+	set this(x) [expr {[winfo screenwidth $w] - 50}]
 	set this(x) [expr {$this(x) - [winfo reqwidth $w]}]
     }
 }
