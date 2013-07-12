@@ -76,5 +76,3 @@ proc Pref::readPrefs {} {
 proc Pref::writePrefs {pref val} {
 
 }
-
-#Pref::readPrefs

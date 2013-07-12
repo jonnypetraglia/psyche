@@ -87,7 +87,7 @@ proc Main::init { } {
 	#Logfile
     
     # Menu description
-    if false {
+    if { false || true } {
 	set Main::descmenu {
 	    "&File" all file 0 {
 		{command "E&xit" {} "Exit BWidget demo" {} -command exit}
@@ -149,9 +149,12 @@ proc Main::init { } {
     .tabMenu add command -label "Part channel" -command Main::part
     .tabMenu add command -label "Close tab" -command Main::closeTab
     
-    #set Main::servers(1) [tab %AUTO% irc.geekshed.net 6667 byteslol]
-    #$Main::notebook raise [$Main::servers(1) getId]
-    #$Main::servers(1) joinChan #jupiterBroadcasting
+    wm protocol . WM_DELETE_WINDOW {
+	#wm command . [expr {"0x111"}]
+	#if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
+	    exit
+	#}
+    }
 }
 
 proc Main::closeTab {} {

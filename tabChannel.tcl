@@ -19,6 +19,11 @@ snit::type tabChannel {
     variable ModeList
     variable BanList
     
+    variable SpecialUsers
+    variable LastSpoke
+    variable LastTabbed
+    variable NickSearchTerm
+    
 
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Similar (same name)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -82,9 +87,16 @@ snit::type tabChannel {
 	set awayLabel [label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [entry $lowerFrame.input]
+	set input [text $lowerFrame.input -height 1 -background red]
 	$input configure -background white
-	bind $input <Return> [mymethod sendMessage]
+	bind $input <Return> "
+	    [mymethod sendMessage]
+	    break
+	"
+	bind $input <Tab> "
+	    [mymethod tabComplete]
+	    break;
+	"
 
 	grid $awayLabel -row 0 -column 0
 	grid $input -row 0 -column 1 -sticky ew
@@ -165,7 +177,8 @@ snit::type tabChannel {
 	    }
 	    "MYNICK" {
 		regexp {You are now known as (.*)} $msg -> newNick
-		$self NLrename $oldNick $newNick
+		catch {$self NLrename $nick $newNick}
+		#TODO
 	    }
 	    "QUIT" {
 		regexp {([^ ]+) has quit.* } $msg -> newNick
@@ -309,8 +322,8 @@ snit::type tabChannel {
     
     ############## Send Message ##############
     method sendMessage {} {
-	set msg [$input get]
-	$input delete 0 end
+	set msg [$input get 1.0 end]
+	$input delete 1.0 end
 
 	# Starts with a backslash
 	if [regexp {^/(.+)} $msg -> msg] {
@@ -405,8 +418,6 @@ snit::type tabChannel {
 	return [$self _NLchangeTheNickAndOrUpdateItsMode $oldNick $newNick]
     }
     
-    variable SpecialUsers
-    
     # Essentially the same as NLrename; just had to tweak it to not try to handle the mode
     method NLchmod {theNick modeToSet setOrUnset} {
 	# Create list if not exist
@@ -464,6 +475,7 @@ snit::type tabChannel {
     method NLremove {target} {
 	set idx [lsearch $nickList $target]
 	set nickList [lsort -command [mymethod compareNick] [lreplace $nickList $idx $idx]]
+	if [info exists LastSpoke($target)] {unset LastSpoke($target)}
 	
 	# Remove from modes list
 	set modes [split [$ServerRef getNickPrefixes] {}]
@@ -523,6 +535,93 @@ snit::type tabChannel {
 	set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
 	puts $nickName
 	$self createPMTabIfNotExist $nickName
+    }
+    
+    method touchLastSpoke {nick} {
+	puts " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
+	set LastSpoke($nick) [clock seconds]
+    }
+    
+    method tabComplete {} {
+	regexp ".*\\.(.*)" [$input index {insert + 0 c}] -> ind
+	set ind [expr {$ind - 1}]
+	set tempNickSearchTerm [$input get 1.0 end]
+	set ind0 [expr {[string last " " $tempNickSearchTerm $ind] + 1}]
+	
+	if {![info exists LastTabbed]} {
+	    set NickSearchTerm [string range $tempNickSearchTerm $ind0 $ind]
+	}
+	
+	debug "Looking for nick that starts with: '$NickSearchTerm'"
+	set earlierThan 9999999999
+	if {[info exists LastTabbed] && [info exists LastSpoke($LastTabbed)]} {
+	    set earlierThan $LastSpoke($LastTabbed)
+	}
+	
+	set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+	# If there is a prior tabbed, make sure our starting point is not it
+	if {[info exists LastTabbed] && [info exists LastSpoke($LastTabbed)] && [lindex $nickList $nickloc]==$LastTabbed} {
+	    incr nickloc
+	    # If the starting point WAS the Last Tabbed AND it was the only one, invalidate the normal nicks
+	    if {![regexp "^$NickSearchTerm.*" [lindex $nickList $nickloc]]} {
+		set nickloc -1
+	    }
+	}
+	# Check normal nicks, if there are any
+	if {$nickloc > -1} {
+	    set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan]
+	    if {$tempnickloc > $nickloc} {
+		set nickloc $tempnickloc
+	    }
+	}
+	
+	debug "Post post - $nickloc"
+	debug "Post post - [lindex $nickList $nickloc]"
+	
+	# Do mods and such
+	set modes [split [$ServerRef getNickPrefixes] {}]
+	foreach m $modes {
+	    set tempnickloc [lsearch -regexp $nickList "^$txt.*"]
+	    if {$tempnickloc < 0} { continue }
+	    set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan "\[[$ServerRef getNickPrefixes]\]" ]
+	    if {$tempnickloc > $nickloc} {
+		set nickloc $tempnickloc
+	    }
+	}
+	
+	# Regular
+	debug "Post modes - $nickloc"
+	debug "Post modes - [lindex $nickList $nickloc]"
+	
+	
+	set LastTabbed [lindex $nickList $nickloc]
+	$input replace 1.$ind0 1.[expr {$ind+1}] $LastTabbed
+	unset LastTabbed
+    }
+    
+    method _tabComplete {nickloc txt earlierThan {leNickPrefix ""}} {
+	set i [expr {$nickloc + 1}]
+	while {[regexp "^$leNickPrefix$txt.*" [lindex $nickList $i]]} {
+	    # The iterating-one over must have spoken at least once
+	    if {![info exists LastSpoke([lindex $nickList $i])]} {
+		incr i; continue;
+	    }
+	    
+	    # If the iterating-one HAS spoken but the nickloc (i.e., the alphanumerical first) has not,
+	    # default to the iterating-one
+	    # OR if they both exist, actually compare
+	    if {![info exists LastSpoke([lindex $nickList $nickloc])] || \
+		($LastSpoke([lindex $nickList $i]) > $LastSpoke([lindex $nickList $nickloc]) &&
+		 $LastSpoke([lindex $nickList $i]) < $earlierThan)} {
+		# DEBUG
+		if [info exists LastSpoke([lindex $nickList $nickloc])] {
+		    debug "   [lindex $nickList $i] @ $LastSpoke([lindex $nickList $i]) < [lindex $nickList $nickloc] @ $LastSpoke([lindex $nickList $nickloc])" }
+		# GUBED
+		set nickloc $i
+	    }
+	    incr i
+	}
+	return $nickloc
     }
     
     ############## Comparator for NickList ##############

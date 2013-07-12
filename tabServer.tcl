@@ -631,15 +631,15 @@ snit::type tabServer {
 	    if {$mTo == [$self getNick]} {
 		set style "mention"
 		$channelMap($mFrom) notifyMention $mFrom $mMsg
+		$self createPMTabIfNotExist $mFrom
 		# PM - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
-		    $self createPMTabIfNotExist $mFrom
 		    $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
 		# PM - general
 		} else {
-		    $self createPMTabIfNotExist $mFrom
 		    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
+		$channelMap($mFrom) touchLastSpoke $mFrom
 		
 	    # Msg to channel
 	    } else {
@@ -654,6 +654,7 @@ snit::type tabServer {
 		} else {
 		    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
+		$channelMap($mTo) touchLastSpoke $mFrom
 	    }
 	    return
 	}
