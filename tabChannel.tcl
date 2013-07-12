@@ -548,25 +548,34 @@ snit::type tabChannel {
 	set tempNickSearchTerm [$input get 1.0 end]
 	set ind0 [expr {[string last " " $tempNickSearchTerm $ind] + 1}]
 	
-	if {![info exists LastTabbed]} {
+	set earlierThan 9999999999
+	if {[info exists LastTabbed]} {
+	    if [info exists LastSpoke($LastTabbed)] {
+		set earlierThan $LastSpoke($LastTabbed)
+		set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+	    } else {
+		set nickloc [lsearch -regexp $nickList "^$LastTabbed.*"]
+	    }
+	} else {
 	    set NickSearchTerm [string range $tempNickSearchTerm $ind0 $ind]
+	    set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
 	}
 	
 	debug "Looking for nick that starts with: '$NickSearchTerm'"
-	set earlierThan 9999999999
-	if {[info exists LastTabbed] && [info exists LastSpoke($LastTabbed)]} {
-	    set earlierThan $LastSpoke($LastTabbed)
-	}
+	debug "Must be earlier than $earlierThan"
 	
-	set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
 	# If there is a prior tabbed, make sure our starting point is not it
-	if {[info exists LastTabbed] && [info exists LastSpoke($LastTabbed)] && [lindex $nickList $nickloc]==$LastTabbed} {
+	if {[info exists LastTabbed] && [lindex $nickList $nickloc]==$LastTabbed} {	;#&& [info exists LastSpoke($LastTabbed)] 
 	    incr nickloc
 	    # If the starting point WAS the Last Tabbed AND it was the only one, invalidate the normal nicks
 	    if {![regexp "^$NickSearchTerm.*" [lindex $nickList $nickloc]]} {
 		set nickloc -1
 	    }
 	}
+	debug "Checking normal. Starting point is $nickloc"
+	debug "  [lindex $nickList $nickloc]"
+	
+	
 	# Check normal nicks, if there are any
 	if {$nickloc > -1} {
 	    set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan]
@@ -581,7 +590,7 @@ snit::type tabChannel {
 	# Do mods and such
 	set modes [split [$ServerRef getNickPrefixes] {}]
 	foreach m $modes {
-	    set tempnickloc [lsearch -regexp $nickList "^$txt.*"]
+	    set tempnickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
 	    if {$tempnickloc < 0} { continue }
 	    set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan "\[[$ServerRef getNickPrefixes]\]" ]
 	    if {$tempnickloc > $nickloc} {
@@ -593,10 +602,11 @@ snit::type tabChannel {
 	debug "Post modes - $nickloc"
 	debug "Post modes - [lindex $nickList $nickloc]"
 	
+	if {$nickloc == -1} { return}
+	
 	
 	set LastTabbed [lindex $nickList $nickloc]
 	$input replace 1.$ind0 1.[expr {$ind+1}] $LastTabbed
-	unset LastTabbed
     }
     
     method _tabComplete {nickloc txt earlierThan {leNickPrefix ""}} {

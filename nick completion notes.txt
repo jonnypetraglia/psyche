@@ -1,0 +1,9 @@
+Konversation:
+---
+ircinput:
+    nickCompletion == emitted when tab is pressed
+    endCompletion  == when any other key is pressed
+    
+channel:
+    completeNick
+    endCompleteNick

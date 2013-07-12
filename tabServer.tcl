@@ -639,13 +639,13 @@ snit::type tabServer {
 		} else {
 		    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
-		$channelMap($mFrom) touchLastSpoke $mFrom
 		
 	    # Msg to channel
 	    } else {
 		if {[regexp ".*$nick.*" $mMsg]} {
 		    set style "mention"
 		    $channelMap($mTo) notifyMention $mFrom $mMsg
+		    $channelMap($mTo) touchLastSpoke $mFrom
 		}
 		# Msg - /me
 		if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
@@ -654,7 +654,6 @@ snit::type tabServer {
 		} else {
 		    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
 		}
-		$channelMap($mTo) touchLastSpoke $mFrom
 	    }
 	    return
 	}

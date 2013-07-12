@@ -1,91 +1,115 @@
-package require Tcl
-       package require Tk
-       package require menubar
+package require Tk
 
-       set tout [text .t -width 25 -height 12]
-       pack ${tout} -expand 1 -fill both
-       set mbar [menubar new \
-           -borderwidth 4 \
-           -relief groove  \
-           -foreground black \
-           -background tan \
-           ]
-       ${mbar} define {
-           File M:file {
-               Exit                 C      exit
-           }
-           Edit M:items+ {
-           #   Label               Type    Tag Name(s)
-           #   -----------------   ----    ---------"Cut" --------"Cut"
-               "Cut"               C       cut
-               "Copy"              C       copy
-               "Paste"             C       paste
-               --                  S       s2
-               "Options" M:opts {
-                   "CheckList" M:chx+ {
-                       Coffee      X       coffee+
-                       Donut       X       donut
-                       Eggs        X       eggs
-                       }
-                   "RadioButtons" M:btn+ {
-                       "Red"       R       color
-                       "Green"     R       color+
-                       "Blue"      R       color
-                       }
-               }
-           }
-           Help M:help {
-               About               C       about
-           }
-       }
-       ${mbar} install . {
-           ${mbar} tag.add tout ${tout}
-           ${mbar} menu.configure -command {
-               # file menu
-               exit            {Exit}
-               # Item menu
-               cut             {CB Edit cut}
-               copy            {CB Edit copy}
-               paste           {CB Edit paste}
-               # boolean menu
-               coffee          {CB CheckButton}
-               donut           {CB CheckButton}
-               eggs            {CB CheckButton}
-               # radio menu
-               color           {CB RadioButton}
-               # Help menu
-               about           {CB About}
-           } -bind {
-               exit        {1 Cntl+Q  Control-Key-q}
-               cut         {2 Cntl+X  Control-Key-x}
-               copy        {0 Cntl+C  Control-Key-c}
-               paste       {0 Cntl+V  Control-Key-v}
-               coffee      {0 Cntl+A  Control-Key-a}
-               donut       {0 Cntl+B  Control-Key-b}
-               eggs        {0 Cntl+C  Control-Key-c}
-               about       0
-           } -background {
-               exit red
-           } -foreground {
-               exit white
-           }
-       }
-       proc pout { txt } {
-           global mbar
-           set tout [${mbar} tag.cget . tout]
-           ${tout} insert end "${txt}\n"
-       }
-       proc Exit { args } {
-           puts "Goodbye"
-           exit
-       }
-       proc CB { args } {
-           set alist [lassign ${args} cmd]
-           pout "${cmd}: [join ${alist} {, }]"
-       }
-       wm minsize . 300 300
-       wm geometry . +4+4
-       wm protocol . WM_DELETE_WINDOW exit
-       wm title . "Example"
-       wm focusmodel . active
-       pout "Example started ..."
+variable nickList
+set nickList [list byteslol notbryant notbyteslol Techman]
+
+variable LastSpoke
+variable LastTabbed
+variable NickSearchTerm
+
+proc getNickPrefixes {} { return "~" }
+proc debug {ARGS} { puts $ARGS }
+
+set input [text .input -height 1]
+.input insert end not ""
+pack .input
+
+
+proc _tabComplete {nickloc txt earlierThan {leNickPrefix ""}} {
+    global nickList
+    set i [expr {$nickloc + 1}]
+    while {[regexp "^$leNickPrefix$txt.*" [lindex $nickList $i]]} {
+        # The iterating-one over must have spoken at least once
+        if {![info exists LastSpoke([lindex $nickList $i])]} {
+            incr i; continue;
+        }
+        
+        # If the iterating-one HAS spoken but the nickloc (i.e., the alphanumerical first) has not,
+        # default to the iterating-one
+        # OR if they both exist, actually compare
+        if {![info exists LastSpoke([lindex $nickList $nickloc])] || \
+            ($LastSpoke([lindex $nickList $i]) > $LastSpoke([lindex $nickList $nickloc]) &&
+             $LastSpoke([lindex $nickList $i]) < $earlierThan)} {
+            # DEBUG
+            if [info exists LastSpoke([lindex $nickList $nickloc])] {
+                debug "   [lindex $nickList $i] @ $LastSpoke([lindex $nickList $i]) < [lindex $nickList $nickloc] @ $LastSpoke([lindex $nickList $nickloc])" }
+            # GUBED
+            set nickloc $i
+        }
+        incr i
+    }
+    return $nickloc
+}
+
+
+
+
+bind .input <Tab> {
+    global nickList
+    regexp ".*\\.(.*)" [$input index {insert + 0 c}] -> ind
+    set ind [expr {$ind - 1}]
+    set tempNickSearchTerm [$input get 1.0 end]
+    set ind0 [expr {[string last " " $tempNickSearchTerm $ind] + 1}]
+    
+    if {![info exists LastTabbed]} {
+        set NickSearchTerm [string range $tempNickSearchTerm $ind0 $ind]
+    }
+    debug "Looking for nick that starts with: '$NickSearchTerm'"
+    
+    
+    
+    
+    set earlierThan 9999999999
+    if {[info exists LastTabbed] && [info exists LastSpoke($LastTabbed)]} {
+        set earlierThan $LastSpoke($LastTabbed)
+    }
+    
+    debug "Must be earlier than $earlierThan"
+    
+    set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+    # If there is a prior tabbed, make sure our starting point is not it
+    if {[info exists LastTabbed] && [lindex $nickList $nickloc]==$LastTabbed} { ;#&& [info exists LastSpoke($LastTabbed)]
+        incr nickloc
+        # If the starting point WAS the Last Tabbed AND it was the only one, invalidate the normal nicks
+        if {![regexp "^$NickSearchTerm.*" [lindex $nickList $nickloc]]} {
+            set nickloc -1
+        }
+    }
+    debug "Checking normal. Starting point is $nickloc"
+    debug "  [lindex $nickList $nickloc]"
+    
+    # Check normal nicks, if there are any
+    if {$nickloc > -1} {
+        set tempnickloc [_tabComplete $nickloc $NickSearchTerm $earlierThan]
+        if {$tempnickloc > $nickloc} {
+            set nickloc $tempnickloc
+        }
+    }
+    
+    debug "Post post - $nickloc"
+    debug "Post post - [lindex $nickList $nickloc]"
+    
+    # Do mods and such
+    set modes [split [getNickPrefixes] {}]
+    foreach m $modes {
+        set tempnickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+        if {$tempnickloc < 0} { continue }
+        set tempnickloc [_tabComplete $nickloc $NickSearchTerm $earlierThan "\[[getNickPrefixes]\]" ]
+        if {$tempnickloc > $nickloc} {
+            set nickloc $tempnickloc
+        }
+    }
+    
+    # Regular
+    debug "Post modes - $nickloc"
+    debug "Post modes - [lindex $nickList $nickloc]"
+    
+    
+    set LastTabbed [lindex $nickList $nickloc]
+    $input replace 1.$ind0 1.[expr {$ind+1}] $LastTabbed
+    #set LastSpoke($LastTabbed) 5
+    
+    break
+}
+
+
