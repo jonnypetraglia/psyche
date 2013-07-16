@@ -245,8 +245,8 @@ proc Main::showConnectDialog { } {
     bind .connectDialog.go <ButtonPress> Main::connectDialogConfirm
     
     foreground_win .connectDialog
-    grab release .
-    grab set .connectDialog
+    catch {grab release .}
+    catch {grab set .connectDialog}
 }
 
 proc Main::showJoinDialog { } {
@@ -269,8 +269,8 @@ proc Main::showJoinDialog { } {
     bind .joinDialog.go <ButtonPress> Main::joinChannel
     
     foreground_win .joinDialog
-    grab release .
-    grab set .joinDialog
+    catch {grab release .}
+    catch {grab set .joinDialog}
 }
 
 proc Main::joinChannel {} {
@@ -280,8 +280,8 @@ proc Main::joinChannel {} {
     	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
     	return
     }
-    grab release .joinDialog
-    grab set .
+    catch {grab release .joinDialog}
+    catch {grab set .}
     wm state .joinDialog withdrawn
     
     set parts [split [$Main::notebook raise] "*"]
@@ -316,8 +316,8 @@ proc Main::connectDialogConfirm {} {
     	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
     	return
     }
-    grab release .connectDialog
-    grab set .
+    catch {grab release .connectDialog}
+    catch {grab set .}
     wm state .connectDialog withdrawn
 
     Main::createConnection $serv $por $nick
@@ -383,16 +383,16 @@ proc Main::channelList {} {
     pack .channelList.refresh -fill both -expand 0
     
     foreground_win .channelList
-    grab release .
-    grab set .channelList
+    catch {grab release .}
+    catch {grab set .channelList}
 }
 
 proc Main::joinChannelList {} {
     set chanName [.channelList.lb get [.channelList.lb curselection] ]
     regexp {(#[^ ]+) .*} $chanName -> chanName
 
-    grab release .channelList
-    grab set .
+    catch {grab release .channelList}
+    catch {grab set .}
     wm state .channelList withdrawn
     
     set parts [split [$Main::notebook raise] "*"]
@@ -433,8 +433,8 @@ proc Main::showNickDialog {} {
     bind .nickDialog.change <ButtonPress> Main::nickDialogConfirm
     
     foreground_win .nickDialog
-    grab release .
-    grab set .nickDialog
+    catch {grab release .}
+    catch {grab set .nickDialog}
 }
 
 proc Main::nickDialogConfirm {} {

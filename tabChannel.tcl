@@ -283,8 +283,8 @@ snit::type tabChannel {
 	grid config .propDialog.bans    -row 5 -column 1
 	
 	Main::foreground_win .propDialog
-	grab release .
-	grab set .propDialog
+	catch {grab release .}
+	catch {grab set .propDialog}
     }
     
     method _setData {newport newnick} {

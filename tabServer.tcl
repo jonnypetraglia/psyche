@@ -341,8 +341,8 @@ snit::type tabServer {
 	
 	
 	Main::foreground_win .propDialog
-	grab release .
-	grab set .propDialog
+	catch {grab release .}
+	catch {grab set .propDialog}
     }
     
     #TODO: This should not exist
