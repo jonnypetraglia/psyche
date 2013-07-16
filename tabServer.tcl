@@ -7,6 +7,8 @@ snit::type tabServer {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+    variable sendHistory
+    variable sendHistoryIndex
     
     # SPECIFIC
     variable server
@@ -31,7 +33,9 @@ snit::type tabServer {
     ############## Constructor ##############
     constructor {args} {    ;# args = irc.geekshed.net 6697 nick
         set server ""
-        
+        set sendHistory [list ""]
+        set sendHistoryIndex 0
+
 	# If it has no args it's a dummy tab for measurement
 	if { [string length $args] > 0 } {
 	    $self init [lindex $args 0] [lindex $args 1] [lindex $args 2]
@@ -50,7 +54,7 @@ snit::type tabServer {
     method init {arg0 arg1 arg2} {
 	set nickList [list]
 	set activeChannels [list]
-	
+
 	debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
 	
         set server $arg0
@@ -88,9 +92,11 @@ snit::type tabServer {
 	set awayLabel [label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [entry $lowerFrame.input]
+	set input [text $lowerFrame.input -height 1]
 	$input configure -background white
-	bind $input <Return> [mymethod sendMessage]
+        bind $input <Return> "[mymethod sendMessage]; break;"
+        bind $input <Up> "[mymethod upDown] -1; break;"
+        bind $input <Down> "[mymethod upDown] 1; break;"
 
 	grid $awayLabel -row 0 -column 0
 	grid $input -row 0 -column 1 -sticky ew
@@ -382,8 +388,18 @@ snit::type tabServer {
     
     ############## Send Message ##############
     method sendMessage {} {
-	set msg [$input get]
-	$input delete 0 end
+	set msg [$input get 1.0 end]
+        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
+	$input delete 1.0 end
+
+        #sendHistory
+	set sendHistoryIndex [expr {[llength $sendHistory] - 1}]
+        lset sendHistory $sendHistoryIndex $msg
+        if {[llength $sendHistory] > $Pref::maxSendHistory} {
+	    set sendHistory [lreplace $sendHistory 0 0]
+	}
+        lappend sendHistory ""
+        set sendHistoryIndex [expr {[llength $sendHistory] -1}]
 
 	# Starts with a backslash
 	if [regexp {^/(.+)} $msg -> msg] {
@@ -423,6 +439,22 @@ snit::type tabServer {
 	::notebox::addmsg "$mNick - $mMsg"
     }
     
+    ############## Handles pressing of the up down buttons for send history ###############
+    ## direction == -1 for prior (up), +1 for next (down)
+    method upDown {direction} {
+        set newSHindex [expr {$sendHistoryIndex + $direction}]
+        if { $newSHindex < 0 || $newSHindex > $Pref::maxSendHistory || $newSHindex >= [llength $sendHistory]} { return }
+
+        # Save old one
+        set msg [$input get 1.0 end]
+        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
+        lset sendHistory $sendHistoryIndex $msg
+
+        # Retrieve new one
+        set sendHistoryIndex $newSHindex
+        $input replace 1.0 end [lindex $sendHistory $sendHistoryIndex]
+    }
+ 
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Specific init ##############
@@ -557,6 +589,7 @@ snit::type tabServer {
 	    return ""
 	}
     }
+
     
     ############## Removes a channel from the active list ##############
     method removeActiveChannel {chann} {
@@ -969,6 +1002,10 @@ snit::type tabServer {
 		"MODE" {
 		    set mMsg "$ServerName has set your personal modes: $mMsg"
 		}
+                "NOTICE" {
+                    $self handleReceived $timestamp \[Notice\] bold $mMsg ""
+                    return
+                }
 	    }
 	    if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
 		    set style "mention"
@@ -977,6 +1014,12 @@ snit::type tabServer {
 	    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
 	    return
 	}
+        
+        # "NOTICE AUTH : *** Please wait while we scan your connection for open proxies"
+        if {[regexp {NOTICE AUTH:(.*)} $line -> mMsg]} {
+            $self handleReceived $timestamp \[Notice\] bold $mMsg "";
+            return
+        }
 	debug "WHAT: $line"
     }
 }

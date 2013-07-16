@@ -7,6 +7,8 @@ snit::type tabChannel {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+    variable sendHistory
+    variable sendHistoryIndex
     
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
@@ -37,6 +39,8 @@ snit::type tabChannel {
 	    set channel Temp
 	    set id_var measure_tab
 	}
+        set sendHistory [list ""]
+        set sendHistoryIndex 0
 	
 	$self init_ui
 	
@@ -87,16 +91,12 @@ snit::type tabChannel {
 	set awayLabel [label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [text $lowerFrame.input -height 1 -background red]
+	set input [text $lowerFrame.input -height 1]
 	$input configure -background white
-	bind $input <Return> "
-	    [mymethod sendMessage]
-	    break
-	"
-	bind $input <Tab> "
-	    [mymethod tabComplete]
-	    break;
-	"
+	bind $input <Return> "[mymethod sendMessage]; break;"
+        bind $input <Up> "[mymethod upDown] -1; break;"
+        bind $input <Down> "[mymethod upDown] 1; break;"
+        bind $input <Tab> "[mymethod tabComplete]; break;"
 
 	grid $awayLabel -row 0 -column 0
 	grid $input -row 0 -column 1 -sticky ew
@@ -323,7 +323,17 @@ snit::type tabChannel {
     ############## Send Message ##############
     method sendMessage {} {
 	set msg [$input get 1.0 end]
+        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
 	$input delete 1.0 end
+
+        #sendHistory
+        set sendHistoryIndex [expr {[llength $sendHistory] -1}]
+        lset sendHistory $sendHistoryIndex $msg
+        if {[llength $sendHistory] > $Pref::maxSendHistory} {
+            set sendHistory [lreplace $sendHistory 0 0]
+        }
+        lappend sendHistory ""
+        set sendHistoryIndex [expr {[llength $sendHistory] -1}]
 
 	# Starts with a backslash
 	if [regexp {^/(.+)} $msg -> msg] {
@@ -365,7 +375,23 @@ snit::type tabChannel {
 	#tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
 	::notebox::addmsg "$mNick - $mMsg"
     }
-    
+
+    ############# Handles pressing of the up down buttons for send history #################
+    ## direction == -1 for prior (up), +1 for next (down)
+    method upDown {direction} {
+        set newSHindex [expr {$sendHistoryIndex + $direction}]
+        if { $newSHindex < 0 || $newSHindex > $Pref::maxSendHistory || $newSHindex >= [llength $sendHistory]} { return }
+
+        # Save old one
+        set msg [$input get 1.0 end]
+        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
+        lset sendHistory $sendHistoryIndex $msg
+
+        # Retrieve new one
+        set sendHistoryIndex $newSHindex
+        $input replace 1.0 end [lindex $sendHistory $sendHistoryIndex]
+    }    
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Init Channel ##############
     method initChan {pass} {

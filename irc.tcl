@@ -116,6 +116,12 @@ proc getTitle {mCode} {
 	    #RPL_NOWAWAY (RFC1459)
 	    return \[Away\]
 	}
+        307 {
+            #RPL_USERIP (???)
+            #RPL_WHOISREGNICK (Bahamut, Unreal)
+            #RPL_SUSERHOST (AustHex)
+            return \[Whois\]
+        }
 	309 {
 	    #RPL_NICKTRACE (aircd)
 	    #RPL_WHOISSADMIN (Bahamut)
@@ -123,6 +129,27 @@ proc getTitle {mCode} {
 	    return \[Rules\]
 	    #RPL_WHOISHELPER (AustHex)
 	}
+        311 {
+            #RPL_WHOISUSER (RFC1459)
+            return \[Whois\]
+        }
+        312 {
+            #RPL_WHOISSERVER (RFC1459)
+            return \[Whois\]
+        }
+        317 {
+            #RPL_WHOISIDLE (RFC1459)
+            return \[Whois\]
+            #TODO
+        }
+        318 {
+            #RPL_ENDOFWHOIS (RFC1459)
+            return \[Whois\]
+        }
+        319 {
+            #RPL_WHOISCHANNELS (RFC1459)
+            return \[Whois\]
+        }
 	321 {
 	    #RPL_LISTSTART (RFC1459)
 	    return \[List\]
@@ -214,55 +241,55 @@ proc getTitle {mCode} {
 	}
 	401 {
 	    #ERR_NOSUCHNICK (RFC1459)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	402 {
 	    #ERR_NOSUCHSERVER
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	404 {
 	    #ERR_CANNOTSENDTOCHAN
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	409 {
 	    #ERR_NOORIGIN
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	421 {
 	    #ERR_UNKNOWNCOMMAND
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	433 {
 	    #ERR_NICKNAMEINUSE (RFC1459)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	442 {
 	    #ERR_NOTONCHANNEL (RFC1459)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	474 {
 	    #ERR_BANNEDFROMCHAN (RFC1459)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	477 {
 	    #ERR_NEEDREGGEDNICK (Bahamut, ircu, Unreal)
 	    #ERR_NOCHANMODES (RFC1459)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	480 {
 	    #ERR_NOULINE (AustHex)
 	    #ERR_CANNOTKNOCK (Unreal)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	482 {
 	    #ERR_CHANOPRIVSNEEDED 
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	486 {
 	    #ERR_NONONREG (???)
 	    #ERR_HTMDISABLED (Unreal)
 	    #ERR_ACCOUNTONLY (QuakeNet)
-	    return \[ERROR\]
+	    return \[Error\]
 	}
 	default {
 	    return \[$mCode\]

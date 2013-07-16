@@ -17,6 +17,8 @@ namespace eval Pref {
     variable popupLocation
     variable popupFont
     # (n|s)(e|w)   OR   999x999 for absolute path
+    variable maxSendHistory
+    variable maxScrollback	;#TODO
     
 
     set timeout 5000
@@ -37,6 +39,8 @@ namespace eval Pref {
 	}
     }
     
+    set maxSendHistory 50
+    set maxScrollback 200
     
     
     #This is for debug
@@ -54,10 +58,10 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
 	set data [gets $fp]
 	# Manually add the namespace
-	if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logDir |popupTimeout |popupLocation |popupFont ).*)" $data -> data]} {
+	if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback ).*)" $data -> data]} {
 	    set data "set Pref::$data"
 	}
-	#puts "Reading preference: '$data'"
+	puts "Reading preference: '$data'"
 
 	if {[catch {eval "$data"} prob]} {
 	    puts "ERROR: Unable to load preference: '$data"
@@ -76,3 +80,4 @@ proc Pref::readPrefs {} {
 proc Pref::writePrefs {pref val} {
 
 }
+
