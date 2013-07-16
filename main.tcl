@@ -146,7 +146,7 @@ proc Main::init { } {
     # Create the tab menu
     menu .tabMenu -tearoff false -title Bookmarks
     .tabMenu add command -label "Join channel" -command Main::showJoinDialog
-    .tabMenu add command -label "Part channel" -command Main::part
+    .tabMenu add command -label "Part or Quit" -command Main::partOrQuit
     .tabMenu add command -label "Close tab" -command Main::closeTab
     
     wm protocol . WM_DELETE_WINDOW {
@@ -337,6 +337,19 @@ proc Main::disconnect {} {
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
     $Main::servers($serv) quit $Pref::defaultQuit
+}
+
+proc Main::partOrQuit {} {
+    set parts [split [$Main::notebook raise] "*"]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    regsub -all "_" $serv "." $serv
+    puts [array names Main::servers]
+    if {[string length $chan]>0} {
+        $Main::servers($serv) part $chan $Pref::defaultPart
+    } else {
+        $Main::servers($serv) quit $Pref::defaultQuit
+    }
 }
 
 proc Main::part {} {
