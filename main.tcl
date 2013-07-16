@@ -294,10 +294,15 @@ proc Main::joinChannel {} {
     }
 }
 
+# serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
 proc Main::createConnection {serv por nick} {
     if [info exists Main::servers($serv)] {
-        $Main::servers($serv) _setData $por $nick
-        $Main::servers($serv) initServer
+        if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
+            $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
+        } else {
+            $Main::servers($serv) _setData $por $nick
+            $Main::servers($serv) initServer
+        }
     } else {
         set Main::servers($serv) [tabServer %AUTO% $serv $por $nick]
     }
@@ -343,7 +348,7 @@ proc Main::partOrQuit {} {
     set parts [split [$Main::notebook raise] "*"]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    regsub -all "_" $serv "." $serv
+    regsub -all "_" $serv "." serv
     puts [array names Main::servers]
     if {[string length $chan]>0} {
         $Main::servers($serv) part $chan $Pref::defaultPart

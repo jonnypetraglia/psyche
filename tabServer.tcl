@@ -193,10 +193,10 @@ snit::type tabServer {
         $self _send "QUIT $reason"
         close $connDesc
         unset connDesc
-        $self handleReceived $timestamp " \[QUIT\] " bold "You have left the server" ""
+        $self handleReceived $timestamp "\[Quit\] " bold "You have left the server" ""
         $self updateToolbar ""
         
-        $self propogateMessage ALL $timestamp " \[QUIT\] " bold "You have left the server" ""
+        $self propogateMessage ALL $timestamp "\[Quit\] " bold "You have left the server" ""
     }
     
     ############## Part a channel ##############
