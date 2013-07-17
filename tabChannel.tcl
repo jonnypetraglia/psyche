@@ -294,13 +294,6 @@ snit::type tabChannel {
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shared (same)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     method getId {} { return $id_var }
     
-    ############## Append text to chat log ##############
-    method append {txt stylez} {
-	$chat configure -state normal
-	$chat insert end $txt $stylez
-	$chat configure -state disabled
-    }
-    
     ############## Change the tab name ##############
     method updateTabName {newName} {
 	if {$newName != $channel} {
@@ -312,9 +305,17 @@ snit::type tabChannel {
     ############## Internal function ##############
     method handleReceived {timestamp title style1 message style2} {
 	set isAtBottom [lindex [$chat yview] 1]
-	$self append $timestamp\  timestamp
-	$self append $title\  $style1
-	$self append $message\n $style2
+	
+	$chat configure -state normal
+	$chat insert end $timestamp\  timestamp
+	$chat insert end $title\  $style1
+	$chat insert end $message\n $style2
+	puts "APPEND:  [expr [lindex [split [$chat index end] .] 0] -1] > $Pref::maxScrollback"
+	if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
+	    $chat delete 1.0 2.0
+	}
+	$chat configure -state disabled
+	
 	if {$isAtBottom==1.0} {
 	    $chat yview end
 	}
@@ -322,8 +323,8 @@ snit::type tabChannel {
     
     ############## Send Message ##############
     method sendMessage {} {
-	set msg [$input get 1.0 end]
-        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
+	set msg [$input get 1.0 end-1c]
+        #set msg [string range $msg 0 [expr {[string length $msg]-2}]]
 	$input delete 1.0 end
 
         #sendHistory
@@ -383,8 +384,8 @@ snit::type tabChannel {
         if { $newSHindex < 0 || $newSHindex > $Pref::maxSendHistory || $newSHindex >= [llength $sendHistory]} { return }
 
         # Save old one
-        set msg [$input get 1.0 end]
-        set msg [string range $msg 0 [expr {[string length $msg]-2}]]
+        set msg [$input get 1.0 end-1c]
+        #set msg [string range $msg 0 [expr {[string length $msg]-2}]]
         lset sendHistory $sendHistoryIndex $msg
 
         # Retrieve new one
