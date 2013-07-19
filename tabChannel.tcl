@@ -53,9 +53,9 @@ snit::type tabChannel {
 	}
     }
 	
-	destructor {
-		if {[string length $logDesc] > 0 } {
-			close $logDesc
+	method destructor {} {
+		if {[info exists connDesc] && [string length connDesc] >0 } {
+			close $connDesc
 		}
 	}
     
@@ -69,7 +69,7 @@ snit::type tabChannel {
 	set ServerRef $arg0
 	set channel $arg1
 	set temp [$ServerRef getServer]
-	set id_var "${temp}_${channel}"
+	set id_var "${temp}__${channel}"
 	debug "  Channel: $channel"
 	
     }
@@ -80,7 +80,7 @@ snit::type tabChannel {
 	set name $channel
 	
 	regsub -all "\\." $id_var "_" id_var
-	regsub -all " " $id_var "*" id_var
+	#regsub -all " " $id_var "__" id_var
 	
 	# Magic bullshit
 	set frame [$Main::notebook insert end $id_var -text $name]

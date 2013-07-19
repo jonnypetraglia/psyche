@@ -140,6 +140,7 @@ proc Main::init { } {
 	}
     }
     $Main::notebook delete [$Main::servers(1) getId] 1
+	destroy Main::servers(1)
     unset Main::servers(1)
     
     
@@ -159,26 +160,33 @@ proc Main::init { } {
 
 proc Main::closeTab {} {
     set target [$Main::notebook raise]
+	regsub -all "__" $target "*" target
     set parts [split $target "\*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
-    puts "closing: $serv $chan"
-    
+	set tabIndex [$Main::notebook index [$Main::notebook raise]]
+	if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
+		set tabIndex [expr {$tabIndex -1}]
+	}
+	
     if {[string length $chan] > 0} {
-	Main::part
 	$Main::servers($serv) closeChannel $chan
     } else {
 	Main::disconnect
 	$Main::servers($serv) closeAllChannelTabs
 	$Main::notebook delete $target
+	$Main::servers($serv) destructor
+	destroy Main::servers($serv)
 	unset Main::servers($serv)
     }
-    
+	
     if {[llength [$Main::notebook pages]] == 0} {
 	Main::clearToolbar
-    }
+    } else {
+		$Main::notebook raise [$Main::notebook page $tabIndex]
+	}
 }
 
 proc Main::pressTab { args} {

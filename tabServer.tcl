@@ -55,11 +55,11 @@ snit::type tabServer {
         }
     }
 	
-	destructor {
-		if {[string length $logDesc] > 0 } {
+	method destructor {} {
+		if {[info exists logDesc] && [string length $logDesc] > 0 } {
 			close $logDesc
 		}
-		if {[string length $connDesc] >0 } {
+		if {[info exists connDesc] && [string length connDesc] >0 } {
 			close $connDesc
 		}
 	}
@@ -512,6 +512,7 @@ snit::type tabServer {
 	    debugE "tabServer::initServer - $problemDesc"
 	    tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
             if [info exists connDesc] {
+				close connDesc
                 unset connDesc
             }
 	    return
@@ -523,6 +524,7 @@ snit::type tabServer {
 		puts "Connect ok!"
 	    }
 	    "timeout" {
+		close connDesc
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Connection timed out" ""
 		debugE "tabServer::initServer - Connection timed out"
@@ -531,6 +533,7 @@ snit::type tabServer {
 	    }
 	    default {
 		puts "timeout $connectStatus"
+		close connDesc
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
 		debugE "tabServer::initServer - Unknown"
@@ -573,6 +576,7 @@ snit::type tabServer {
             fileevent $connDesc readable [mymethod _recv]
         } probDesc]} {
             if [info exists connDesc] {
+				close connDesc
                 unset connDesc
             }
 	    debugE "initServer - $probDesc"
@@ -627,7 +631,9 @@ snit::type tabServer {
     }
     
     method closeChannel {chann} {
-	$Main::notebook delete [$channelMap($chann) getId]
+		$Main::notebook delete [$channelMap($chann) getId]
+		$channelMap($chann) destructor
+		$self removeActiveChannel $chann
         unset channelMap($chann)
     }
     
