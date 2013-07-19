@@ -89,7 +89,7 @@ snit::type tabServer {
 	set lowerFrame [frame $topf.f]
 	
 	# Create the away label
-	set awayLabel [label $lowerFrame.l_away -text ""]
+	set awayLabel [ttk::label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
 	set input [text $lowerFrame.input -height 1]
@@ -267,25 +267,25 @@ snit::type tabServer {
 	wm transient .propDialog .
 	wm resizable .propDialog 0 0
 	
-	label .propDialog.network -text $NetworkName -font {-size 16}
+	ttk::label .propDialog.network -text $NetworkName -font {-size 16}
 	
-	label .propDialog.name_l -text "Server Name:"
+	ttk::label .propDialog.name_l -text "Server Name:"
 	text .propDialog.name -width 32 -height 1 -background white
-	label .propDialog.daemon_l -text "Running:"
+	ttk::label .propDialog.daemon_l -text "Running:"
 	text .propDialog.daemon -width 32 -height 1 -background white
-	label .propDialog.time_l -text "Created:"
+	ttk::label .propDialog.time_l -text "Created:"
 	text .propDialog.time -width 32 -height 1 -background white
 	
-	label .propDialog.spacer -text ""
+	ttk::label .propDialog.spacer -text ""
 	
-	label .propDialog.cprefixes_l -text "Channel types:"
+	ttk::label .propDialog.cprefixes_l -text "Channel types:"
 	text .propDialog.cprefixes -width 32 -height 1 -background white
-	label .propDialog.nprefixes_l -text "User Modes:"
+	ttk::label .propDialog.nprefixes_l -text "User Modes:"
 	text .propDialog.nprefixes -width 32 -height 1 -background white
 	
-	label .propDialog.spacer2 -text ""
+	ttk::label .propDialog.spacer2 -text ""
 	
-	label .propDialog.motd_l -text "MOTD:"
+	ttk::label .propDialog.motd_l -text "MOTD:"
 	text .propDialog.motd  -width 60 -height 7 -background white
 	
 	.propDialog.name insert end $ServerName ""
@@ -319,15 +319,15 @@ snit::type tabServer {
 	grid config .propDialog.motd_l      -row 8 -column 0 -sticky "w"
 	grid config .propDialog.motd        -row 9 -column 0 -columnspan 2
 	
-	label .propDialog.spacer3 -text ""
+	ttk::label .propDialog.spacer3 -text ""
 	
 	# Connection info
-	label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
-	label .propDialog.server_l -text "Connection:"
+	ttk::label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
+	ttk::label .propDialog.server_l -text "Connection:"
 	text .propDialog.server -width 32 -height 1 -background white
-	label .propDialog.port_l -text "Port:"
+	ttk::label .propDialog.port_l -text "Port:"
 	text .propDialog.port -width 32 -height 1 -background white
-	label .propDialog.username_l -text "Created:"
+	ttk::label .propDialog.username_l -text "Created:"
 	text .propDialog.username -width 32 -height 1 -background white
 	
 	grid config .propDialog.spacer      -row 10 -column 0

@@ -224,16 +224,16 @@ proc Main::showConnectDialog { } {
     wm transient .connectDialog .
     wm resizable .connectDialog 0 0
     
-    label .connectDialog.l_serv -text "Server"
-    entry .connectDialog.serv -width 20
+    ttk::label .connectDialog.l_serv -text "Server"
+    ttk::entry .connectDialog.serv -width 20
     .connectDialog.serv configure -background white
-    label .connectDialog.l_port -text "Port"
-    entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
+    ttk::label .connectDialog.l_port -text "Port"
+    ttk::entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
-    label .connectDialog.l_nick -text "Nick"
-    entry .connectDialog.nick -width 20
+    ttk::label .connectDialog.l_nick -text "Nick"
+    ttk::entry .connectDialog.nick -width 20
     .connectDialog.nick configure -background white
-    button .connectDialog.go -text "Connect"
+    ttk::button .connectDialog.go -text "Connect"
     
     grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
     grid config .connectDialog.serv   -row 1 -column 0
@@ -259,9 +259,9 @@ proc Main::showJoinDialog { } {
     wm resizable .joinDialog 0 0
     
     label .joinDialog.l_chan -text "Channel"
-    entry .joinDialog.chan -width 20
+    ttk::entry .joinDialog.chan -width 20
     .joinDialog.chan configure -background white
-    button .joinDialog.go -text "Join"
+    ttk::button .joinDialog.go -text "Join"
     
     grid config .joinDialog.l_chan -row 0 -column 0 -sticky "w"
     grid config .joinDialog.chan   -row 1 -column 0
@@ -390,8 +390,8 @@ proc Main::channelList {} {
     set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
 			-height 20 -width 40 -highlightthickness 0 \
 			-font [list Courier 12] ]
-    button .channelList.join -text "Join"
-    button .channelList.refresh -text "Refresh"
+    ttk::button .channelList.join -text "Join"
+    ttk::button .channelList.refresh -text "Refresh"
     bind .channelList.lb <Double-1> Main::joinChannelList
     bind .channelList.join <ButtonPress> Main::joinChannelList
     bind .channelList.refresh <ButtonPress> Main::refreshChannelList
@@ -437,11 +437,11 @@ proc Main::showNickDialog {} {
     wm resizable .nickDialog 0 0
     
     label .nickDialog.l_nick -text "New Nick"
-    entry .nickDialog.nick -width 20
+    ttk::entry .nickDialog.nick -width 20
     label .nickDialog.l_pass -text "NickServ pass\n(if registered)"
-    entry .nickDialog.pass -width 20
+    ttk::entry .nickDialog.pass -width 20
     .nickDialog.nick configure -background white
-    button .nickDialog.change -text "Change"
+    ttk::button .nickDialog.change -text "Change"
     
     grid config .nickDialog.l_nick -row 0 -column 0 -sticky "w"
     grid config .nickDialog.nick   -row 0 -column 1
