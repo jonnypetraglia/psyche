@@ -52,12 +52,6 @@ snit::type tabChannel {
 	    $self initChan [lindex $args 2]
 	}
     }
-	
-	method destructor {} {
-		if {[info exists connDesc] && [string length connDesc] >0 } {
-			close $connDesc
-		}
-	}
     
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
@@ -342,6 +336,13 @@ snit::type tabChannel {
 		file mkdir $Pref::logDir
 		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
 		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+	}
+	
+	############## Closes the log handle ##############
+	method closeLog {} {
+		if {[info exists logDesc] && [string length $logDesc] > 0 } {
+			close $logDesc
+		}
 	}
     
     ############## Send Message ##############

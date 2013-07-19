@@ -54,15 +54,6 @@ snit::type tabServer {
             $self initServer
         }
     }
-	
-	method destructor {} {
-		if {[info exists logDesc] && [string length $logDesc] > 0 } {
-			close $logDesc
-		}
-		if {[info exists connDesc] && [string length connDesc] >0 } {
-			close $connDesc
-		}
-	}
     
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
@@ -413,6 +404,13 @@ snit::type tabServer {
 		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
 		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
 	}
+	
+	############## Closes the log handle ##############
+	method closeLog {} {
+		if {[info exists logDesc] && [string length $logDesc] > 0 } {
+			close $logDesc
+		}
+	}
     
     ############## Send Message ##############
     method sendMessage {} {
@@ -632,7 +630,7 @@ snit::type tabServer {
     
     method closeChannel {chann} {
 		$Main::notebook delete [$channelMap($chann) getId]
-		$channelMap($chann) destructor
+		$channelMap($chann) closeLog
 		$self removeActiveChannel $chann
         unset channelMap($chann)
     }

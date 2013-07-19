@@ -177,7 +177,7 @@ proc Main::closeTab {} {
 	Main::disconnect
 	$Main::servers($serv) closeAllChannelTabs
 	$Main::notebook delete $target
-	$Main::servers($serv) destructor
+	$Main::servers($serv) closeLog
 	destroy Main::servers($serv)
 	unset Main::servers($serv)
     }
