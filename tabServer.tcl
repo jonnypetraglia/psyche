@@ -7,8 +7,10 @@ snit::type tabServer {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+	# Other
     variable sendHistory
     variable sendHistoryIndex
+	variable logDesc
     
     # SPECIFIC
     variable server
@@ -46,9 +48,21 @@ snit::type tabServer {
 	
 	$self init_ui
         if { [string length $args] > 0 } {
+			if {$Pref::logEnabled} {
+				$self createLog
+			}
             $self initServer
         }
     }
+	
+	destructor {
+		if {[string length $logDesc] > 0 } {
+			close $logDesc
+		}
+		if {[string length $connDesc] >0 } {
+			close $connDesc
+		}
+	}
     
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
@@ -386,7 +400,19 @@ snit::type tabServer {
 	if {$isAtBottom==1.0} {
 	    $chat yview end
 	}
+		if {$Pref::logEnabled} {
+			set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
+			puts $logDesc "$timestamp $title $message"
+			flush $logDesc
+		}
     }
+	
+	############## Creates the logDesc ##############
+	method createLog {} {
+		file mkdir $Pref::logDir
+		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
+		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+	}
     
     ############## Send Message ##############
     method sendMessage {} {

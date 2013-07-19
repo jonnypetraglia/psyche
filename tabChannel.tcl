@@ -7,8 +7,10 @@ snit::type tabChannel {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+	# Other
     variable sendHistory
     variable sendHistoryIndex
+	variable logDesc
     
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
@@ -43,11 +45,19 @@ snit::type tabChannel {
         set sendHistoryIndex 0
 	
 	$self init_ui
-	
 	if { [string length $args] > 0 } {
+		if {$Pref::logEnabled} {
+			$self createLog
+		}
 	    $self initChan [lindex $args 2]
 	}
     }
+	
+	destructor {
+		if {[string length $logDesc] > 0 } {
+			close $logDesc
+		}
+	}
     
     ############## Initialize the variables ##############
     method init {arg0 arg1 arg2} {
@@ -59,8 +69,9 @@ snit::type tabChannel {
 	set ServerRef $arg0
 	set channel $arg1
 	set temp [$ServerRef getServer]
-	set id_var [concat $temp " " $channel]
+	set id_var "${temp}_${channel}"
 	debug "  Channel: $channel"
+	
     }
     
     ############## GUI stuff ##############
@@ -319,7 +330,19 @@ snit::type tabChannel {
 	if {$isAtBottom==1.0} {
 	    $chat yview end
 	}
+		if {$Pref::logEnabled} {
+			set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
+			puts $logDesc "$timestamp $title $message"
+			flush $logDesc
+		}
     }
+	
+	############## Creates the logDesc ##############
+	method createLog {} {
+		file mkdir $Pref::logDir
+		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
+		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+	}
     
     ############## Send Message ##############
     method sendMessage {} {
