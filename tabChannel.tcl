@@ -77,7 +77,8 @@ snit::type tabChannel {
 	#regsub -all " " $id_var "__" id_var
 	
 	# Magic bullshit
-	set frame [$Main::notebook insert end $id_var -text $name]
+	set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwd]/icons/x.gif"]]
+	set_close_bindings $Main::notebook $id_var
 	set topf  [frame $frame.topf]
 	
 	# Create the chat text widget

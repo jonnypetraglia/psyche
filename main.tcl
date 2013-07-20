@@ -11,6 +11,22 @@ proc debugE {arg} {
 }
 
 
+#http://www.tek-tips.com/viewthread.cfm?qid=1668522
+proc set_close_bindings {notebook page} {
+  $notebook.c bind $page:img <ButtonPress-1> "+; 
+    $notebook.c move $page:img 1 1
+    set pressed \[%W find closest %x %y]
+  "
+  $notebook.c bind $page:img <ButtonRelease-1> "+; 
+    $notebook.c move $page:img -1 -1
+    if {\$pressed==\[%W find closest %x %y]} {
+		set pressed \"\"
+		Main::closeTab $page
+	}
+  "
+}
+
+
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
@@ -149,7 +165,7 @@ proc Main::init { } {
     menu .tabMenu -tearoff false -title Bookmarks
     .tabMenu add command -label "Join channel" -command Main::showJoinDialog
     .tabMenu add command -label "Part or Quit" -command Main::partOrQuit
-    .tabMenu add command -label "Close tab" -command Main::closeTab
+    .tabMenu add command -label "Close tab" -command Main::closeTabFromGui
     
     wm protocol . WM_DELETE_WINDOW {
 	#wm command . [expr {"0x111"}]
@@ -159,15 +175,19 @@ proc Main::init { } {
     }
 }
 
-proc Main::closeTab {} {
+proc Main::closeTabFromGui {} {
     set target [$Main::notebook raise]
-	regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+	Main::closeTab $target
+}
+
+proc Main::closeTab {target} {
+	regsub -all "__" $target "*" target2
+    set parts [split $target2 "\*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
-    
-	set tabIndex [$Main::notebook index [$Main::notebook raise]]
+	
+	set tabIndex [$Main::notebook index $target]
 	if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
 		set tabIndex [expr {$tabIndex -1}]
 	}
@@ -175,7 +195,7 @@ proc Main::closeTab {} {
     if {[string length $chan] > 0} {
 	$Main::servers($serv) closeChannel $chan
     } else {
-	Main::disconnect
+	$Main::servers($serv) quit $Pref::defaultQuit
 	$Main::servers($serv) closeAllChannelTabs
 	$Main::notebook delete $target
 	$Main::servers($serv) closeLog
