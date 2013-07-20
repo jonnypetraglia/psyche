@@ -723,4 +723,8 @@ snit::type tabChannel {
         }
         return 0
     }
+    
+    method getSelectedNick {} {
+        return [$nicklistCtrl get [$nicklistCtrl curselection] ]
+    }
 }

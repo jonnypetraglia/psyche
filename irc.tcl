@@ -9,6 +9,9 @@ set IrcCodes(292_aircd) Info
 set IrcCodes(309_aircd) Trace
 set IrcCodes(309_Bahamut) Admin
 set IrcCodes(309_AustHex) WhoIs
+set IrcCodes(378_aircd) BanExpired
+set IrcCodes(378_Unreal) Whois
+set IrcCodes(378_AustHex) MOTD
 
 # https://www.alien.net.au/irc/irc2numerics.html
 # http://www.godspeak.net/chat/basic_irc.html
@@ -239,6 +242,11 @@ proc getTitle {mCode} {
             #RPL_ENDOFMOTD (RFC1459)
             return \[MOTD\]
         }
+        378 {
+            #RPL_BANEXPIRED (aircd)
+            #RPL_WHOISHOST (Unreal)
+            #RPL_MOTD (AustHex)
+        }
         401 {
             #ERR_NOSUCHNICK (RFC1459)
             return \[Error\]
@@ -425,14 +433,14 @@ proc performSpecialCase {msg obj} {
     
     #/mode
     if [regexp {^mode ?(.*)} $msg -> msg] {
-        if [regexp {^([^ ]+) (.*)} $msg -> channOrNick msg] {
-            puts herp
-        } else {
-            set channOrNick [$obj getChannel]
-        }
+        #if [regexp {^(\[^ \]+) (.*)} $msg -> channOrNick msg] {
+        #    puts herp
+        #} else {
+        #    set channOrNick [$obj getChannel]
+        #}
         
         # Ban
-        if [regex {+b ([^ ]+) ?(.*)} $msg -> target reason] {
+        if [regexp "\\+b (\[^ \]+) ?(.*)" $msg -> target reason] {
             if { [string length $reason] > 0 } {
                 set reason $Pref::defaultBan
             }

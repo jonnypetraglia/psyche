@@ -172,20 +172,35 @@ proc Main::init { } {
     
     # Create the nicklist menu
     menu .nicklistMenu -tearoff false -title Bookmarks
-    .nicklistMenu add command -label "PM" -command Main::NLpm
+    .nicklistMenu add command -label "PM" -command Main::NLpm 
     .nicklistMenu add separator
-    .nicklistMenu add command -label "Whois" -command Main::NLwhois
-    .nicklistMenu add command -label "Version" -command Main::NLversion
-    .nicklistMenu add command -label "Ping" -command Main::NLping
+    .nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois"}
+    .nicklistMenu add command -label "Version" -command {Main::NLcmd "/version"}
+    .nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping"}
     # Modes submenu
     menu .nicklistMenu.modes
     .nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
-    .nicklistMenu.modes add command -label "take Op" -command "Main::NLmode -o"
+    .nicklistMenu.modes add command -label "Take Op" -command "Main::NLmode -o"
+    .nicklistMenu.modes add command -label "Give HalfOp" -command "Main::NLmode +h"
+    .nicklistMenu.modes add command -label "Take HalfOp" -command "Main::NLmode -h"
+    .nicklistMenu.modes add command -label "Give Voice" -command "Main::NLmode +v"
+    .nicklistMenu.modes add command -label "Take Voice" -command "Main::NLmode -v"
     .nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
     # Ban submenu
     menu .nicklistMenu.kickban
     .nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
     .nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
+    .nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
+    .nicklistMenu.kickban add separator
+    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban"
+    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban"
+    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban"
+    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban"
+    .nicklistMenu.kickban add separator
+    .nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLkickban"
+    .nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLkickban"
+    .nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLkickban"
+    .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLkickban"
     .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
     .nicklistMenu add command -label "Ignore" -command Main::NLignore
     .nicklistMenu add command -label "Watch" -command Main::NLwatch
@@ -200,6 +215,60 @@ proc Main::init { } {
         Main::unsetTabMention
     }
 }
+
+proc Main::NLpm {} {
+    set target [$Main::notebook raise]
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+
+    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
+
+    $Main::servers($serv) createPMTabIfNotExist $theNick
+}
+
+proc Main::NLcmd {the_cmd} {
+    set target [$Main::notebook raise]
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
+    
+    $Main::servers($serv) sendMessage "$the_cmd $theNick"
+}
+
+proc Main::NLmode {the_mode} {
+    set target [$Main::notebook raise]
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
+
+puts "NLmode: $theNick"
+    
+    $Main::servers($serv) sendMessage "/mode $chan $the_mode $theNick"
+}
+
+proc Main::NLkick {} {
+}
+proc Main::NLban {} {
+}
+proc Main::NLkickban {} {
+}
+
+proc Main::NLignore {} {
+}
+proc Main::NLwatch {} {
+}
+
 
 proc Main::closeTabFromGui {} {
     set target [$Main::notebook raise]

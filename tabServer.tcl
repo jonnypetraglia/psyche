@@ -101,7 +101,12 @@ snit::type tabServer {
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
         $input configure -background white
-        bind $input <Return> "[mymethod sendMessage]; break;"
+        bind $input <Return> {
+            set msg [$input get 1.0 end-1c]
+            $input delete 1.0 end
+            [mymethod sendMessage] $msg
+            break
+        }
         bind $input <Up> "[mymethod upDown] -1; break;"
         bind $input <Down> "[mymethod upDown] 1; break;"
     
@@ -414,11 +419,7 @@ snit::type tabServer {
     }
     
     ############## Send Message ##############
-    method sendMessage {} {
-        set msg [$input get 1.0 end-1c]
-        #set msg [string range $msg 0 [expr {[string length $msg]-2}]]
-        $input delete 1.0 end
-
+    method sendMessage {msg} {
         #sendHistory
         set sendHistoryIndex [expr {[llength $sendHistory] - 1}]
         lset sendHistory $sendHistoryIndex $msg
@@ -460,7 +461,7 @@ snit::type tabServer {
         $awayLabel configure -text "(Away: $reason)"
     }
     
-    #TODO
+    ############## Notify user of a mention ##############
     method notifyMention {mNick mMsg} {
         if {[string length [focus]] > 0 && [$Main::notebook raise] == $id_var} {
             return
@@ -648,6 +649,10 @@ snit::type tabServer {
         }
     }
     
+    method getSelectedNickOfChannel {mChann} {
+        return [$channelMap($mChann) getSelectedNick]
+    }
+    
     ############## Internal Function ##############
     method _recv {} {
         gets $connDesc line
@@ -715,359 +720,358 @@ snit::type tabServer {
                 # Msg to channel
             } else {
                 if {[regexp ".*$nick.*" $mMsg]} {
-                set style "mention"
-                $channelMap($mTo) notifyMention $mFrom $mMsg
-                $channelMap($mTo) touchLastSpoke $mFrom
-            }
-            # Msg - /me
-            if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
-                $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
-            # Msg - general
-            } else {
-                $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
-            }
-        }
-        return
-    }
-    
-    # Numbered message from a SERVER - sent to channel, user, or no one (mTarget could be blank)
-    #  Type A: Has an intended target, even if that target is blank;
-    #          Following the nick, there is a string of length 0 or more, then a space, then a colon
-    if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
-        debug "REC: Numbered from server"
-            set style "" ;# TODO: Can numbered messages be addressed to me?
-        set mTarget [string trim $mTarget]
-        set mMsg [string trim $mMsg]
-        switch $mCode {
-            002 {
-                #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
-                #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
-                regexp {^Your host is ([^,]+), running version (.*)} $mMsg -> ServerName ServerDaemon
-            }
-            003 {
-                regexp {^This server was created (.*)} $mMsg -> ServerCreationTime
-            }
-            303 {
-                #RPL_ISON
-                set mMsg "$mMsg is online"
-            }
-            305 {
-                #RPL_UNAWAY
-                $self _hideAwayLabel
-                $self awaySignalServer ""
-                Main::updateAwayButton
-            }
-            306 {
-                #RPL_NOWAWAY
-                $self _showAwayLabel
-                Main::updateAwayButton
-            }
-            321 {
-                #RPL_LISTSTART
-                if {[wm state .channelList]=="normal"} {
-                    return
+                    set style "mention"
+                    $channelMap($mTo) notifyMention $mFrom $mMsg
+                    $channelMap($mTo) touchLastSpoke $mFrom
+                }
+                # Msg - /me
+                if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+                    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
+                # Msg - general
+                } else {
+                    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
                 }
             }
-            323 {
-                #RPL_LISTEND
-                set sss [$self getServer]
-                                            #COMPAT: nocase is not in 8.4
-                set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
-                if {[wm state .channelList]=="normal"} {
-                    return
-                }
-            }
-            328 {
-                #RPL_CHANNEL_URL
-                # Ignore
-                return
-            }
-            332 {
-                #RPL_TOPIC
-                if {[string length $mMsg] == 0} {
-                    set mMsg "(No topic set)"
-                }
-                $channelMap($mTarget) setTopic $mMsg
-            }
-            353 {
-                #RPL_NAMREPLY
-                $channelMap($mTarget) addUsers $mMsg
-                return
-            }
-            366 {
-                #RPL_ENDOFNAMES
-                $channelMap($mTarget) sortUsers
-                return
-            }
-            368 {
-                #RPL_ENDOFBANLIST
-                #TODO Do things
-                return
-            }
-            372 {
-                #RPL_MOTD
-                append MOTD "$mMsg\n"
-            }
-            474 {
-                #ERR_BANNEDFROMCHAN
-                set mMsg "$mMsg - $mTarget"
-            }
-        }
-        if [info exists channelMap($mTarget)] {
-                $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
-                return
-        } else {
-            $self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
             return
         }
-    }
-    #  Type B: Is still a numbered message, but the content immediately follows the nick
-    if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
-        debug "REC: Numbered2 from server"
-        set style ""	;#TODO: Can a numbered message be addressed to me?
-        switch $mCode {
-            005 {
-                # Pull out CHANTYPES (prefixes for channels)
-                if [regexp {.*CHANTYPES=([^ ]+) .*} $mMsg -> derp] {
-                    set ChannelPrefixes $derp
+    
+        # Numbered message from a SERVER - sent to channel, user, or no one (mTarget could be blank)
+        #  Type A: Has an intended target, even if that target is blank;
+        #          Following the nick, there is a string of length 0 or more, then a space, then a colon
+        if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
+            debug "REC: Numbered from server"
+                set style "" ;# TODO: Can numbered messages be addressed to me?
+            set mTarget [string trim $mTarget]
+            set mMsg [string trim $mMsg]
+            switch $mCode {
+                002 {
+                    #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
+                    #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
+                    regexp {^Your host is ([^,]+), running version (.*)} $mMsg -> ServerName ServerDaemon
                 }
-                
-                # Pull out PREFIX (user modes, e.g. ~&@%+)
-                if [regexp ".*PREFIX=\\((.*)\\)(\[^ \]+) .*" $mMsg -> userKeys userModes] {
-                    set NickPrefixesA $userKeys
-                    set NickPrefixesS $userModes
+                003 {
+                    regexp {^This server was created (.*)} $mMsg -> ServerCreationTime
                 }
-                
-                regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
-                
-            }
-            322 {
-                #RPL_LIST
-                if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mUserCount]} {
-                    #TODO: Fix regex to remove modes
-                    regexp { ?\[.*\] (.*)} $mMsg -> mMsg
-                    set whspc [string length $mTarget]
-                    set whspc [expr {33 - $whspc}]
-                    set whspc [string repeat " " $whspc]
-                    set sss [$self getServer]
-                    puts "$mTarget$whspc$mMsg"
-                    lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
+                303 {
+                    #RPL_ISON
+                    set mMsg "$mMsg is online"
                 }
-                if {[wm state .channelList]=="normal"} {
-                    return
+                305 {
+                    #RPL_UNAWAY
+                    $self _hideAwayLabel
+                    $self awaySignalServer ""
+                    Main::updateAwayButton
                 }
-            }
-            324 {
-                #RPL_CHANNELMODEIS
-                regexp "(\[^ \]*) .(.*)" $mMsg -> mTarget mModes
-                if [info exists channelMap($mTarget)] {
-                    # If it was auto-requested the first time, don't print it
-                    if {[$channelMap($mTarget) setModes $mModes] > 0} {
+                306 {
+                    #RPL_NOWAWAY
+                    $self _showAwayLabel
+                    Main::updateAwayButton
+                }
+                321 {
+                    #RPL_LISTSTART
+                    if {[wm state .channelList]=="normal"} {
                         return
                     }
-                    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel modes: +$mModes" $style
                 }
-            $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget modes: +$mModes" $style
-            return
+                323 {
+                    #RPL_LISTEND
+                    set sss [$self getServer]
+                                                #COMPAT: nocase is not in 8.4
+                    set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
+                    if {[wm state .channelList]=="normal"} {
+                        return
+                    }
+                }
+                328 {
+                    #RPL_CHANNEL_URL
+                    # Ignore
+                    return
+                }
+                332 {
+                    #RPL_TOPIC
+                    if {[string length $mMsg] == 0} {
+                        set mMsg "(No topic set)"
+                    }
+                    $channelMap($mTarget) setTopic $mMsg
+                }
+                353 {
+                    #RPL_NAMREPLY
+                    $channelMap($mTarget) addUsers $mMsg
+                    return
+                }
+                366 {
+                    #RPL_ENDOFNAMES
+                    $channelMap($mTarget) sortUsers
+                    return
+                }
+                368 {
+                    #RPL_ENDOFBANLIST
+                    #TODO Do things
+                    return
+                }
+                372 {
+                    #RPL_MOTD
+                    append MOTD "$mMsg\n"
+                }
+                474 {
+                    #ERR_BANNEDFROMCHAN
+                    set mMsg "$mMsg - $mTarget"
+                }
             }
-            329 {
-                #RPL_CREATIONTIME
-                regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
-                $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" $style
-                #if [info exists channelMap($mTarget)] {
-                #$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" $style
-                #}
+            if [info exists channelMap($mTarget)] {
+                    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
+                    return
+            } else {
+                $self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style 
                 return
             }
-            333 {
-                #RPL_TOPICWHOTIME
-                if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mBy mTime]} {
-                $channelMap($mTarget) setTopicInfo $mBy $mTime
-                $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" $style
+        }
+        #  Type B: Is still a numbered message, but the content immediately follows the nick
+        if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
+            debug "REC: Numbered2 from server"
+            set style ""	;#TODO: Can a numbered message be addressed to me?
+            switch $mCode {
+                005 {
+                    # Pull out CHANTYPES (prefixes for channels)
+                    if [regexp {.*CHANTYPES=([^ ]+) .*} $mMsg -> derp] {
+                        set ChannelPrefixes $derp
+                    }
+                    
+                    # Pull out PREFIX (user modes, e.g. ~&@%+)
+                    if [regexp ".*PREFIX=\\((.*)\\)(\[^ \]+) .*" $mMsg -> userKeys userModes] {
+                        set NickPrefixesA $userKeys
+                        set NickPrefixesS $userModes
+                    }
+                    
+                    regexp {.*NETWORK=([^ ]+) .*} $mMsg -> NetworkName
+                    
+                }
+                322 {
+                    #RPL_LIST
+                    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mUserCount]} {
+                        #TODO: Fix regex to remove modes
+                        regexp { ?\[.*\] (.*)} $mMsg -> mMsg
+                        set whspc [string length $mTarget]
+                        set whspc [expr {33 - $whspc}]
+                        set whspc [string repeat " " $whspc]
+                        set sss [$self getServer]
+                        puts "$mTarget$whspc$mMsg"
+                        lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
+                    }
+                    if {[wm state .channelList]=="normal"} {
+                        return
+                    }
+                }
+                324 {
+                    #RPL_CHANNELMODEIS
+                    regexp "(\[^ \]*) .(.*)" $mMsg -> mTarget mModes
+                    if [info exists channelMap($mTarget)] {
+                        # If it was auto-requested the first time, don't print it
+                        if {[$channelMap($mTarget) setModes $mModes] > 0} {
+                            return
+                        }
+                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel modes: +$mModes" $style
+                    }
+                $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget modes: +$mModes" $style
                 return
                 }
-            }
-            367 {
-                #RPL_BANLIST
-                puts "RPL_BANLIST"
-                if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mEntry mCreator mTime]} {
-                #Send to server if it exists
-                puts "RPL_BANLIST"
-                if [info exists channelMap($mTarget)] {
-                    if {[$channelMap($mTarget) addBanEntry $mEntry $mCreator $mTime] == 0 } {
+                329 {
+                    #RPL_CREATIONTIME
+                    regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
+                    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" $style
+                    #if [info exists channelMap($mTarget)] {
+                    #$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" $style
+                    #}
+                    return
+                }
+                333 {
+                    #RPL_TOPICWHOTIME
+                    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mBy mTime]} {
+                    $channelMap($mTarget) setTopicInfo $mBy $mTime
+                    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" $style
                     return
                     }
-                    catch {
-                    if {[wm state .propDialog]!="normal"} {
-                    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
-                    }
-                    }
-                #Otherwise just print it here
-                } else {
-                    $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
                 }
-                return
+                367 {
+                    #RPL_BANLIST
+                    puts "RPL_BANLIST"
+                    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mEntry mCreator mTime]} {
+                    #Send to server if it exists
+                    puts "RPL_BANLIST"
+                    if [info exists channelMap($mTarget)] {
+                        if {[$channelMap($mTarget) addBanEntry $mEntry $mCreator $mTime] == 0 } {
+                        return
+                        }
+                        catch {
+                        if {[wm state .propDialog]!="normal"} {
+                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
+                        }
+                        }
+                    #Otherwise just print it here
+                    } else {
+                        $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
+                    }
+                    return
+                    }
+                }
+                default {
+                    $self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style
                 }
             }
-            default {
-                $self handleReceived $timestamp [getTitle $mCode] bold $mMsg $style
-            }
+            return
         }
-        return
-    }
     
-    #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
-    if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^:]*:(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
-        debug "REC: Special: $mSomething"
-        switch $mSomething {
-            "NICK" {
-                puts "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
-                if {[string equal $mNick [$self getNick]]} {
-                    $self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
-                    $self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
-                    $self nickChanged $mMsg
-                } else {
+        #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
+        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^:]*:(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
+            debug "REC: Special: $mSomething"
+            switch $mSomething {
+                "NICK" {
+                    puts "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
+                    if {[string equal $mNick [$self getNick]]} {
+                        $self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
+                        $self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
+                        $self nickChanged $mMsg
+                    } else {
+                        if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+                            set style "mention"
+                            #$channelMap($mChannel) notifyMention $mNick $mMsg
+                        }
+                        $self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" $style
+                    }
+                    return
+                }
+                "JOIN" {
+                    if {[string equal $mNick [$self getNick]]} {
+                    $self joinChan $mMsg ""
+                    } else {
+                    if {[regexp ".*$nick.*" "$mNick"]} {
+                        set style "mention"
+                        $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
+                    }
+                    $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
+                    $channelMap($mMsg) NLadd $mNick
+                    }
+                    return
+                }
+                "KICK" {
+                    if {$mTarget == [$self getNick]} {
+                    $channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" $style
+                    $self removeActiveChannel $mChannel
+                    set style "mention"
+                    $channelMap($mMsg) notifyMention $mMsg "$mNick kicked you: $mMsg"
+                    } else {
+                    if {[regexp ".*$nick.*" "$mNick$mTarget$mMsg"]} {
+                        set style "mention"
+                        $channelMap($mMsg) notifyMention $mMsg "$mNick kicked $mTarget: $mMsg"
+                    }
+                    $self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" $style
+                    $channelMap($mChannel) NLremove $mTarget
+                    }
+                    return
+                }
+                "PART" {
+                    if {$mTarget == [$self getNick]} {
                     if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
                         set style "mention"
-                        #$channelMap($mChannel) notifyMention $mNick $mMsg
+                        $channelMap($mChannel) notifyMention $mChannel "$mNick has left ($mMsg)"
                     }
-                    $self propogateMessage NICK $timestamp "***" bold "$mNick is now known as $mMsg" $style
+                    $self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
+                    $channelMap($mChannel) NLremove $mNick
+                    $self removeActiveChannel $mChannel
+                    } else {
+                    $self handleReceived $timestamp "***" bold "You have left ($mMsg)" $style
+                    $channelMap($mChannel) NLremove $mNick
+                    }
                 }
-                return
+                "QUIT" {
+                    if {$mTarget == [$self getNick]} {
+                    puts "You quit? What the hell?"
+                    #$self removeActiveChannel $mChannel
+                    } else {
+                    if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+                        set style "mention"
+                        $self notifyMention $mChannel "$mNick has quit ($mMsg)"
+                    }
+                    $self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
+                    }
+                }
+                default {
+                    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
+                }
             }
-            "JOIN" {
-                if {[string equal $mNick [$self getNick]]} {
-                $self joinChan $mMsg ""
-                } else {
-                if {[regexp ".*$nick.*" "$mNick"]} {
-                    set style "mention"
-                    $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
-                }
-                $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
-                $channelMap($mMsg) NLadd $mNick
-                }
-                return
-            }
-            "KICK" {
-                if {$mTarget == [$self getNick]} {
-                $channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" $style
-                $self removeActiveChannel $mChannel
+        }
+    
+        #:ChanServ!services@geekshed.net MODE #qweex +qo notbryant notbryant
+        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ([^ ]*) (.*)} $line -> mNick mSomething mChann mMsg]} {
+            debug "REC: Special2: $mSomething"
+            if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
                 set style "mention"
-                $channelMap($mMsg) notifyMention $mMsg "$mNick kicked you: $mMsg"
-                } else {
-                if {[regexp ".*$nick.*" "$mNick$mTarget$mMsg"]} {
-                    set style "mention"
-                    $channelMap($mMsg) notifyMention $mMsg "$mNick kicked $mTarget: $mMsg"
-                }
-                $self handleReceived $timestamp "***" bold "$mNick kicked $mTarget: $mMsg" $style
-                $channelMap($mChannel) NLremove $mTarget
-                }
-                return
+                $channelMap($mChann) notifyMention $mNick $mMsg
             }
-            "PART" {
-                if {$mTarget == [$self getNick]} {
-                if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
-                    set style "mention"
-                    $channelMap($mChannel) notifyMention $mChannel "$mNick has left ($mMsg)"
-                }
-                $self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
-                $channelMap($mChannel) NLremove $mNick
-                $self removeActiveChannel $mChannel
-                } else {
-                $self handleReceived $timestamp "***" bold "You have left ($mMsg)" $style
-                $channelMap($mChannel) NLremove $mNick
-                }
-            }
-            "QUIT" {
-                if {$mTarget == [$self getNick]} {
-                puts "You quit? What the hell?"
-                #$self removeActiveChannel $mChannel
-                } else {
-                if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
-                    set style "mention"
-                    $self notifyMention $mChannel "$mNick has quit ($mMsg)"
-                }
-                $self handleReceived $timestamp "***" bold "$mNick has quit ($mMsg)" $style
-                $self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
-                }
-            }
-            default {
-                $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
-            }
-        }
-    }
-    
-    #:ChanServ!services@geekshed.net MODE #qweex +qo notbryant notbryant
-    if {[regexp {:([^!]*)![^ ]* ([^ ]*) ([^ ]*) (.*)} $line -> mNick mSomething mChann mMsg]} {
-        debug "REC: Special2: $mSomething"
-        if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
-            set style "mention"
-            $channelMap($mChann) notifyMention $mNick $mMsg
-        }
-        switch $mSomething {
-            "MODE" {
-                #User mode
-                if { [regexp {([^ ]+) ([^ ]+).*} $mMsg -> mModes mTarget] } {
-                    $channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mTarget" $style
-                
-                    set modes [split $mModes {}]
-                    set what "?"
-                    foreach m $modes {
-                        if {$m == "+" || $m == "-"} {
-                            set what $m
-                            continue
+            switch $mSomething {
+                "MODE" {
+                    #User mode
+                    if { [regexp {([^ ]+) ([^ ]+).*} $mMsg -> mModes mTarget] } {
+                        $channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set mode $mModes for $mTarget" $style
+                    
+                        set modes [split $mModes {}]
+                        set what "?"
+                        foreach m $modes {
+                            if {$m == "+" || $m == "-"} {
+                                set what $m
+                                continue
+                            }
+                            set modePos [string first $m $NickPrefixesA ]
+                            puts "?MODE: $m  $modePos  $NickPrefixesA"
+                            if {$modePos > -1 && $what!="?"} {
+                                puts "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
+                                $channelMap($mChann) NLchmod $mTarget [string index $NickPrefixesS $modePos] $what
+                                break
+                            }
                         }
-                        set modePos [string first $m $NickPrefixesA ]
-                        puts "?MODE: $m  $modePos  $NickPrefixesA"
-                        if {$modePos > -1 && $what!="?"} {
-                            puts "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
-                            $channelMap($mChann) NLchmod $mTarget [string index $NickPrefixesS $modePos] $what
-                            break
-                        }
+                    
+                    #Channel mode
+                    } else {
+                        $channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" $style
                     }
-                
-                #Channel mode
-                } else {
-                    $channelMap($mChann) handleReceived $timestamp "***" bold "$mNick has set channel modes $mMsg" $style
+                    return
                 }
-                return
             }
         }
-    }
     
-    # Server message with no numbers but sent explicitely from server
-    if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
-        debug "REC: Etc: $mSomething $mTarget"
-        switch $mSomething {
-            "MODE" {
-                set mMsg "$ServerName has set your personal modes: $mMsg"
+        # Server message with no numbers but sent explicitely from server
+        if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
+            debug "REC: Etc: $mSomething $mTarget"
+            switch $mSomething {
+                "MODE" {
+                    set mMsg "$ServerName has set your personal modes: $mMsg"
+                }
+                "NOTICE" {
+                    $self handleReceived $timestamp \[Notice\] bold $mMsg ""
+                    return
+                }
+                "433" {
+                # Note that this only happens when it is a catastrophic failure!
+                    close $connDesc
+                    unset connDesc
+                    $self handleReceived $timestamp \[Error\] bold $mMsg ""
+                    $self updateToolbar ""
+                    return
+                }
             }
-            "NOTICE" {
-                $self handleReceived $timestamp \[Notice\] bold $mMsg ""
-                return
+            if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
+                set style "mention"
+                $self notifyMention $mTarget $mMsg
             }
-            "433" {
-            # Note that this only happens when it is a catastrophic failure!
-                close $connDesc
-                unset connDesc
-                $self handleReceived $timestamp \[Error\] bold $mMsg ""
-                $self updateToolbar ""
-                return
-            }
+            $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
+            return
         }
-        if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
-            set style "mention"
-            $self notifyMention $mTarget $mMsg
+            
+        # "NOTICE AUTH : *** Please wait while we scan your connection for open proxies"
+        if {[regexp {NOTICE AUTH:(.*)} $line -> mMsg]} {
+            $self handleReceived $timestamp \[Notice\] bold $mMsg "";
+            return
         }
-        $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
-        return
-    }
-        
-    # "NOTICE AUTH : *** Please wait while we scan your connection for open proxies"
-    if {[regexp {NOTICE AUTH:(.*)} $line -> mMsg]} {
-        $self handleReceived $timestamp \[Notice\] bold $mMsg "";
-        return
-    }
-    debug "WHAT: $line"
+        debug "WHAT: $line"
     }
 }
