@@ -13,9 +13,9 @@ package provide notebox 1.0
 namespace eval ::notebox {
     
     array set fontPlat {
-	unix    {Helvetica 12}
-	windows {Arial 8}
-	macosx  {Geneva 9}
+        unix    {Helvetica 12}
+        windows {Arial 8}
+        macosx  {Geneva 9}
     }
 
     option add *Notebox.millisecs                  0         widgetDefault
@@ -37,8 +37,8 @@ namespace eval ::notebox {
     variable this
     set this(w) $w
     set this(uid) 0
-    set this(x_pad) 0	;#-30
-    set this(y_pad) 0	;#-30
+    set this(x_pad) 0    ;#-30
+    set this(y_pad) 0    ;#-30
     set this(x) [expr {[winfo screenwidth .]  + $this(x_pad)}]
     set this(y) [expr {[winfo screenheight .] + $this(y_pad)}]
 }
@@ -57,22 +57,22 @@ proc ::notebox::Build {} {
     toplevel $w -class Notebox -bd 0 -relief flat
     
     switch -- [tk windowingsystem] {
-	aqua {
-	    tk::unsupported::MacWindowStyle style $w floating {sideTitlebar closeBox}
-	    frame $w.f -height 32 -width 0
-	    pack  $w.f -side left -fill y
-	}
-	default {
-	    wm overrideredirect $w 1
-	    wm transient $w
-	    frame $w.f -bd 1 -relief raised
-	    pack  $w.f -side left -fill y
-	    set c $w.f.c
-	    set size 13
-	    canvas $c -width $size -height $size -highlightthickness 0
-	    DrawWinxpButton $c 5
-	    pack $c -side top
-	}
+        aqua {
+            tk::unsupported::MacWindowStyle style $w floating {sideTitlebar closeBox}
+            frame $w.f -height 32 -width 0
+            pack  $w.f -side left -fill y
+        }
+        default {
+            wm overrideredirect $w 1
+            wm transient $w
+            frame $w.f -bd 1 -relief raised
+            pack  $w.f -side left -fill y
+            set c $w.f.c
+            set size 13
+            canvas $c -width $size -height $size -highlightthickness 0
+            DrawWinxpButton $c 5
+            pack $c -side top
+        }
     }
 }
 
@@ -87,21 +87,21 @@ proc ::notebox::DrawWinxpButton {c r} {
 
     set im [option get $this(w) closeButtonImage {}]
     if {$im ne ""} {
-	$c create image $width2 $width2 -image $im -anchor center
+        $c create image $width2 $width2 -image $im -anchor center
     } else {
-	set red [option get $this(w) closeButtonBgWinxp {}]
-	
-	# Be sure to offset ovals to put center pixel at (1,1).
-	if {[tk windowingsystem] eq "aqua"} {
-	    $c create oval -$rm -$rm  $r $r -tags bt -outline {} -fill $red
-	    set id1 [$c create line -$a -$a $a  $a -tags bt -fill white]
-	    set id2 [$c create line -$a  $a $a -$a -tags bt -fill white]
-	} else {
-	    $c create oval -$rm -$rm $rm $rm -tags bt -outline $red -fill $red
-	    set id1 [$c create line -$a -$a $ap  $ap -tags bt -fill white]
-	    set id2 [$c create line -$a  $a $ap -$ap -tags bt -fill white]
-	}
-	$c move bt $width2 $width2
+        set red [option get $this(w) closeButtonBgWinxp {}]
+        
+        # Be sure to offset ovals to put center pixel at (1,1).
+        if {[tk windowingsystem] eq "aqua"} {
+            $c create oval -$rm -$rm  $r $r -tags bt -outline {} -fill $red
+            set id1 [$c create line -$a -$a $a  $a -tags bt -fill white]
+            set id2 [$c create line -$a  $a $a -$a -tags bt -fill white]
+        } else {
+            $c create oval -$rm -$rm $rm $rm -tags bt -outline $red -fill $red
+            set id1 [$c create line -$a -$a $ap  $ap -tags bt -fill white]
+            set id2 [$c create line -$a  $a $ap -$ap -tags bt -fill white]
+        }
+        $c move bt $width2 $width2
     }
     $c bind bt <ButtonPress-1> [list destroy $this(w)]
 }
@@ -110,18 +110,18 @@ proc ::notebox::addmsg {str args} {
     variable this
 
     if {![winfo exists $this(w)]} {
-	Build
+        Build
     }
     array set argsArr {
-	-title ""
+        -title ""
     }
     array set argsArr $args
     set w $this(w)
     wm title $w $argsArr(-title)
     if {[llength [winfo children $w]] > 1} {
-	set wdiv $w.f[incr this(uid)]
-	frame $wdiv -height 2
-	pack  $wdiv -side top -fill x
+        set wdiv $w.f[incr this(uid)]
+        frame $wdiv -height 2
+        pack  $wdiv -side top -fill x
     }
     set t $w.t[incr this(uid)]
     set bg   [option get $w background {}]
@@ -134,11 +134,11 @@ proc ::notebox::addmsg {str args} {
     after idle [list ::notebox::SetGeometry $t]
     
     if {[info exists this(afterid)]} {
-	after cancel $this(afterid)
+        after cancel $this(afterid)
     }
     set ms [option get $w millisecs {}]
     if {$ms > 0} {
-	after $ms ::notebox::Destroy
+        after $ms ::notebox::Destroy
     }
 }
 
@@ -147,17 +147,17 @@ proc ::notebox::getxyFromAnchor {} {
     set w $this(w)
     set anchor [option get $w anchor {}]
     if {[string first "n" $anchor] > -1} {
-	set this(y) [expr {0 + 30}]
+        set this(y) [expr {0 + 30}]
     } else {
-	set this(y) [expr {[winfo screenheight $w] - 30}]
-	set this(y) [expr {$this(y) - [winfo reqheight $w]}]
+        set this(y) [expr {[winfo screenheight $w] - 30}]
+        set this(y) [expr {$this(y) - [winfo reqheight $w]}]
     }
     
     if {[string first "w" $anchor] > -1} {
-	set this(x) [expr {0 + 30}]
+        set this(x) [expr {0 + 30}]
     } else {
-	set this(x) [expr {[winfo screenwidth $w] - 30}]
-	set this(x) [expr {$this(x) - [winfo reqwidth $w]}]
+        set this(x) [expr {[winfo screenwidth $w] - 30}]
+        set this(x) [expr {$this(x) - [winfo reqwidth $w]}]
     }
 }
 

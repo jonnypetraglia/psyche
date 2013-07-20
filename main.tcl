@@ -11,22 +11,6 @@ proc debugE {arg} {
 }
 
 
-#http://www.tek-tips.com/viewthread.cfm?qid=1668522
-proc set_close_bindings {notebook page} {
-  $notebook.c bind $page:img <ButtonPress-1> "+; 
-    $notebook.c move $page:img 1 1
-    set pressed \[%W find closest %x %y]
-  "
-  $notebook.c bind $page:img <ButtonRelease-1> "+; 
-    $notebook.c move $page:img -1 -1
-    if {\$pressed==\[%W find closest %x %y]} {
-		set pressed \"\"
-		Main::closeTab $page
-	}
-  "
-}
-
-
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
@@ -65,17 +49,17 @@ namespace eval Main {
 set ::this(platform) windows	;#TODO This should not be necessary
 switch $tcl_platform(platform) {
     "unix" {
-	if {$tcl_platform(os) == "Darwin"} {
-	    set ::this(platform) macosx
-	    set Main::MIDDLE_CLICK 2
-	} else {
-	    set ::this(platform) unix
-	    set Main::MIDDLE_CLICK 3
-	}
+        if {$tcl_platform(os) == "Darwin"} {
+            set ::this(platform) macosx
+            set Main::MIDDLE_CLICK 2
+        } else {
+            set ::this(platform) unix
+            set Main::MIDDLE_CLICK 3
+        }
     }
     "windows" {
-	set ::this(platform) windows
-	set Main::MIDDLE_CLICK 3
+        set ::this(platform) windows
+        set Main::MIDDLE_CLICK 3
     }
 }
 source pref.tcl
@@ -104,24 +88,24 @@ proc Main::init { } {
     #set top [toplevel .intro -relief raised -borderwidth 2]
     #BWidget::place $top 0 0 center
     
-	#Commands menus
-	#Url Catcher
-	#Channel List
-	#Logfile
+    #Commands menus
+    #Url Catcher
+    #Channel List
+    #Logfile
     
     # Menu description
     if { false || true } {
-	set Main::descmenu {
-	    "&File" all file 0 {
-		{command "E&xit" {} "Exit BWidget demo" {} -command exit}
-	    }
-	    "&Options" all options 0 {
-		{checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
-		    -variable Main::toolbar
-		    -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
-		}
-	    }
-	}
+        set Main::descmenu {
+            "&File" all file 0 {
+            {command "E&xit" {} "Exit BWidget demo" {} -command exit}
+            }
+            "&Options" all options 0 {
+            {checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
+                -variable Main::toolbar
+                -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
+            }
+            }
+        }
     }
     
     
@@ -156,14 +140,14 @@ proc Main::init { } {
     
     # Measure the GUI
     bind . <Configure> { 
-	if {"%W" == ".mainframe.status.prgf"} {
-	    bind . <Configure> ""
-	    wm minsize . [winfo width .] [winfo height .]
-	    puts "MinSize: [winfo width .]x[winfo height .]"
-	}
+    if {"%W" == ".mainframe.status.prgf"} {
+        bind . <Configure> ""
+        wm minsize . [winfo width .] [winfo height .]
+        puts "MinSize: [winfo width .]x[winfo height .]"
+    }
     }
     $Main::notebook delete [$Main::servers(1) getId] 1
-	destroy Main::servers(1)
+    destroy Main::servers(1)
     unset Main::servers(1)
     
     
@@ -180,60 +164,60 @@ proc Main::init { } {
     .nicklistMenu add command -label "Whois" -command Main::NLwhois
     .nicklistMenu add command -label "Version" -command Main::NLversion
     .nicklistMenu add command -label "Ping" -command Main::NLping
-	# Modes submenu
-	menu .nicklistMenu.modes
-	.nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
-	.nicklistMenu.modes add command -label "take Op" -command "Main::NLmode -o"
+    # Modes submenu
+    menu .nicklistMenu.modes
+    .nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
+    .nicklistMenu.modes add command -label "take Op" -command "Main::NLmode -o"
     .nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
-	# Ban submenu
-	menu .nicklistMenu.kickban
-	.nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
-	.nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
+    # Ban submenu
+    menu .nicklistMenu.kickban
+    .nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
+    .nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
     .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
     .nicklistMenu add command -label "Ignore" -command Main::NLignore
     .nicklistMenu add command -label "Watch" -command Main::NLwatch
     
     wm protocol . WM_DELETE_WINDOW {
-	#wm command . [expr {"0x111"}]
-	#if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
-	    exit
-	#}
+    #wm command . [expr {"0x111"}]
+    #if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
+        exit
+    #}
     }
 }
 
 proc Main::closeTabFromGui {} {
     set target [$Main::notebook raise]
-	Main::closeTab $target
+    Main::closeTab $target
 }
 
 proc Main::closeTab {target} {
-	regsub -all "__" $target "*" target2
+    regsub -all "__" $target "*" target2
     set parts [split $target2 "\*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
-	
-	set tabIndex [$Main::notebook index $target]
-	if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
-		set tabIndex [expr {$tabIndex -1}]
-	}
-	
-    if {[string length $chan] > 0} {
-	$Main::servers($serv) closeChannel $chan
-    } else {
-	$Main::servers($serv) quit $Pref::defaultQuit
-	$Main::servers($serv) closeAllChannelTabs
-	$Main::notebook delete $target
-	$Main::servers($serv) closeLog
-	destroy Main::servers($serv)
-	unset Main::servers($serv)
+    
+    set tabIndex [$Main::notebook index $target]
+    if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
+        set tabIndex [expr {$tabIndex -1}]
     }
-	
-    if {[llength [$Main::notebook pages]] == 0} {
-	Main::clearToolbar
+    
+    if {[string length $chan] > 0} {
+        $Main::servers($serv) closeChannel $chan
     } else {
-		$Main::notebook raise [$Main::notebook page $tabIndex]
-	}
+        $Main::servers($serv) quit $Pref::defaultQuit
+        $Main::servers($serv) closeAllChannelTabs
+        $Main::notebook delete $target
+        $Main::servers($serv) closeLog
+        destroy Main::servers($serv)
+        unset Main::servers($serv)
+    }
+    
+    if {[llength [$Main::notebook pages]] == 0} {
+        Main::clearToolbar
+    } else {
+        $Main::notebook raise [$Main::notebook page $tabIndex]
+    }
 }
 
 proc Main::pressTab { args} {
@@ -243,13 +227,13 @@ proc Main::pressTab { args} {
     set chan [lindex $parts 1]
     
     if [info exists Main::servers($serv)] {
-	$Main::servers($serv) updateToolbar $chan
+        $Main::servers($serv) updateToolbar $chan
     }
-	Main::unsetTabMention
+    Main::unsetTabMention
 }
 
 proc Main::unsetTabMention {} {
-	$Main::notebook itemconfigure [$Main::notebook raise] -background {}
+    $Main::notebook itemconfigure [$Main::notebook raise] -background {}
 }
 
 proc Main::tabContext { x y tabId } {
@@ -285,7 +269,7 @@ proc Main::showConnectDialog { } {
     wm resizable .connectDialog 0 0
     
     ttk::label .connectDialog.l_serv -text "Server"
-    ttk::entry .connectDialog.serv -width 20 -undo true
+    ttk::entry .connectDialog.serv -width 20
     .connectDialog.serv configure -background white
     ttk::label .connectDialog.l_port -text "Port"
     ttk::entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
@@ -336,9 +320,9 @@ proc Main::showJoinDialog { } {
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
     if { [string length $chan] == 0 } {
-	debugE "Main::joinChannel - Insufficient data"
-    	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
-    	return
+    debugE "Main::joinChannel - Insufficient data"
+    tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+    return
     }
     catch {grab release .joinDialog}
     catch {grab set .}
@@ -375,11 +359,11 @@ proc Main::connectDialogConfirm {} {
     set por [.connectDialog.port get]
     set nick [.connectDialog.nick get]
     if [ expr { [string length $serv] == 0 || \
-		[string length $por] == 0  || \
-		[string length $nick] == 0}] {
-	debugE "Main::connectDialogConfirm - Insufficient data"
-    	tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
-    	return
+        [string length $por] == 0  || \
+        [string length $nick] == 0}] {
+    debugE "Main::connectDialogConfirm - Insufficient data"
+        tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+        return
     }
     catch {grab release .connectDialog}
     catch {grab set .}
@@ -432,13 +416,13 @@ proc Main::channelList {} {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     if { ![info exists Main::channelList($serv)] } {
-	set Main::channelList($serv) [list]
-	$Main::servers($serv) _send LIST
+        set Main::channelList($serv) [list]
+        $Main::servers($serv) _send LIST
     } else {
-	if { [llength $Main::channelList($serv) ] == 0 } {
-	    set Main::channelList($serv) [list]
-	    $Main::servers($serv) _send LIST
-	}
+        if { [llength $Main::channelList($serv) ] == 0 } {
+            set Main::channelList($serv) [list]
+            $Main::servers($serv) _send LIST
+        }
     }
 
     destroy .channelList
@@ -448,8 +432,8 @@ proc Main::channelList {} {
     wm resizable .channelList 400 300
 
     set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
-			-height 20 -width 40 -highlightthickness 0 \
-			-font [list Courier 12] ]
+            -height 20 -width 40 -highlightthickness 0 \
+            -font [list Courier 12] ]
     ttk::button .channelList.join -text "Join"
     ttk::button .channelList.refresh -text "Refresh"
     bind .channelList.lb <Double-1> Main::joinChannelList
@@ -526,7 +510,7 @@ proc Main::nickDialogConfirm {} {
     
     $Main::servers($serv) _send "NICK $newnick"
     if {[string length $newpass] > 0 } {
-	$Main::servers($serv) _send "PRIVMSG NickServ identify $newpass"
+        $Main::servers($serv) _send "PRIVMSG NickServ identify $newpass"
     }
 }
 
@@ -544,9 +528,9 @@ proc Main::openBookmark {target} {
     set nic [lindex $Pref::bookmarks($target) 2]
     Main::createConnection $serv $por $nic
     if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
-	for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
-	    $Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
-	}
+        for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
+            $Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
+        }
     }
 }
 
@@ -555,6 +539,20 @@ proc Main::foreground_win { w } {
     wm deiconify $w
 }
 
+#http://www.tek-tips.com/viewthread.cfm?qid=1668522
+proc set_close_bindings {notebook page} {
+    $notebook.c bind $page:img <ButtonPress-1> "+; 
+    $notebook.c move $page:img 1 1
+    set pressed \[%W find closest %x %y]
+    "
+    $notebook.c bind $page:img <ButtonRelease-1> "+; 
+    $notebook.c move $page:img -1 -1
+    if {\$pressed==\[%W find closest %x %y]} {
+        set pressed \"\"
+        Main::closeTab $page
+    }
+    "
+}
 
 
 Main::init

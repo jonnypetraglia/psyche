@@ -16,6 +16,7 @@ pack .input
 
 
 proc _tabComplete {nickloc txt earlierThan {leNickPrefix ""}} {
+                                
     global nickList
     set i [expr {$nickloc + 1}]
     while {[regexp "^$leNickPrefix$txt.*" [lindex $nickList $i]]} {
@@ -111,5 +112,3 @@ bind .input <Tab> {
     
     break
 }
-
-

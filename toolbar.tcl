@@ -12,17 +12,17 @@ proc Main::init_toolbar { } {
         -command Main::showConnectDialog
     # Dropdown button
     $bbox add -image [image create bitmap %AUTO% -data {
-	    #define plus_width 11
-	    #define plus_height 11
-	    static char plus_bits = {
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe,
-		0x03, 0xfc, 0x01, 0xf8, 0x00, 0x70, 0x00, 0x20, 0x00, 0x00, 0x00
-	    }
-	}] -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-	-command {
-	    regexp {.*x([0-9]+)\+([0-9]+)\+([0-9]+)} [winfo geometry $Main::toolbar] -> wh wx wy
-	    tk_popup .bookmarkMenu [expr [winfo rootx .] + $wx] [expr [winfo rooty .] + $wy + $wh]
-	}
+        #define plus_width 11
+        #define plus_height 11
+        static char plus_bits = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe,
+        0x03, 0xfc, 0x01, 0xf8, 0x00, 0x70, 0x00, 0x20, 0x00, 0x00, 0x00
+        }
+    }] -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
+    -command {
+        regexp {.*x([0-9]+)\+([0-9]+)\+([0-9]+)} [winfo geometry $Main::toolbar] -> wh wx wy
+        tk_popup .bookmarkMenu [expr [winfo rootx .] + $wx] [expr [winfo rooty .] + $wy + $wh]
+    }
     set Main::toolbar_reconnect [\
     $bbox add -image [image create photo -file $icondir/reconnect.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
