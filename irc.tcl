@@ -140,6 +140,10 @@ proc getTitle {mCode} {
             #RPL_WHOISSERVER (RFC1459)
             return \[Whois\]
         }
+        315 {
+            #RPL_ENDOFWHO (RFC1459)
+            return \[Who\]
+        }
         317 {
             #RPL_WHOISIDLE (RFC1459)
             return \[Whois\]
@@ -195,6 +199,10 @@ proc getTitle {mCode} {
         351 {
             #RPL_VERSION (RFC1459)
             return \[Version\]
+        }
+        352 {
+            #RPL_WHOREPLY (RFC1459)
+            return \[Who\]
         }
         353 {
             #RPL_NAMREPLY (RFC1459)

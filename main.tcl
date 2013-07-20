@@ -192,10 +192,10 @@ proc Main::init { } {
     .nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
     .nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
     .nicklistMenu.kickban add separator
-    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban"
-    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban"
-    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban"
-    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban"
+    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host"
+    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain"
+    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban *!user@*.host"
+    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban *!user@domain"
     .nicklistMenu.kickban add separator
     .nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLkickban"
     .nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLkickban"
@@ -259,7 +259,16 @@ puts "NLmode: $theNick"
 
 proc Main::NLkick {} {
 }
-proc Main::NLban {} {
+proc Main::NLban {bantype} {
+    set target [$Main::notebook raise]
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
+    $Main::servers($serv) requestBan $theNick $chan $bantype
 }
 proc Main::NLkickban {} {
 }

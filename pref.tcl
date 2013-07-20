@@ -77,7 +77,8 @@ proc Pref::readPrefs {} {
     close $fp
     
     menu .bookmarkMenu -tearoff true -title Bookmarks
-    foreach x [array names Pref::bookmarks] {
+    set derp [lreverse [array names Pref::bookmarks]]
+    foreach x $derp {
         .bookmarkMenu add command -label $x -command "Main::openBookmark $x"
     }
 

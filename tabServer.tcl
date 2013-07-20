@@ -19,6 +19,7 @@ snit::type tabServer {
     variable connDesc
     variable channelMap
     variable activeChannels
+    variable banRequestList     ;# map from nick to channel & mask; banRequestList(notbryant) = {#qweex *!*@domain}
     
     # Server info
     variable ServerCreationTime
@@ -101,12 +102,8 @@ snit::type tabServer {
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
         $input configure -background white
-        bind $input <Return> {
-            set msg [$input get 1.0 end-1c]
-            $input delete 1.0 end
-            [mymethod sendMessage] $msg
-            break
-        }
+        puts $input
+        bind $input <Return> "[mymethod hitSendKey]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
         bind $input <Down> "[mymethod upDown] 1; break;"
     
@@ -418,6 +415,13 @@ snit::type tabServer {
         }
     }
     
+    ############## When enter key is pressed ##############
+    method hitSendKey {} {
+        set msg [$input get 1.0 end-1c]
+        $input delete 1.0 end
+        $self sendMessage $msg
+    }
+    
     ############## Send Message ##############
     method sendMessage {msg} {
         #sendHistory
@@ -439,7 +443,7 @@ snit::type tabServer {
         }
         
         $self _send $msg
-        $self handleReceived [$self getTimestamp] \[Raw\] {bold blu} $msg ""
+        $self handleReceived [$self getTimestamp] \[Raw\] {bold blue} $msg ""
         
         #TODO: Scroll only if at bottom
         $chat yview end
@@ -652,6 +656,11 @@ snit::type tabServer {
     method getSelectedNickOfChannel {mChann} {
         return [$channelMap($mChann) getSelectedNick]
     }
+
+    method requestBan {thenick thechan bantype} {
+        set banRequestList($thenick) [list $thechan $bantype]
+        $self _send "WHO $thenick"
+    }
     
     ############## Internal Function ##############
     method _recv {} {
@@ -766,6 +775,10 @@ snit::type tabServer {
                     #RPL_NOWAWAY
                     $self _showAwayLabel
                     Main::updateAwayButton
+                }
+                315 {
+                    #RPL_ENDOFWHO
+                    return
                 }
                 321 {
                     #RPL_LISTSTART
@@ -887,9 +900,42 @@ snit::type tabServer {
                 333 {
                     #RPL_TOPICWHOTIME
                     if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mBy mTime]} {
-                    $channelMap($mTarget) setTopicInfo $mBy $mTime
-                    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" $style
-                    return
+                        $channelMap($mTarget) setTopicInfo $mBy $mTime
+                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Topic set by $mBy [clock format $mTime]" $style
+                        return
+                    }
+                }
+                352 {
+                    #RPL_WHOREPLY
+                    if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) .*" $mMsg \
+                                    -> mChannelWhat mUser mHostmask mServer mNick]} {
+                        if [info exists banRequestList($mNick)] {
+                            set chann [lindex $banRequestList($mNick) 0]
+                            set bantype [lindex $banRequestList($mNick) 1]
+                            
+                        #       nick!user@domain
+                        #       nick!user@*.host
+                            if {[regexp ".*nick.*" $bantype]} {
+                                set banCommand "$mNick"
+                            } else {
+                                set banCommand "*"
+                            }
+                            if {[regexp ".*user.*" $bantype]} {
+                                set banCommand "${banCommand}!${mUser}"
+                            } else {
+                                set banCommand "${banCommand}!*"
+                            }
+                            if {[regexp ".*domain$" $bantype]} {
+                                set banCommand "${banCommand}@${mHostmask}"
+                            } else {
+                                set banCommand "${banCommand}@*[string range $mHostmask [string first . $mHostmask] end]"
+                            }
+                            
+                            puts "BANNING: $banCommand"
+                            $self _send "MODE $chann +b $banCommand"
+                            unset banRequestList($mNick)
+                            return
+                        }
                     }
                 }
                 367 {
@@ -900,13 +946,11 @@ snit::type tabServer {
                     puts "RPL_BANLIST"
                     if [info exists channelMap($mTarget)] {
                         if {[$channelMap($mTarget) addBanEntry $mEntry $mCreator $mTime] == 0 } {
-                        return
+                            return
                         }
-                        catch {
-                        if {[wm state .propDialog]!="normal"} {
-                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
-                        }
-                        }
+                        catch { if {[wm state .propDialog]!="normal"} {
+                            $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style
+                        }}
                     #Otherwise just print it here
                     } else {
                         $self handleReceived $timestamp [getTitle $mCode] bold "$mEntry - set by $mCreator [clock format $mTime]" $style

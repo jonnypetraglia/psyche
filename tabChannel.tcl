@@ -98,12 +98,7 @@ snit::type tabChannel {
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
         $input configure -background white
-        bind $input <Return> {
-            set msg [$input get 1.0 end-1c]
-            $input delete 1.0 end
-            [mymethod sendMessage] $msg
-            break
-        }
+        bind $input <Return> "[mymethod hitSendKey]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
         bind $input <Down> "[mymethod upDown] 1; break;"
         bind $input <Tab> "[mymethod tabComplete]; break;"
@@ -352,6 +347,13 @@ snit::type tabChannel {
         }
     }
     
+    ############## When enter key is pressed ##############
+    method hitSendKey {} {
+        set msg [$input get 1.0 end-1c]
+        $input delete 1.0 end
+        $self sendMessage $msg
+    }
+    
     ############## Send Message ##############
     method sendMessage {msg} {
         #sendHistory
@@ -366,14 +368,16 @@ snit::type tabChannel {
         # Starts with a backslash
         if [regexp {^/(.+)} $msg -> msg] {
             if { [string index $msg 0] != "/"} {
-                if [performSpecialCase $msg $self ] {
-                    return
+                if {![performSpecialCase $msg $self ]} {
+                    $ServerRef _send $msg
+                    $ServerRef handleReceived [$self getTimestamp] \[Raw\] {bold blue} $msg ""
                 }
+                return
             }
         }
         
         $self _send "PRIVMSG $channel :$msg"
-        $self handleReceived [$self getTimestamp] <[$self getNick]> {bold blu} $msg ""
+        $self handleReceived [$self getTimestamp] <[$self getNick]> {bold blue} $msg ""
         
             #TODO: Scroll only if at bottom
         $chat yview end
@@ -726,6 +730,8 @@ snit::type tabChannel {
     }
     
     method getSelectedNick {} {
-        return [$nicklistCtrl get [$nicklistCtrl curselection] ]
+        set theNick [$nicklistCtrl get [$nicklistCtrl curselection] ]
+        regexp "^\[[$self getNickPrefixes]\](.*)" $theNick -> theNick
+        return $theNick
     }
 }
