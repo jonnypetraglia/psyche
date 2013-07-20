@@ -203,7 +203,7 @@ proc Main::init { } {
     .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLban *!user@domain true"
     .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
     .nicklistMenu add command -label "Ignore" -command {Main::NLcmd "/ignore"}
-    .nicklistMenu add command -label "Watch" -command {Main::NLcmd "/watch +"
+    .nicklistMenu add command -label "Watch" -command {Main::NLcmd "/watch +"}
     
     wm protocol . WM_DELETE_WINDOW {
     #wm command . [expr {"0x111"}]
