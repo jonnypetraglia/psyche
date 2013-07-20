@@ -457,6 +457,23 @@ proc performSpecialCase {msg obj} {
         }
     }
     
+    #/ban
+    if [regexp "^ban (\[^ \]+) ?(.*)" $msg -> mTarget mReason] {
+        if {[string length $mReason] > 0} {
+            set mReason $Pref::defaultBan
+        }
+        $obj requestBan $mTarget "*!user@domain" false $mReason
+        return true
+    }
+    #/kb
+    if [regexp "^kb (\[^ \]+) ?(.*)" $msg -> mTarget mReason] {
+        if {[string length $mReason] > 0} {
+            set mReason $Pref::defaultBan
+        }
+        $obj requestBan $mTarget "*!user@domain" true $mReason
+        return true
+    }
+
     
     #### Misc commands that are tested to work ###
     #/admin

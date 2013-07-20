@@ -19,7 +19,8 @@ snit::type tabServer {
     variable connDesc
     variable channelMap
     variable activeChannels
-    variable banRequestList     ;# map from nick to channel & mask; banRequestList(notbryant) = {#qweex *!*@domain}
+    variable banRequestList
+    # map from nick to channel & mask; banRequestList(notbryant) = {#qweex *!*@domain shouldKick banMsg}
     
     # Server info
     variable ServerCreationTime
@@ -657,8 +658,12 @@ snit::type tabServer {
         return [$channelMap($mChann) getSelectedNick]
     }
 
-    method requestBan {thenick thechan bantype} {
-        set banRequestList($thenick) [list $thechan $bantype]
+    method requestBan {var1 var2 var3 var4} {
+        debug "WRONG REQUEST BAN CALLED. THIS IS A SERVER"
+    }
+
+    method requestBan {thenick thechan bantype shouldkick banmsg} {
+        set banRequestList($thenick) [list $thechan $bantype $shouldkick $banmsg]
         $self _send "WHO $thenick"
     }
     
@@ -912,6 +917,8 @@ snit::type tabServer {
                         if [info exists banRequestList($mNick)] {
                             set chann [lindex $banRequestList($mNick) 0]
                             set bantype [lindex $banRequestList($mNick) 1]
+                            set shouldkick [lindex $banRequestList($mNick) 2]
+                            set banmsg [lindex $banRequestList($mNick) 3]
                             
                         #       nick!user@domain
                         #       nick!user@*.host
@@ -933,6 +940,9 @@ snit::type tabServer {
                             
                             puts "BANNING: $banCommand"
                             $self _send "MODE $chann +b $banCommand"
+                            if {$shouldkick} {
+                                $self _send "KICK $chann $mNick $banmsg"
+                            }
                             unset banRequestList($mNick)
                             return
                         }

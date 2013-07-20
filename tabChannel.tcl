@@ -729,6 +729,10 @@ snit::type tabChannel {
         return 0
     }
     
+    method requestBan {thenick bantype shouldkick banmsg} {
+        $ServerRef requestBan $thenick $channel $bantype $shouldkick $banmsg
+    }
+    
     method getSelectedNick {} {
         set theNick [$nicklistCtrl get [$nicklistCtrl curselection] ]
         regexp "^\[[$self getNickPrefixes]\](.*)" $theNick -> theNick

@@ -192,15 +192,15 @@ proc Main::init { } {
     .nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
     .nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
     .nicklistMenu.kickban add separator
-    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host"
-    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain"
-    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban *!user@*.host"
-    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban *!user@domain"
+    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host false"
+    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain false"
+    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban *!user@*.host false"
+    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban *!user@domain false"
     .nicklistMenu.kickban add separator
-    .nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLkickban"
-    .nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLkickban"
-    .nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLkickban"
-    .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLkickban"
+    .nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLban *!*@*.host true"
+    .nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLban *!*@domain true"
+    .nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLban *!user@*.host true"
+    .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLban *!user@domain true"
     .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
     .nicklistMenu add command -label "Ignore" -command Main::NLignore
     .nicklistMenu add command -label "Watch" -command Main::NLwatch
@@ -259,7 +259,7 @@ puts "NLmode: $theNick"
 
 proc Main::NLkick {} {
 }
-proc Main::NLban {bantype} {
+proc Main::NLban {bantype shouldkick} {
     set target [$Main::notebook raise]
     regsub -all "__" $target "*" target
     set parts [split $target "\*"]
@@ -268,7 +268,7 @@ proc Main::NLban {bantype} {
     set chan [lindex $parts 1]
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-    $Main::servers($serv) requestBan $theNick $chan $bantype
+    $Main::servers($serv) requestBan $theNick $chan $bantype $shouldkick $Pref::defaultBan
 }
 proc Main::NLkickban {} {
 }

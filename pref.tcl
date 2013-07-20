@@ -9,6 +9,7 @@ namespace eval Pref {
     variable raiseNewTabs
     variable defaultQuit
     variable defaultBan
+    variable defaultKick
     variable defaultPart
     variable defaultAway
     variable bookmarks
@@ -27,7 +28,8 @@ namespace eval Pref {
     set timeout 5000
     set raiseNewTabs false
     set defaultQuit "Quittin'"
-    set defaultBan "Please stop that"
+    set defaultKick "Please stop that"
+    set defaultBan "Stop. That."
     set defaultPart "Partin'"
     set defaultAway "I'm away"
     set logEnabled false
@@ -65,7 +67,7 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
         set data [gets $fp]
         # Manually add the namespace
-        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor ).*)" $data -> data]} {
+        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor ).*)" $data -> data]} {
             set data "set Pref::$data"
         }
         puts "Reading preference: '$data'"
