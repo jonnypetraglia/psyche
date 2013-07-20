@@ -58,6 +58,7 @@ switch $tcl_platform(platform) {
 }
 source pref.tcl
 source irc.tcl
+source sound.tcl
 source tabServer.tcl
 source tabChannel.tcl
 source toolbar.tcl
@@ -198,6 +199,11 @@ proc Main::pressTab { args} {
     if [info exists Main::servers($serv)] {
 	$Main::servers($serv) updateToolbar $chan
     }
+	Main::unsetTabMention
+}
+
+proc Main::unsetTabMention {} {
+	$Main::notebook itemconfigure [$Main::notebook raise] -background {}
 }
 
 proc Main::tabContext { x y tabId } {
@@ -502,6 +508,8 @@ proc Main::foreground_win { w } {
     wm withdraw $w
     wm deiconify $w
 }
+
+
 
 Main::init
 toplevel .channelList -padx 10 -pady 10

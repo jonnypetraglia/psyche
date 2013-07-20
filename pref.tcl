@@ -3,7 +3,7 @@ package require BWidget
 namespace eval Pref {
     variable configDir
     #NOT a preference; for reference
-    set CONFIG_DIR $::env(HOME)\\.psyche
+    set CONFIG_DIR $::env(HOME)/.psyche
 
     variable timeout
     variable raiseNewTabs
@@ -20,6 +20,8 @@ namespace eval Pref {
     # (n|s)(e|w)   OR   999x999 for absolute path
     variable maxSendHistory
     variable maxScrollback	;#TODO
+	variable mentionColor
+	variable mentionSound
     
 
     set timeout 5000
@@ -43,6 +45,9 @@ namespace eval Pref {
     
     set maxSendHistory 50
     set maxScrollback 200
+	
+	set mentionColor "LightGreen" ;#PaleGreen, PaleGreen3
+	set mentionSound "[pwd]/mention.wav"
     
     
     #This is for debug
@@ -60,7 +65,7 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
 	set data [gets $fp]
 	# Manually add the namespace
-	if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback ).*)" $data -> data]} {
+	if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor ).*)" $data -> data]} {
 	    set data "set Pref::$data"
 	}
 	puts "Reading preference: '$data'"

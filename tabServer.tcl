@@ -463,6 +463,11 @@ snit::type tabServer {
     method notifyMention {mNick mMsg} {
 	#tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
 	::notebox::addmsg "$mNick - $mMsg"
+	set icondir [pwd]/icons
+	$Main::notebook itemconfigure $id_var -background $Pref::mentionColor
+	if {[string length $Pref::mentionSound] > 0 } {
+		playSound $Pref::mentionSound
+	}
     }
     
     ############## Handles pressing of the up down buttons for send history ###############
@@ -1038,6 +1043,14 @@ snit::type tabServer {
                     $self handleReceived $timestamp \[Notice\] bold $mMsg ""
                     return
                 }
+				"433" {
+				# Note that this only happens when it is a catastrophic failure!
+					close $connDesc
+					unset connDesc
+					$self handleReceived $timestamp \[Error\] bold $mMsg ""
+					$self updateToolbar ""
+					return
+				}
 	    }
 	    if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
 		    set style "mention"

@@ -426,7 +426,7 @@ proc performSpecialCase {msg obj} {
 	
 	#/mode
 	if [regexp {^mode ?(.*)} $msg -> msg] {
-	    if [regex {^([^ ]+) (.*)} $msg -> channOrNick msg] {
+	    if [regexp {^([^ ]+) (.*)} $msg -> channOrNick msg] {
 		puts herp
 	    } else {
 		set channOrNick [$obj getChannel]
