@@ -174,9 +174,9 @@ proc Main::init { } {
     menu .nicklistMenu -tearoff false -title Bookmarks
     .nicklistMenu add command -label "PM" -command Main::NLpm 
     .nicklistMenu add separator
-    .nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois"}
-    .nicklistMenu add command -label "Version" -command {Main::NLcmd "/version"}
-    .nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping"}
+    .nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois "}
+    .nicklistMenu add command -label "Version" -command {Main::NLcmd "/version "}
+    .nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping "}
     # Modes submenu
     menu .nicklistMenu.modes
     .nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
@@ -202,8 +202,8 @@ proc Main::init { } {
     .nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLban *!user@*.host true"
     .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLban *!user@domain true"
     .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
-    .nicklistMenu add command -label "Ignore" -command Main::NLignore
-    .nicklistMenu add command -label "Watch" -command Main::NLwatch
+    .nicklistMenu add command -label "Ignore" -command {Main::NLcmd "/ignore"}
+    .nicklistMenu add command -label "Watch" -command {Main::NLcmd "/watch +"
     
     wm protocol . WM_DELETE_WINDOW {
     #wm command . [expr {"0x111"}]
@@ -239,7 +239,7 @@ proc Main::NLcmd {the_cmd} {
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
     
-    $Main::servers($serv) sendMessage "$the_cmd $theNick"
+    $Main::servers($serv) sendMessage "$the_cmd$theNick"
 }
 
 proc Main::NLmode {the_mode} {
@@ -251,9 +251,6 @@ proc Main::NLmode {the_mode} {
     set chan [lindex $parts 1]
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-
-puts "NLmode: $theNick"
-    
     $Main::servers($serv) sendMessage "/mode $chan $the_mode $theNick"
 }
 
@@ -269,13 +266,6 @@ proc Main::NLban {bantype shouldkick} {
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
     $Main::servers($serv) requestBan $theNick $chan $bantype $shouldkick $Pref::defaultBan
-}
-proc Main::NLkickban {} {
-}
-
-proc Main::NLignore {} {
-}
-proc Main::NLwatch {} {
 }
 
 
