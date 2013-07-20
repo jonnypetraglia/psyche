@@ -259,7 +259,7 @@ proc Main::showConnectDialog { } {
     wm resizable .connectDialog 0 0
     
     ttk::label .connectDialog.l_serv -text "Server"
-    ttk::entry .connectDialog.serv -width 20
+    ttk::entry .connectDialog.serv -width 20 -undo true
     .connectDialog.serv configure -background white
     ttk::label .connectDialog.l_port -text "Port"
     ttk::entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
@@ -292,7 +292,7 @@ proc Main::showJoinDialog { } {
     wm transient .joinDialog .
     wm resizable .joinDialog 0 0
     
-    label .joinDialog.l_chan -text "Channel"
+    ttk::label .joinDialog.l_chan -text "Channel"
     ttk::entry .joinDialog.chan -width 20
     .joinDialog.chan configure -background white
     ttk::button .joinDialog.go -text "Join"

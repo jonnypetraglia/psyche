@@ -82,7 +82,7 @@ snit::type tabChannel {
 	set topf  [frame $frame.topf]
 	
 	# Create the chat text widget
-	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11}]
+	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11} -undo true]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
@@ -97,7 +97,7 @@ snit::type tabChannel {
 	set awayLabel [ttk::label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [text $lowerFrame.input -height 1]
+	set input [text $lowerFrame.input -height 1 -undo true]
 	$input configure -background white
 	bind $input <Return> "[mymethod sendMessage]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
@@ -253,9 +253,9 @@ snit::type tabChannel {
 	wm resizable .propDialog 0 0
     
 	ttk::label .propDialog.l_topic -text "Topic" -font {-size 16}
-	text .propDialog.topic  -width 60 -height 7 -background white
-	text .propDialog.topicA -width 29 -height 1 -background white
-	text .propDialog.topicT -width 29 -height 1 -background white
+	text .propDialog.topic  -width 60 -height 7 -background white -undo true
+	text .propDialog.topicA -width 29 -height 1 -background white -undo true
+	text .propDialog.topicT -width 29 -height 1 -background white -undo true
 	.propDialog.topic insert end $Topic ""
 	.propDialog.topic configure -state disabled
 	.propDialog.topicA insert end $TopicAuthor ""

@@ -83,7 +83,7 @@ snit::type tabServer {
 	set topf  [frame $frame.topf]
 	
 	# Create the chat text widget
-	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11}]
+	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11} -undo true -border 2]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
@@ -98,7 +98,7 @@ snit::type tabServer {
 	set awayLabel [ttk::label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [text $lowerFrame.input -height 1]
+	set input [text $lowerFrame.input -height 1 -undo true]
 	$input configure -background white
         bind $input <Return> "[mymethod sendMessage]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
@@ -276,23 +276,23 @@ snit::type tabServer {
 	ttk::label .propDialog.network -text $NetworkName -font {-size 16}
 	
 	ttk::label .propDialog.name_l -text "Server Name:"
-	text .propDialog.name -width 32 -height 1 -background white
+	text .propDialog.name -width 32 -height 1 -background white -undo true
 	ttk::label .propDialog.daemon_l -text "Running:"
-	text .propDialog.daemon -width 32 -height 1 -background white
+	text .propDialog.daemon -width 32 -height 1 -background white -undo true
 	ttk::label .propDialog.time_l -text "Created:"
-	text .propDialog.time -width 32 -height 1 -background white
+	text .propDialog.time -width 32 -height 1 -background white -undo true
 	
 	ttk::label .propDialog.spacer -text ""
 	
 	ttk::label .propDialog.cprefixes_l -text "Channel types:"
-	text .propDialog.cprefixes -width 32 -height 1 -background white
+	text .propDialog.cprefixes -width 32 -height 1 -background white -undo true
 	ttk::label .propDialog.nprefixes_l -text "User Modes:"
-	text .propDialog.nprefixes -width 32 -height 1 -background white
+	text .propDialog.nprefixes -width 32 -height 1 -background white -undo true
 	
 	ttk::label .propDialog.spacer2 -text ""
 	
 	ttk::label .propDialog.motd_l -text "MOTD:"
-	text .propDialog.motd  -width 60 -height 7 -background white
+	text .propDialog.motd  -width 60 -height 7 -background white -undo true
 	
 	.propDialog.name insert end $ServerName ""
 	.propDialog.name configure -state disabled
@@ -330,11 +330,11 @@ snit::type tabServer {
 	# Connection info
 	ttk::label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
 	ttk::label .propDialog.server_l -text "Connection:"
-	text .propDialog.server -width 32 -height 1 -background white
+	text .propDialog.server -width 32 -height 1 -background white -undo true
 	ttk::label .propDialog.port_l -text "Port:"
-	text .propDialog.port -width 32 -height 1 -background white
+	text .propDialog.port -width 32 -height 1 -background white -undo true
 	ttk::label .propDialog.username_l -text "Created:"
-	text .propDialog.username -width 32 -height 1 -background white
+	text .propDialog.username -width 32 -height 1 -background white -undo true
 	
 	grid config .propDialog.spacer      -row 10 -column 0
 	grid config .propDialog.server_l    -row 11 -column 0
