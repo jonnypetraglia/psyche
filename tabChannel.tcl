@@ -98,10 +98,15 @@ snit::type tabChannel {
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
         $input configure -background white
-        bind $input <Return> "[mymethod sendMessage]; break;"
-            bind $input <Up> "[mymethod upDown] -1; break;"
-            bind $input <Down> "[mymethod upDown] 1; break;"
-            bind $input <Tab> "[mymethod tabComplete]; break;"
+        bind $input <Return> {
+            set msg [$input get 1.0 end-1c]
+            $input delete 1.0 end
+            [mymethod sendMessage] $msg
+            break
+        }
+        bind $input <Up> "[mymethod upDown] -1; break;"
+        bind $input <Down> "[mymethod upDown] 1; break;"
+        bind $input <Tab> "[mymethod tabComplete]; break;"
     
         grid $awayLabel -row 0 -column 0
         grid $input -row 0 -column 1 -sticky ew
@@ -348,11 +353,7 @@ snit::type tabChannel {
     }
     
     ############## Send Message ##############
-    method sendMessage {} {
-        set msg [$input get 1.0 end-1c]
-        #set msg [string range $msg 0 [expr {[string length $msg]-2}]]
-        $input delete 1.0 end
-
+    method sendMessage {msg} {
         #sendHistory
         set sendHistoryIndex [expr {[llength $sendHistory] -1}]
         lset sendHistory $sendHistoryIndex $msg
