@@ -89,7 +89,7 @@ License
 ---
 I've decided to go ahead and release Psyche under the BSD license. Because Fuck yeah, free software!
 
-Icons
+Icons & Sounds
 ---
 The icons I am (currently) using for Psyche are compliments of David Keegan[https://github.com/kgn/kgn_icons],
 which are released under a loose license. He's totally cool like that.
@@ -98,7 +98,4 @@ The logo icon (the butterfly) is compliments of Ergosign
 [http://www.iconarchive.com/show/free-spring-icons-by-ergosign/butterfly-icon.html],
 which is released under the CC BY-NC-ND 3.0. Which is still pretty cool.
 
-
-
-
-  2. having had a little experience with developing IRC, I wanted to 
+The sound for mentions is from on freesound by DJ Chronos. Bless his mouth. [http://www.freesound.org/people/DJ%20Chronos/sounds/29927/]

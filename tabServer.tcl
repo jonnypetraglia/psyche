@@ -7,8 +7,10 @@ snit::type tabServer {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+	# Other
     variable sendHistory
     variable sendHistoryIndex
+	variable logDesc
     
     # SPECIFIC
     variable server
@@ -46,6 +48,9 @@ snit::type tabServer {
 	
 	$self init_ui
         if { [string length $args] > 0 } {
+			if {$Pref::logEnabled} {
+				$self createLog
+			}
             $self initServer
         }
     }
@@ -73,11 +78,12 @@ snit::type tabServer {
 	regsub -all " " $id_var "*" id_var
 	
 	# Magic bullshit
-	set frame [$Main::notebook insert end $id_var -text $name]
+	set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwd]/icons/x.gif"]]
+	set_close_bindings $Main::notebook $id_var
 	set topf  [frame $frame.topf]
 	
 	# Create the chat text widget
-	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11}]
+	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11} -undo true -border 2]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
@@ -89,10 +95,10 @@ snit::type tabServer {
 	set lowerFrame [frame $topf.f]
 	
 	# Create the away label
-	set awayLabel [label $lowerFrame.l_away -text ""]
+	set awayLabel [ttk::label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [text $lowerFrame.input -height 1]
+	set input [text $lowerFrame.input -height 1 -undo true]
 	$input configure -background white
         bind $input <Return> "[mymethod sendMessage]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
@@ -267,26 +273,26 @@ snit::type tabServer {
 	wm transient .propDialog .
 	wm resizable .propDialog 0 0
 	
-	label .propDialog.network -text $NetworkName -font {-size 16}
+	ttk::label .propDialog.network -text $NetworkName -font {-size 16}
 	
-	label .propDialog.name_l -text "Server Name:"
-	text .propDialog.name -width 32 -height 1 -background white
-	label .propDialog.daemon_l -text "Running:"
-	text .propDialog.daemon -width 32 -height 1 -background white
-	label .propDialog.time_l -text "Created:"
-	text .propDialog.time -width 32 -height 1 -background white
+	ttk::label .propDialog.name_l -text "Server Name:"
+	text .propDialog.name -width 32 -height 1 -background white -undo true
+	ttk::label .propDialog.daemon_l -text "Running:"
+	text .propDialog.daemon -width 32 -height 1 -background white -undo true
+	ttk::label .propDialog.time_l -text "Created:"
+	text .propDialog.time -width 32 -height 1 -background white -undo true
 	
-	label .propDialog.spacer -text ""
+	ttk::label .propDialog.spacer -text ""
 	
-	label .propDialog.cprefixes_l -text "Channel types:"
-	text .propDialog.cprefixes -width 32 -height 1 -background white
-	label .propDialog.nprefixes_l -text "User Modes:"
-	text .propDialog.nprefixes -width 32 -height 1 -background white
+	ttk::label .propDialog.cprefixes_l -text "Channel types:"
+	text .propDialog.cprefixes -width 32 -height 1 -background white -undo true
+	ttk::label .propDialog.nprefixes_l -text "User Modes:"
+	text .propDialog.nprefixes -width 32 -height 1 -background white -undo true
 	
-	label .propDialog.spacer2 -text ""
+	ttk::label .propDialog.spacer2 -text ""
 	
-	label .propDialog.motd_l -text "MOTD:"
-	text .propDialog.motd  -width 60 -height 7 -background white
+	ttk::label .propDialog.motd_l -text "MOTD:"
+	text .propDialog.motd  -width 60 -height 7 -background white -undo true
 	
 	.propDialog.name insert end $ServerName ""
 	.propDialog.name configure -state disabled
@@ -319,16 +325,16 @@ snit::type tabServer {
 	grid config .propDialog.motd_l      -row 8 -column 0 -sticky "w"
 	grid config .propDialog.motd        -row 9 -column 0 -columnspan 2
 	
-	label .propDialog.spacer3 -text ""
+	ttk::label .propDialog.spacer3 -text ""
 	
 	# Connection info
-	label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
-	label .propDialog.server_l -text "Connection:"
-	text .propDialog.server -width 32 -height 1 -background white
-	label .propDialog.port_l -text "Port:"
-	text .propDialog.port -width 32 -height 1 -background white
-	label .propDialog.username_l -text "Created:"
-	text .propDialog.username -width 32 -height 1 -background white
+	ttk::label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
+	ttk::label .propDialog.server_l -text "Connection:"
+	text .propDialog.server -width 32 -height 1 -background white -undo true
+	ttk::label .propDialog.port_l -text "Port:"
+	text .propDialog.port -width 32 -height 1 -background white -undo true
+	ttk::label .propDialog.username_l -text "Created:"
+	text .propDialog.username -width 32 -height 1 -background white -undo true
 	
 	grid config .propDialog.spacer      -row 10 -column 0
 	grid config .propDialog.server_l    -row 11 -column 0
@@ -386,7 +392,26 @@ snit::type tabServer {
 	if {$isAtBottom==1.0} {
 	    $chat yview end
 	}
+		if {$Pref::logEnabled} {
+			set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
+			puts $logDesc "$timestamp $title $message"
+			flush $logDesc
+		}
     }
+	
+	############## Creates the logDesc ##############
+	method createLog {} {
+		file mkdir $Pref::logDir
+		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
+		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+	}
+	
+	############## Closes the log handle ##############
+	method closeLog {} {
+		if {[info exists logDesc] && [string length $logDesc] > 0 } {
+			close $logDesc
+		}
+	}
     
     ############## Send Message ##############
     method sendMessage {} {
@@ -439,6 +464,11 @@ snit::type tabServer {
     method notifyMention {mNick mMsg} {
 	#tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
 	::notebox::addmsg "$mNick - $mMsg"
+	set icondir [pwd]/icons
+	$Main::notebook itemconfigure $id_var -background $Pref::mentionColor
+	if {[string length $Pref::mentionSound] > 0 } {
+		playSound $Pref::mentionSound
+	}
     }
     
     ############## Handles pressing of the up down buttons for send history ###############
@@ -486,6 +516,7 @@ snit::type tabServer {
 	    debugE "tabServer::initServer - $problemDesc"
 	    tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
             if [info exists connDesc] {
+				close connDesc
                 unset connDesc
             }
 	    return
@@ -497,6 +528,7 @@ snit::type tabServer {
 		puts "Connect ok!"
 	    }
 	    "timeout" {
+		close connDesc
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Connection timed out" ""
 		debugE "tabServer::initServer - Connection timed out"
@@ -505,6 +537,7 @@ snit::type tabServer {
 	    }
 	    default {
 		puts "timeout $connectStatus"
+		close connDesc
 		unset connDesc
 		$self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
 		debugE "tabServer::initServer - Unknown"
@@ -547,6 +580,7 @@ snit::type tabServer {
             fileevent $connDesc readable [mymethod _recv]
         } probDesc]} {
             if [info exists connDesc] {
+				close connDesc
                 unset connDesc
             }
 	    debugE "initServer - $probDesc"
@@ -601,7 +635,9 @@ snit::type tabServer {
     }
     
     method closeChannel {chann} {
-	$Main::notebook delete [$channelMap($chann) getId]
+		$Main::notebook delete [$channelMap($chann) getId]
+		$channelMap($chann) closeLog
+		$self removeActiveChannel $chann
         unset channelMap($chann)
     }
     
@@ -1008,6 +1044,14 @@ snit::type tabServer {
                     $self handleReceived $timestamp \[Notice\] bold $mMsg ""
                     return
                 }
+				"433" {
+				# Note that this only happens when it is a catastrophic failure!
+					close $connDesc
+					unset connDesc
+					$self handleReceived $timestamp \[Error\] bold $mMsg ""
+					$self updateToolbar ""
+					return
+				}
 	    }
 	    if {[regexp ".*$nick.*" "$mTarget$mMsg"]} {
 		    set style "mention"

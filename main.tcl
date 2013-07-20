@@ -11,6 +11,22 @@ proc debugE {arg} {
 }
 
 
+#http://www.tek-tips.com/viewthread.cfm?qid=1668522
+proc set_close_bindings {notebook page} {
+  $notebook.c bind $page:img <ButtonPress-1> "+; 
+    $notebook.c move $page:img 1 1
+    set pressed \[%W find closest %x %y]
+  "
+  $notebook.c bind $page:img <ButtonRelease-1> "+; 
+    $notebook.c move $page:img -1 -1
+    if {\$pressed==\[%W find closest %x %y]} {
+		set pressed \"\"
+		Main::closeTab $page
+	}
+  "
+}
+
+
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
@@ -64,6 +80,7 @@ switch $tcl_platform(platform) {
 }
 source pref.tcl
 source irc.tcl
+source sound.tcl
 source tabServer.tcl
 source tabChannel.tcl
 source toolbar.tcl
@@ -146,6 +163,7 @@ proc Main::init { } {
 	}
     }
     $Main::notebook delete [$Main::servers(1) getId] 1
+	destroy Main::servers(1)
     unset Main::servers(1)
     
     
@@ -153,7 +171,7 @@ proc Main::init { } {
     menu .tabMenu -tearoff false -title Bookmarks
     .tabMenu add command -label "Join channel" -command Main::showJoinDialog
     .tabMenu add command -label "Part or Quit" -command Main::partOrQuit
-    .tabMenu add command -label "Close tab" -command Main::closeTab
+    .tabMenu add command -label "Close tab" -command Main::closeTabFromGui
     
     # Create the nicklist menu
     menu .nicklistMenu -tearoff false -title Bookmarks
@@ -183,28 +201,39 @@ proc Main::init { } {
     }
 }
 
-proc Main::closeTab {} {
+proc Main::closeTabFromGui {} {
     set target [$Main::notebook raise]
-    set parts [split $target "\*"]
+	Main::closeTab $target
+}
+
+proc Main::closeTab {target} {
+	regsub -all "__" $target "*" target2
+    set parts [split $target2 "\*"]
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
-    
-    puts "closing: $serv $chan"
-    
+	
+	set tabIndex [$Main::notebook index $target]
+	if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
+		set tabIndex [expr {$tabIndex -1}]
+	}
+	
     if {[string length $chan] > 0} {
-	Main::part
 	$Main::servers($serv) closeChannel $chan
     } else {
-	Main::disconnect
+	$Main::servers($serv) quit $Pref::defaultQuit
 	$Main::servers($serv) closeAllChannelTabs
 	$Main::notebook delete $target
+	$Main::servers($serv) closeLog
+	destroy Main::servers($serv)
 	unset Main::servers($serv)
     }
-    
+	
     if {[llength [$Main::notebook pages]] == 0} {
 	Main::clearToolbar
-    }
+    } else {
+		$Main::notebook raise [$Main::notebook page $tabIndex]
+	}
 }
 
 proc Main::pressTab { args} {
@@ -216,6 +245,11 @@ proc Main::pressTab { args} {
     if [info exists Main::servers($serv)] {
 	$Main::servers($serv) updateToolbar $chan
     }
+	Main::unsetTabMention
+}
+
+proc Main::unsetTabMention {} {
+	$Main::notebook itemconfigure [$Main::notebook raise] -background {}
 }
 
 proc Main::tabContext { x y tabId } {
@@ -250,16 +284,16 @@ proc Main::showConnectDialog { } {
     wm transient .connectDialog .
     wm resizable .connectDialog 0 0
     
-    label .connectDialog.l_serv -text "Server"
-    entry .connectDialog.serv -width 20
+    ttk::label .connectDialog.l_serv -text "Server"
+    ttk::entry .connectDialog.serv -width 20 -undo true
     .connectDialog.serv configure -background white
-    label .connectDialog.l_port -text "Port"
-    entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
+    ttk::label .connectDialog.l_port -text "Port"
+    ttk::entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
-    label .connectDialog.l_nick -text "Nick"
-    entry .connectDialog.nick -width 20
+    ttk::label .connectDialog.l_nick -text "Nick"
+    ttk::entry .connectDialog.nick -width 20
     .connectDialog.nick configure -background white
-    button .connectDialog.go -text "Connect"
+    ttk::button .connectDialog.go -text "Connect"
     
     grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
     grid config .connectDialog.serv   -row 1 -column 0
@@ -284,10 +318,10 @@ proc Main::showJoinDialog { } {
     wm transient .joinDialog .
     wm resizable .joinDialog 0 0
     
-    label .joinDialog.l_chan -text "Channel"
-    entry .joinDialog.chan -width 20
+    ttk::label .joinDialog.l_chan -text "Channel"
+    ttk::entry .joinDialog.chan -width 20
     .joinDialog.chan configure -background white
-    button .joinDialog.go -text "Join"
+    ttk::button .joinDialog.go -text "Join"
     
     grid config .joinDialog.l_chan -row 0 -column 0 -sticky "w"
     grid config .joinDialog.chan   -row 1 -column 0
@@ -416,8 +450,8 @@ proc Main::channelList {} {
     set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
 			-height 20 -width 40 -highlightthickness 0 \
 			-font [list Courier 12] ]
-    button .channelList.join -text "Join"
-    button .channelList.refresh -text "Refresh"
+    ttk::button .channelList.join -text "Join"
+    ttk::button .channelList.refresh -text "Refresh"
     bind .channelList.lb <Double-1> Main::joinChannelList
     bind .channelList.join <ButtonPress> Main::joinChannelList
     bind .channelList.refresh <ButtonPress> Main::refreshChannelList
@@ -463,11 +497,11 @@ proc Main::showNickDialog {} {
     wm resizable .nickDialog 0 0
     
     label .nickDialog.l_nick -text "New Nick"
-    entry .nickDialog.nick -width 20
+    ttk::entry .nickDialog.nick -width 20
     label .nickDialog.l_pass -text "NickServ pass\n(if registered)"
-    entry .nickDialog.pass -width 20
+    ttk::entry .nickDialog.pass -width 20
     .nickDialog.nick configure -background white
-    button .nickDialog.change -text "Change"
+    ttk::button .nickDialog.change -text "Change"
     
     grid config .nickDialog.l_nick -row 0 -column 0 -sticky "w"
     grid config .nickDialog.nick   -row 0 -column 1
@@ -520,6 +554,8 @@ proc Main::foreground_win { w } {
     wm withdraw $w
     wm deiconify $w
 }
+
+
 
 Main::init
 toplevel .channelList -padx 10 -pady 10

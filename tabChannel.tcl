@@ -7,8 +7,10 @@ snit::type tabChannel {
     variable nickList
     variable awayLabel
     variable nicklistCtrl
+	# Other
     variable sendHistory
     variable sendHistoryIndex
+	variable logDesc
     
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
@@ -43,8 +45,10 @@ snit::type tabChannel {
         set sendHistoryIndex 0
 	
 	$self init_ui
-	
 	if { [string length $args] > 0 } {
+		if {$Pref::logEnabled} {
+			$self createLog
+		}
 	    $self initChan [lindex $args 2]
 	}
     }
@@ -59,8 +63,9 @@ snit::type tabChannel {
 	set ServerRef $arg0
 	set channel $arg1
 	set temp [$ServerRef getServer]
-	set id_var [concat $temp " " $channel]
+	set id_var "${temp}__${channel}"
 	debug "  Channel: $channel"
+	
     }
     
     ############## GUI stuff ##############
@@ -69,14 +74,15 @@ snit::type tabChannel {
 	set name $channel
 	
 	regsub -all "\\." $id_var "_" id_var
-	regsub -all " " $id_var "*" id_var
+	#regsub -all " " $id_var "__" id_var
 	
 	# Magic bullshit
-	set frame [$Main::notebook insert end $id_var -text $name]
+	set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwd]/icons/x.gif"]]
+	set_close_bindings $Main::notebook $id_var
 	set topf  [frame $frame.topf]
 	
 	# Create the chat text widget
-	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11}]
+	set chat [text $topf.chat -height 20 -wrap word -font {Arial 11} -undo true]
 	$chat tag config bold   -font [linsert [$chat cget -font] end bold]
 	$chat tag config italic -font [linsert [$chat cget -font] end italic]
 	$chat tag config timestamp -font {Arial 7} -foreground grey60
@@ -88,10 +94,10 @@ snit::type tabChannel {
 	set lowerFrame [frame $topf.f]
 	
 	# Create the away label
-	set awayLabel [label $lowerFrame.l_away -text ""]
+	set awayLabel [ttk::label $lowerFrame.l_away -text ""]
 	
 	# Create the input widget
-	set input [text $lowerFrame.input -height 1]
+	set input [text $lowerFrame.input -height 1 -undo true]
 	$input configure -background white
 	bind $input <Return> "[mymethod sendMessage]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
@@ -247,10 +253,10 @@ snit::type tabChannel {
 	wm transient .propDialog .
 	wm resizable .propDialog 0 0
     
-	label .propDialog.l_topic -text "Topic" -font {-size 16}
-	text .propDialog.topic  -width 60 -height 7 -background white
-	text .propDialog.topicA -width 29 -height 1 -background white
-	text .propDialog.topicT -width 29 -height 1 -background white
+	ttk::label .propDialog.l_topic -text "Topic" -font {-size 16}
+	text .propDialog.topic  -width 60 -height 7 -background white -undo true
+	text .propDialog.topicA -width 29 -height 1 -background white -undo true
+	text .propDialog.topicT -width 29 -height 1 -background white -undo true
 	.propDialog.topic insert end $Topic ""
 	.propDialog.topic configure -state disabled
 	.propDialog.topicA insert end $TopicAuthor ""
@@ -258,12 +264,12 @@ snit::type tabChannel {
 	.propDialog.topicT insert end $TopicTime ""
 	.propDialog.topicT configure -state disabled
 	
-	label .propDialog.sep1 -font {-size 16} -text " "
-	label .propDialog.l_mode -text "Modes" -font {-size 16}
+	ttk::label .propDialog.sep1 -font {-size 16} -text " "
+	ttk::label .propDialog.l_mode -text "Modes" -font {-size 16}
 	listbox .propDialog.mode -listvariable [myvar ModeList] \
 				-height 5 -width 25 -highlightthickness 0
 				
-	label .propDialog.l_bans -text "Bans" -font {-size 16}
+	ttk::label .propDialog.l_bans -text "Bans" -font {-size 16}
 	listbox .propDialog.bans \
 				-height 5 -width 25 -highlightthickness 0
 	
@@ -321,7 +327,26 @@ snit::type tabChannel {
 	if {$isAtBottom==1.0} {
 	    $chat yview end
 	}
+		if {$Pref::logEnabled} {
+			set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
+			puts $logDesc "$timestamp $title $message"
+			flush $logDesc
+		}
     }
+	
+	############## Creates the logDesc ##############
+	method createLog {} {
+		file mkdir $Pref::logDir
+		set logDesc [open "$Pref::logDir\\$id_var.log" a+]
+		debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+	}
+	
+	############## Closes the log handle ##############
+	method closeLog {} {
+		if {[info exists logDesc] && [string length $logDesc] > 0 } {
+			close $logDesc
+		}
+	}
     
     ############## Send Message ##############
     method sendMessage {} {
@@ -377,6 +402,10 @@ snit::type tabChannel {
     method notifyMention {mNick mMsg} {
 	#tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
 	::notebox::addmsg "$mNick - $mMsg"
+	$Main::notebook itemconfigure $id_var -background $mentionColor
+	if {[string length $Pref::mentionSound] > 0 } {
+		playSound $Pref::mentionSound
+	}
     }
 
     ############# Handles pressing of the up down buttons for send history #################
