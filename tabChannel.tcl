@@ -93,7 +93,7 @@ snit::type tabChannel {
         set lowerFrame [frame $topf.f]
         
         # Create the away label
-        set awayLabel [ttk::label $lowerFrame.l_away -text ""]
+        set awayLabel [xlabel $lowerFrame.l_away -text ""]
         
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
@@ -252,7 +252,7 @@ snit::type tabChannel {
         wm transient .propDialog .
         wm resizable .propDialog 0 0
         
-        ttk::label .propDialog.l_topic -text "Topic" -font {-size 16}
+        xlabel .propDialog.l_topic -text "Topic" -font {-size 16}
         text .propDialog.topic  -width 60 -height 7 -background white -undo true
         text .propDialog.topicA -width 29 -height 1 -background white -undo true
         text .propDialog.topicT -width 29 -height 1 -background white -undo true
@@ -263,12 +263,12 @@ snit::type tabChannel {
         .propDialog.topicT insert end $TopicTime ""
         .propDialog.topicT configure -state disabled
         
-        ttk::label .propDialog.sep1 -font {-size 16} -text " "
-        ttk::label .propDialog.l_mode -text "Modes" -font {-size 16}
+        xlabel .propDialog.sep1 -font {-size 16} -text " "
+        xlabel .propDialog.l_mode -text "Modes" -font {-size 16}
         listbox .propDialog.mode -listvariable [myvar ModeList] \
                     -height 5 -width 25 -highlightthickness 0
                     
-        ttk::label .propDialog.l_bans -text "Bans" -font {-size 16}
+        xlabel .propDialog.l_bans -text "Bans" -font {-size 16}
         listbox .propDialog.bans \
                     -height 5 -width 25 -highlightthickness 0
         

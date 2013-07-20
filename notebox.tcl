@@ -127,11 +127,13 @@ proc ::notebox::addmsg {str args} {
     set bg   [option get $w background {}]
     set fg   [option get $w foreground {}]
     set font [option get $w font {}]
+
     message $t -bg $bg -fg $fg -font $font -padx 8 -pady 2 \
       -highlightthickness 0 -justify left -text $str
     pack $t -side top -anchor w
         
     after idle [list ::notebox::SetGeometry $t]
+    update      ;# Text doesn't show up sometimes without this
     
     if {[info exists this(afterid)]} {
         after cancel $this(afterid)

@@ -41,6 +41,8 @@ namespace eval Main {
     variable toolbar_nick
     variable toolbar_properties
     variable toolbar_away
+
+    variable default_tab_color
     
     variable MIDDLE_CLICK
     
@@ -61,6 +63,16 @@ switch $tcl_platform(platform) {
         set ::this(platform) windows
         set Main::MIDDLE_CLICK 3
     }
+}
+
+if {$tcl_version >= 8.5} {
+    interp alias {} xbutton {} ttk::button
+    interp alias {} xlabel {} ttk::label
+    interp alias {} xentry {} ttk::entry
+} else {
+    interp alias {} xbutton {} button
+    interp alias {} xlabel {} label
+    interp alias {} xentry {} entry
 }
 source pref.tcl
 source irc.tcl
@@ -140,12 +152,13 @@ proc Main::init { } {
     
     # Measure the GUI
     bind . <Configure> { 
-    if {"%W" == ".mainframe.status.prgf"} {
-        bind . <Configure> ""
-        wm minsize . [winfo width .] [winfo height .]
-        puts "MinSize: [winfo width .]x[winfo height .]"
+        if {"%W" == ".mainframe.status.prgf"} {
+            bind . <Configure> ""
+            wm minsize . [winfo width .] [winfo height .]
+            puts "MinSize: [winfo width .]x[winfo height .]"
+        }
     }
-    }
+    set Main::default_tab_color [$Main::notebook itemcget [$Main::servers(1) getId] -background]
     $Main::notebook delete [$Main::servers(1) getId] 1
     destroy Main::servers(1)
     unset Main::servers(1)
@@ -182,6 +195,9 @@ proc Main::init { } {
     #if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
         exit
     #}
+    }
+    bind . <Activate> {
+        Main::unsetTabMention
     }
 }
 
@@ -233,7 +249,9 @@ proc Main::pressTab { args} {
 }
 
 proc Main::unsetTabMention {} {
-    $Main::notebook itemconfigure [$Main::notebook raise] -background {}
+    if { [string length [$Main::notebook raise]] > 0} {
+        $Main::notebook itemconfigure [$Main::notebook raise] -background $Main::default_tab_color
+    }
 }
 
 proc Main::tabContext { x y tabId } {
@@ -268,16 +286,16 @@ proc Main::showConnectDialog { } {
     wm transient .connectDialog .
     wm resizable .connectDialog 0 0
     
-    ttk::label .connectDialog.l_serv -text "Server"
-    ttk::entry .connectDialog.serv -width 20
+    xlabel .connectDialog.l_serv -text "Server"
+    xentry .connectDialog.serv -width 20
     .connectDialog.serv configure -background white
-    ttk::label .connectDialog.l_port -text "Port"
-    ttk::entry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
+    xlabel .connectDialog.l_port -text "Port"
+    xentry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
-    ttk::label .connectDialog.l_nick -text "Nick"
-    ttk::entry .connectDialog.nick -width 20
+    xlabel .connectDialog.l_nick -text "Nick"
+    xentry .connectDialog.nick -width 20
     .connectDialog.nick configure -background white
-    ttk::button .connectDialog.go -text "Connect"
+    xbutton .connectDialog.go -text "Connect"
     
     grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
     grid config .connectDialog.serv   -row 1 -column 0
@@ -302,10 +320,10 @@ proc Main::showJoinDialog { } {
     wm transient .joinDialog .
     wm resizable .joinDialog 0 0
     
-    ttk::label .joinDialog.l_chan -text "Channel"
-    ttk::entry .joinDialog.chan -width 20
+    xlabel .joinDialog.l_chan -text "Channel"
+    xentry .joinDialog.chan -width 20
     .joinDialog.chan configure -background white
-    ttk::button .joinDialog.go -text "Join"
+    xbutton .joinDialog.go -text "Join"
     
     grid config .joinDialog.l_chan -row 0 -column 0 -sticky "w"
     grid config .joinDialog.chan   -row 1 -column 0
@@ -320,9 +338,9 @@ proc Main::showJoinDialog { } {
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
     if { [string length $chan] == 0 } {
-    debugE "Main::joinChannel - Insufficient data"
-    tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
-    return
+        debugE "Main::joinChannel - Insufficient data"
+        tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
+        return
     }
     catch {grab release .joinDialog}
     catch {grab set .}
@@ -434,8 +452,8 @@ proc Main::channelList {} {
     set nicklistCtrl [listbox .channelList.lb -listvariable Main::channelList($serv) \
             -height 20 -width 40 -highlightthickness 0 \
             -font [list Courier 12] ]
-    ttk::button .channelList.join -text "Join"
-    ttk::button .channelList.refresh -text "Refresh"
+    button .channelList.join -text "Join"
+    button .channelList.refresh -text "Refresh"
     bind .channelList.lb <Double-1> Main::joinChannelList
     bind .channelList.join <ButtonPress> Main::joinChannelList
     bind .channelList.refresh <ButtonPress> Main::refreshChannelList
@@ -480,12 +498,12 @@ proc Main::showNickDialog {} {
     wm transient .nickDialog .
     wm resizable .nickDialog 0 0
     
-    label .nickDialog.l_nick -text "New Nick"
-    ttk::entry .nickDialog.nick -width 20
-    label .nickDialog.l_pass -text "NickServ pass\n(if registered)"
-    ttk::entry .nickDialog.pass -width 20
+    xlabel .nickDialog.l_nick -text "New Nick"
+    xentry .nickDialog.nick -width 20
+    xlabel .nickDialog.l_pass -text "NickServ pass\n(if registered)"
+    xentry .nickDialog.pass -width 20
     .nickDialog.nick configure -background white
-    ttk::button .nickDialog.change -text "Change"
+    xbutton .nickDialog.change -text "Change"
     
     grid config .nickDialog.l_nick -row 0 -column 0 -sticky "w"
     grid config .nickDialog.nick   -row 0 -column 1

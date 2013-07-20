@@ -96,7 +96,7 @@ snit::type tabServer {
         set lowerFrame [frame $topf.f]
         
         # Create the away label
-        set awayLabel [ttk::label $lowerFrame.l_away -text ""]
+        set awayLabel [xlabel $lowerFrame.l_away -text ""]
         
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
@@ -274,25 +274,25 @@ snit::type tabServer {
         wm transient .propDialog .
         wm resizable .propDialog 0 0
         
-        ttk::label .propDialog.network -text $NetworkName -font {-size 16}
+        xlabel .propDialog.network -text $NetworkName -font {-size 16}
         
-        ttk::label .propDialog.name_l -text "Server Name:"
+        xlabel .propDialog.name_l -text "Server Name:"
         text .propDialog.name -width 32 -height 1 -background white -undo true
-        ttk::label .propDialog.daemon_l -text "Running:"
+        xlabel .propDialog.daemon_l -text "Running:"
         text .propDialog.daemon -width 32 -height 1 -background white -undo true
-        ttk::label .propDialog.time_l -text "Created:"
+        xlabel .propDialog.time_l -text "Created:"
         text .propDialog.time -width 32 -height 1 -background white -undo true
         
-        ttk::label .propDialog.spacer -text ""
+        xlabel .propDialog.spacer -text ""
         
-        ttk::label .propDialog.cprefixes_l -text "Channel types:"
+        xlabel .propDialog.cprefixes_l -text "Channel types:"
         text .propDialog.cprefixes -width 32 -height 1 -background white -undo true
-        ttk::label .propDialog.nprefixes_l -text "User Modes:"
+        xlabel .propDialog.nprefixes_l -text "User Modes:"
         text .propDialog.nprefixes -width 32 -height 1 -background white -undo true
         
-        ttk::label .propDialog.spacer2 -text ""
+        xlabel .propDialog.spacer2 -text ""
         
-        ttk::label .propDialog.motd_l -text "MOTD:"
+        xlabel .propDialog.motd_l -text "MOTD:"
         text .propDialog.motd  -width 60 -height 7 -background white -undo true
         
         .propDialog.name insert end $ServerName ""
@@ -326,15 +326,15 @@ snit::type tabServer {
         grid config .propDialog.motd_l      -row 8 -column 0 -sticky "w"
         grid config .propDialog.motd        -row 9 -column 0 -columnspan 2
         
-        ttk::label .propDialog.spacer3 -text ""
+        xlabel .propDialog.spacer3 -text ""
         
         # Connection info
-        ttk::label .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
-        ttk::label .propDialog.server_l -text "Connection:"
+        xlabel .propDialog.connInfo_l -text "Connection Info" -font {-size 12}
+        xlabel .propDialog.server_l -text "Connection:"
         text .propDialog.server -width 32 -height 1 -background white -undo true
-        ttk::label .propDialog.port_l -text "Port:"
+        xlabel .propDialog.port_l -text "Port:"
         text .propDialog.port -width 32 -height 1 -background white -undo true
-        ttk::label .propDialog.username_l -text "Created:"
+        xlabel .propDialog.username_l -text "Created:"
         text .propDialog.username -width 32 -height 1 -background white -undo true
         
         grid config .propDialog.spacer      -row 10 -column 0
@@ -383,7 +383,6 @@ snit::type tabServer {
         $chat insert end $timestamp\  timestamp
         $chat insert end $title\  $style1
         $chat insert end $message\n $style2
-        puts "APPEND:  [expr [lindex [split [$chat index end] .] 0] -1] > $Pref::maxScrollback"
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
@@ -463,7 +462,9 @@ snit::type tabServer {
     
     #TODO
     method notifyMention {mNick mMsg} {
-        #tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
+        if {[string length [focus]] > 0 && [$Main::notebook raise] == $id_var} {
+            return
+        }
         ::notebox::addmsg "$mNick - $mMsg"
         set icondir [pwd]/icons
         $Main::notebook itemconfigure $id_var -background $Pref::mentionColor
@@ -770,6 +771,7 @@ snit::type tabServer {
             323 {
                 #RPL_LISTEND
                 set sss [$self getServer]
+                                            #COMPAT: nocase is not in 8.4
                 set Main::channelList($sss) [lsort -nocase $Main::channelList($sss)]
                 if {[wm state .channelList]=="normal"} {
                     return

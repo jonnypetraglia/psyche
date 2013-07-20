@@ -57,7 +57,7 @@ namespace eval Pref {
 
 proc Pref::readPrefs {} {
     if {[file exists $Pref::prefFile]} {
-        sset fp [open $Pref::prefFile r]
+        set fp [open $Pref::prefFile r]
     } else {
         return 0
     }
