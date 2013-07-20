@@ -41,6 +41,9 @@ namespace eval Main {
     variable toolbar_nick
     variable toolbar_properties
     variable toolbar_away
+    
+    variable MIDDLE_CLICK
+    
 }
 
 set ::this(platform) windows	;#TODO This should not be necessary
@@ -48,12 +51,15 @@ switch $tcl_platform(platform) {
     "unix" {
 	if {$tcl_platform(os) == "Darwin"} {
 	    set ::this(platform) macosx
+	    set Main::MIDDLE_CLICK 2
 	} else {
 	    set ::this(platform) unix
+	    set Main::MIDDLE_CLICK 3
 	}
     }
     "windows" {
 	set ::this(platform) windows
+	set Main::MIDDLE_CLICK 3
     }
 }
 source pref.tcl
@@ -116,7 +122,7 @@ proc Main::init { } {
     set frame    [$Main::mainframe getframe]
     set Main::notebook [NoteBook $frame.nb]
     $Main::notebook bindtabs <1> { Main::pressTab }
-    $Main::notebook bindtabs <ButtonRelease-3> { Main::tabContext %x %y}
+    $Main::notebook bindtabs <ButtonRelease-$Main::MIDDLE_CLICK> { Main::tabContext %x %y}
     
     
     $Main::notebook compute_size
@@ -148,6 +154,26 @@ proc Main::init { } {
     .tabMenu add command -label "Join channel" -command Main::showJoinDialog
     .tabMenu add command -label "Part or Quit" -command Main::partOrQuit
     .tabMenu add command -label "Close tab" -command Main::closeTab
+    
+    # Create the nicklist menu
+    menu .nicklistMenu -tearoff false -title Bookmarks
+    .nicklistMenu add command -label "PM" -command Main::NLpm
+    .nicklistMenu add separator
+    .nicklistMenu add command -label "Whois" -command Main::NLwhois
+    .nicklistMenu add command -label "Version" -command Main::NLversion
+    .nicklistMenu add command -label "Ping" -command Main::NLping
+	# Modes submenu
+	menu .nicklistMenu.modes
+	.nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
+	.nicklistMenu.modes add command -label "take Op" -command "Main::NLmode -o"
+    .nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
+	# Ban submenu
+	menu .nicklistMenu.kickban
+	.nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
+	.nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
+    .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
+    .nicklistMenu add command -label "Ignore" -command Main::NLignore
+    .nicklistMenu add command -label "Watch" -command Main::NLwatch
     
     wm protocol . WM_DELETE_WINDOW {
 	#wm command . [expr {"0x111"}]

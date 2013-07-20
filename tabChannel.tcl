@@ -113,6 +113,7 @@ snit::type tabChannel {
 	$nicklistScrolledWindow setwidget $nicklistCtrl
 	pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
 	bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
+	bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod RightclickNicklist] %x %y"
 	
 	pack $chat -fill both -expand 1
 	pack $topf -fill both -expand 1
@@ -311,6 +312,7 @@ snit::type tabChannel {
 	$chat insert end $title\  $style1
 	$chat insert end $message\n $style2
 	puts "APPEND:  [expr [lindex [split [$chat index end] .] 0] -1] > $Pref::maxScrollback"
+	# the original example (on the interwebs) used -1; -2 is for the trailing newline?
 	if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
 	    $chat delete 1.0 2.0
 	}
@@ -562,6 +564,15 @@ snit::type tabChannel {
 	set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
 	puts $nickName
 	$self createPMTabIfNotExist $nickName
+    }
+    
+    ############## Gui Event ##############
+    method RightclickNicklist {x y} {
+	set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
+	puts $nickName
+	set x [expr [winfo rootx $nicklistCtrl] + $x]
+	set y [expr [winfo rooty $nicklistCtrl] + $y]
+	tk_popup .nicklistMenu $x $y
     }
     
     method touchLastSpoke {nick} {
