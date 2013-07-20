@@ -33,7 +33,7 @@ namespace eval Pref {
     set defaultPart "Partin'"
     set defaultAway "I'm away"
     set logEnabled false
-    set logDir "$CONFIG_DIR\\log"
+    set logDir "$CONFIG_DIR/log"
     set popupTimeout 5000
     set popupFont {Helvetica 16}
     switch $::this(platform) {
