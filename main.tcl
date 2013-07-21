@@ -104,7 +104,6 @@ option add *Notebox.Message.width 500
 
 proc Main::init { } {
     variable mainframe
-
     
     #set top [toplevel .intro -relief raised -borderwidth 2]
     #BWidget::place $top 0 0 center
@@ -131,13 +130,26 @@ proc Main::init { } {
     
     
     # Status Bar & Toolbar
-    set mainframe [MainFrame .mainframe \
-                       -textvariable Main::status_text \
-                       -progressvar  Main::status_prog]
+    set mainframe [MainFrame .mainframe]
                        #-menu         $Main::descmenu]
+    
+    
+    # Create status bar
+        # Modified version of MainFrame::addindicator
+    if {[string length [Widget::getoption .mainframe -statusbarfont]]} {
+        set sbfnt [list -font [Widget::getoption .mainframe -statusbarfont]]
+    } else {
+        set sbfnt {}
+    }
+    set indic .mainframe.status.lastpinged
+    eval label $indic -textvariable Main::status_text -anchor e \
+        -relief sunken -borderwidth 1 \
+        -takefocus 0 -highlightthickness 0 $sbfnt
+    pack $indic -anchor w -padx 2 -fill x -expand 1
+    
+    #incr _widget(.mainframe,nindic)
+    
    
-    #$mainframe addindicator -text "BWidget [package version BWidget]"
-    #$mainframe addindicator -textvariable tk_patchLevel
     init_toolbar
     
     # NoteBook creation
@@ -163,7 +175,7 @@ proc Main::init { } {
         if {"%W" == ".mainframe.status.prgf"} {
             bind . <Configure> ""
             wm minsize . [winfo width .] [winfo height .]
-            puts "MinSize: [winfo width .]x[winfo height .]"
+            debug "MinSize: [winfo width .]x[winfo height .]"
         }
     }
     set Main::default_tab_color [$Main::notebook itemcget [$Main::servers(1) getId] -background]
@@ -329,7 +341,6 @@ proc Main::markAll {} {
     #if {$Main::findWord} {
     #    lappend args "-regexp"
     #}
-    puts "marking all $chan $switches [.findDialog.find get]"
     $Main::servers($serv) findMarkAll $chan $switches [.findDialog.find get]
 }
 
@@ -457,6 +468,35 @@ proc Main::pressTab { args} {
         $Main::servers($serv) updateToolbar $chan
     }
     Main::unsetTabMention
+    Main::updateStatusbar
+}
+
+proc Main::updateStatusbar {} {
+    set target [$Main::notebook raise]
+    if {[string length $target] == 0} {
+        return
+    }
+    set parts [split $target "*"]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    regsub -all "_" $serv "." serv
+
+    set pingtime [$Main::servers($serv) getPingtime]
+    set pingtime [expr {[clock seconds] - $pingtime}]
+    if {$pingtime < 90} {
+        set Main::status_text "Last Ping: $pingtime seconds ago"
+    } else {
+        set pingtime [expr {$pingtime / 60}]
+        set Main::status_text "Last Ping: $pingtime minutes ago"
+    }
+    
+}
+
+proc Main::updateStatusbarTimer {} {
+    after [expr {1000 * 60}] {
+        Main::updateStatusbar
+        Main::updateStatusbarTimer
+    }
 }
 
 proc Main::unsetTabMention {} {
@@ -622,7 +662,7 @@ proc Main::partOrQuit {} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
-    puts [array names Main::servers]
+    debug "partOrQuit: [array names Main::servers]"
     if {[string length $chan]>0} {
         $Main::servers($serv) part $chan $Pref::defaultPart
     } else {
@@ -784,5 +824,6 @@ proc set_close_bindings {notebook page} {
 }
 
 Main::init
-toplevel .channelList -padx 10 -pady 10
-wm state .channelList withdrawn
+#toplevel .channelList -padx 10 -pady 10
+#wm state .channelList withdrawn
+Main::updateStatusbarTimer

@@ -79,10 +79,10 @@ proc Pref::readPrefs {} {
     close $fp
     
     menu .bookmarkMenu -tearoff true -title Bookmarks
-    set derp [lreverse [array names Pref::bookmarks]]
+    catch {set derp [lreverse [array names Pref::bookmarks]]
     foreach x $derp {
         .bookmarkMenu add command -label $x -command "Main::openBookmark $x"
-    }
+    }} ;# lreverse is not defined in tcl 8.4
 
     return 1
 }

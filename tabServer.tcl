@@ -25,6 +25,7 @@ snit::type tabServer {
     variable activeChannels
     variable banRequestList
     # map from nick to channel & mask; banRequestList(notbryant) = {#qweex *!*@domain shouldKick banMsg}
+    variable pingtime
     
     # Server info
     variable ServerCreationTime
@@ -109,7 +110,6 @@ snit::type tabServer {
         # Create the input widget
         set input [text $lowerFrame.input -height 1 -undo true]
         $input configure -background white
-        puts $input
         bind $input <Return> "[mymethod hitSendKey]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
         bind $input <Down> "[mymethod upDown] 1; break;"
@@ -416,7 +416,6 @@ snit::type tabServer {
         set loc ""
         catch {
             set evalString "$chat search -count lastSearchLength $lastSearchDirection $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex$offsetFromLast\""
-puts "findNext  '$evalString'"
             set loc [eval $evalString]
         }
         if { $loc == "" } {
@@ -629,7 +628,7 @@ puts "findNext  '$evalString'"
         # Catch any errors
         switch $connectStatus {
             "ok" {
-                puts "Connect ok!"
+                debug "Connect ok!"
             }
             "timeout" {
                 close connDesc
@@ -640,7 +639,7 @@ puts "findNext  '$evalString'"
                 return
             }
             default {
-                puts "timeout $connectStatus"
+                debug "timeout $connectStatus"
                 close connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
@@ -731,7 +730,7 @@ puts "findNext  '$evalString'"
     
     ############## Removes a channel from the active list ##############
     method removeActiveChannel {chann} {
-        puts "REMOVING: $activeChannels"
+        debug "REMOVING: $activeChannels"
         set idx [lsearch $activeChannels $chann]
         set activeChannels [lreplace $activeChannels $idx $idx]
     }
@@ -748,6 +747,8 @@ puts "findNext  '$evalString'"
             $self closeChannel $chann
         }
     }
+    
+    method getPingtime {} {return $pingtime}
     
     method getSelectedNickOfChannel {mChann} {
         return [$channelMap($mChann) getSelectedNick]
@@ -772,6 +773,9 @@ puts "findNext  '$evalString'"
         # PING
         if {[regexp {^PING :(.*)} $line -> mResponse]} {
             $self _send "PONG :$mResponse"
+            set pingtime [clock seconds]
+            after 1000 Main::updateStatusbar
+            debug "Ping: $pingtime"
             return
         }
         
@@ -853,6 +857,10 @@ puts "findNext  '$evalString'"
             set mTarget [string trim $mTarget]
             set mMsg [string trim $mMsg]
             switch $mCode {
+                001 {
+                    set pingtime [clock seconds]
+                    after 1000 Main::updateStatusbar
+                }
                 002 {
                     #Your host is hitchcock.freenode.net[93.152.160.101/6667], running version ircd-seven-1.1.3
                     #Your host is Komma.GeekShed.net, running version Unreal3.2.8-gs.9
@@ -968,7 +976,7 @@ puts "findNext  '$evalString'"
                         set whspc [expr {33 - $whspc}]
                         set whspc [string repeat " " $whspc]
                         set sss [$self getServer]
-                        puts "$mTarget$whspc$mMsg"
+                        debug "RPL_LIST: $mTarget$whspc$mMsg"
                         lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
                     }
                     if {[wm state .channelList]=="normal"} {
@@ -1033,7 +1041,7 @@ puts "findNext  '$evalString'"
                                 set banCommand "${banCommand}@*[string range $mHostmask [string first . $mHostmask] end]"
                             }
                             
-                            puts "BANNING: $banCommand"
+                            debug "BANNING: $banCommand"
                             $self _send "MODE $chann +b $banCommand"
                             if {$shouldkick} {
                                 $self _send "KICK $chann $mNick $banmsg"
@@ -1045,10 +1053,8 @@ puts "findNext  '$evalString'"
                 }
                 367 {
                     #RPL_BANLIST
-                    puts "RPL_BANLIST"
                     if {[regexp "\(\[$ChannelPrefixes\]\[^ \]+\) \(\[^ \]+\) \(\[^ \]+\) \(\[0-9\]+\)" $mMsg -> mTarget mEntry mCreator mTime]} {
                     #Send to server if it exists
-                    puts "RPL_BANLIST"
                     if [info exists channelMap($mTarget)] {
                         if {[$channelMap($mTarget) addBanEntry $mEntry $mCreator $mTime] == 0 } {
                             return
@@ -1075,7 +1081,7 @@ puts "findNext  '$evalString'"
             debug "REC: Special: $mSomething"
             switch $mSomething {
                 "NICK" {
-                    puts "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
+                    debug "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
                     if {[string equal $mNick [$self getNick]]} {
                         $self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
                         $self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
@@ -1134,7 +1140,7 @@ puts "findNext  '$evalString'"
                 }
                 "QUIT" {
                     if {$mTarget == [$self getNick]} {
-                    puts "You quit? What the hell?"
+                    debugE "You quit? What the hell?"
                     #$self removeActiveChannel $mChannel
                     } else {
                     if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
@@ -1171,9 +1177,9 @@ puts "findNext  '$evalString'"
                                 continue
                             }
                             set modePos [string first $m $NickPrefixesA ]
-                            puts "?MODE: $m  $modePos  $NickPrefixesA"
+                            debug "?MODE: $m  $modePos  $NickPrefixesA"
                             if {$modePos > -1 && $what!="?"} {
-                                puts "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
+                                debug "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
                                 $channelMap($mChann) NLchmod $mTarget [string index $NickPrefixesS $modePos] $what
                                 break
                             }
