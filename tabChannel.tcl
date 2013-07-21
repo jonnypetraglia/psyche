@@ -11,6 +11,10 @@ snit::type tabChannel {
     variable sendHistory
     variable sendHistoryIndex
     variable logDesc
+    variable lastSearchIndex
+    variable lastSearchLength
+    variable lastSearchTerm
+    variable lastSearchSwitches
     
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
@@ -297,6 +301,55 @@ snit::type tabChannel {
         $ServerRef _setNick $newport $newnick
     }
     
+    ############## Issued when calling find ##############
+    method find {switches val} {
+        # Ignore chann
+        if [info exists lastSearchTerm] {
+            $self clearLastFind
+            if {$lastSearchTerm != $val || $lastSearchSwitches != $switches} {
+                debug "Starting new search: $val"
+                set lastSearchIndex 1.0
+                set lastSearchLength 0
+                set lastSearchTerm $val
+                set lastSearchSwitches $switches
+            }
+        } else {
+            debug "Starting new search: $val"
+            set lastSearchIndex 1.0
+            set lastSearchLength 0
+            set lastSearchTerm $val
+            set lastSearchSwitches $switches
+        }
+        $self findNext
+    }
+
+    method findNext {} {
+        if {![info exists lastSearchTerm]} {
+            return
+        }
+        $self clearLastFind
+        set loc ""
+        catch {
+            set evalString "$chat search -count lastSearchLength $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex+1c\""
+            set loc [eval $evalString]
+        }
+        if { $loc == "" } {
+            set lastSearchIndex 1.0
+            set lastSearchLength 0
+            return
+        }
+        set lastSearchIndex $loc
+    
+        $chat see $lastSearchIndex
+        $chat tag add regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
+        $chat tag configure regionSearch -background yellow
+        set lastSearchIndex "$lastSearchIndex"
+    }
+    
+    method clearLastFind {} {
+        $chat tag remove regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
+    }
+    
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shared (same)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     method getId {} { return $id_var }
     
@@ -424,7 +477,7 @@ snit::type tabChannel {
         set sendHistoryIndex $newSHindex
         $input replace 1.0 end [lindex $sendHistory $sendHistoryIndex]
     }    
-
+    
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Init Channel ##############
     method initChan {pass} {

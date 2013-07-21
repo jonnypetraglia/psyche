@@ -46,6 +46,9 @@ namespace eval Main {
     
     variable MIDDLE_CLICK
     
+    variable findRegex
+    variable findCase
+    #variable findWord
 }
 
 set ::this(platform) windows	;#TODO This should not be necessary
@@ -65,14 +68,16 @@ switch $tcl_platform(platform) {
     }
 }
 
-if {$tcl_version >= 8.5} {
+if {$tcl_version >= 18.5} {
     interp alias {} xbutton {} ttk::button
     interp alias {} xlabel {} ttk::label
     interp alias {} xentry {} ttk::entry
+    interp alias {} xcheckbutton {} ttk::checkbutton
 } else {
     interp alias {} xbutton {} button
     interp alias {} xlabel {} label
     interp alias {} xentry {} entry
+    interp alias {} xcheckbutton {} checkbutton
 }
 source pref.tcl
 source irc.tcl
@@ -163,6 +168,17 @@ proc Main::init { } {
     destroy Main::servers(1)
     unset Main::servers(1)
     
+    # Find
+    if {$::this(platform) == "macosx"} {
+        bind . <Command-F> { Main::find }
+        bind . <Command-f> { Main::find }
+        bind . <Command-G> { Main::findNext }
+        bind . <Command-g> { Main::findNext }
+    } else {
+        bind . <Control-F> { Main::findNext }
+        bind . <Control-f> { Main::findNext }
+        bind . <F3>        { Main::findNext }
+    }
     
     # Create the tab menu
     menu .tabMenu -tearoff false -title Bookmarks
@@ -214,6 +230,98 @@ proc Main::init { } {
     bind . <Activate> {
         Main::unsetTabMention
     }
+}
+
+proc Main::find {} {
+    destroy .findDialog
+    toplevel .findDialog -padx 10 -pady 10
+    wm title .findDialog "Change Nick"
+    wm transient .findDialog .
+    wm resizable .findDialog 0 0
+    
+    # Fields
+    xlabel .findDialog.l_find -text "Find what:"
+    xentry .findDialog.find -width 40
+    
+    # Checkboxes
+    frame .findDialog.chkboxes
+    xcheckbutton .findDialog.regex -text "Regex"      -variable Main::findRegex
+    xcheckbutton .findDialog.case -text "Match case"  -variable Main::findCase
+    #xcheckbutton .findDialog.word -text "Match word"  -variable Main::findWord
+    
+    # Buttons
+    xbutton .findDialog.next -text "Find Next"
+    xbutton .findDialog.previous -text "Find Previous"
+    #xbutton .findDialog.mark -text "Mark All"
+    
+    grid config .findDialog.l_find      -row 0 -column 0 -padx 5 -sticky "w"
+    grid config .findDialog.find        -row 0 -column 1 -padx 5 -columnspan 3
+
+    grid config .findDialog.regex       -row 1 -column 1 -padx 5
+    grid config .findDialog.case        -row 1 -column 2 -padx 5
+    #grid config .findDialog.word        -row 1 -column 3 -padx 5
+
+    grid config .findDialog.next        -row 0 -column 6 -padx 5 -sticky "ew"
+    grid config .findDialog.previous    -row 1 -column 6 -padx 5 -sticky "ew"
+    #grid config .findDialog.mark        -row 2 -column 6 -padx 5 -sticky "ew"
+    
+    bind .findDialog.next <ButtonPress> { Main::doFind [list -forwards]}
+    bind .findDialog.previous <ButtonPress> { Main::doFind  [list -backwards]}
+    bind .findDialog.find <Return> { Main::doFind "-forwards"}
+    bind .findDialog.find <Shift-Return> { Main::doFind "-backwards"}
+    
+    foreground_win .findDialog
+    return
+}
+
+proc Main::doFind { switches } {
+    set target [$Main::notebook raise]
+    if {[string length $target] == 0} {
+        return
+    }
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+
+    if {[info exists Main::findRegex] && $Main::findRegex} {
+        lappend switches "-regexp"
+    }
+    if {[info exists Main::findCase] && !$Main::findCase} {
+        lappend switches "-nocase"
+    }
+    #if {$Main::findWord} {
+    #    lappend args "-regexp"
+    #}
+    
+    $Main::servers($serv) find $chan $switches [.findDialog.find get]
+}
+
+proc Main::doFindNext { switches } {
+    set target [$Main::notebook raise]
+    if {[string length $target] == 0} {
+        return
+    }
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+
+    $Main::servers($serv) findNext $chan
+}
+
+proc Main::findNext {} {
+    set target [$Main::notebook raise]
+    if {[string length $target] == 0} { return }
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+
+    $Main::servers($serv) findNext $chan
 }
 
 proc Main::NLpm {} {
@@ -639,7 +747,6 @@ proc set_close_bindings {notebook page} {
     }
     "
 }
-
 
 Main::init
 toplevel .channelList -padx 10 -pady 10
