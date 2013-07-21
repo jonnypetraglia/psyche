@@ -434,7 +434,8 @@ snit::type tabServer {
     }
     
     method clearLastFind {} {
-        $chat tag remove regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
+        $chat tag remove regionSearch 1.0 end
+        #$chat tag remove regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
     }
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shared (same)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -459,6 +460,10 @@ snit::type tabServer {
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
+            set lastSearchIndex [expr {$lastSearchIndex -1}]
+            if {$lastSearchIndex < 1 } {
+                set lastSearchIndex 1.0
+            }
         }
         $chat configure -state disabled
         
@@ -469,10 +474,6 @@ snit::type tabServer {
             set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
             puts $logDesc "$timestamp $title $message"
             flush $logDesc
-        }
-        set lastSearchIndex [expr {$lastSearchIndex -1}]
-        if {$lastSearchIndex < 1 } {
-            set lastSearchIndex 1.0
         }
     }
     
