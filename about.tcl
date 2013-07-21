@@ -14,7 +14,10 @@ namespace eval About {
 
 
 proc About::show {} {
-    destroy .aboutDialog
+    if [winfo exists .aboutDialog] {
+        Main::foreground_win .aboutDialog
+        return
+    }
     toplevel .aboutDialog -padx 10 -pady 10
     wm title .aboutDialog "About"
     

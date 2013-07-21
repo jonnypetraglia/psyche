@@ -236,7 +236,13 @@ proc Main::init { } {
 }
 
 proc Main::find {} {
-    destroy .findDialog
+    if {[llength [$Main::notebook pages]] == 0} {
+        return
+    }
+    
+    if [winfo exists .findDialog] {
+        return
+    }
     toplevel .findDialog -padx 10 -pady 10
     wm title .findDialog "Find"
     wm transient .findDialog .
@@ -274,8 +280,7 @@ proc Main::find {} {
     bind .findDialog.find <Return> { Main::doFind "-forwards"}
     bind .findDialog.find <Shift-Return> { Main::doFind "-backwards"}
     
-    foreground_win .findDialog
-    return
+    Main::foreground_win .findDialog
 }
 
 proc Main::doFind { direction } {
