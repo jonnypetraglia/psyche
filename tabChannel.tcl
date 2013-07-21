@@ -384,6 +384,10 @@ snit::type tabChannel {
             puts $logDesc "$timestamp $title $message"
             flush $logDesc
         }
+        set lastSearchIndex [expr {$lastSearchIndex -1}]
+        if {$lastSearchIndex < 1 } {
+            set lastSearchIndex 1.0
+        }
     }
     
     ############## Creates the logDesc ##############

@@ -387,6 +387,10 @@ snit::type tabServer {
                 set lastSearchLength 0
                 set lastSearchTerm $val
                 set lastSearchSwitches $switches
+            } else {
+                if {$lastSearchIndex < 1 } {
+                    set lastSearchIndex 1.0
+                }
             }
         } else {
             debug "Starting new search: $val"
@@ -406,6 +410,9 @@ snit::type tabServer {
         
         if {![info exists lastSearchTerm]} {
             return
+        }
+        if {$lastSearchIndex < 1 } {
+            set lastSearchIndex 1.0
         }
         $self clearLastFind
         set loc ""
@@ -462,6 +469,10 @@ snit::type tabServer {
             set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
             puts $logDesc "$timestamp $title $message"
             flush $logDesc
+        }
+        set lastSearchIndex [expr {$lastSearchIndex -1}]
+        if {$lastSearchIndex < 1 } {
+            set lastSearchIndex 1.0
         }
     }
     
