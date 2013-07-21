@@ -1,12 +1,9 @@
 proc Main::init_toolbar { } {
     set Main::toolbar  [$Main::mainframe addtoolbar]
-    
-    set icondir [pwd]/icons
-    
         
     ### Connection ###
     set bbox [ButtonBox $Main::toolbar.bbox1 -spacing 0 -padx 1 -pady 1 -homogeneous 0]
-    $bbox add -image [image create photo -file $icondir/connect.gif] \
+    $bbox add -image [image create photo -file $About::icondir/connect.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Connect" \
         -command Main::showConnectDialog
@@ -24,22 +21,22 @@ proc Main::init_toolbar { } {
         tk_popup .bookmarkMenu [expr [winfo rootx .] + $wx] [expr [winfo rooty .] + $wy + $wh]
     }
     set Main::toolbar_reconnect [\
-    $bbox add -image [image create photo -file $icondir/reconnect.gif] \
+    $bbox add -image [image create photo -file $About::icondir/reconnect.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Reconnect" -state disabled \
         -command Main::reconnect]
     set Main::toolbar_disconnect [\
-    $bbox add -image [image create photo -file $icondir/disconnect.gif] \
+    $bbox add -image [image create photo -file $About::icondir/disconnect.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Disconnect" -state disabled \
         -command Main::disconnect]
     set Main::toolbar_channellist [\
-    $bbox add -image [image create photo -file $icondir/channels.gif] \
+    $bbox add -image [image create photo -file $About::icondir/channels.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Channel List" -state disabled \
         -command Main::channelList]
     set Main::toolbar_nick [\
-    $bbox add -image [image create photo -file $icondir/nick.gif] \
+    $bbox add -image [image create photo -file $About::icondir/nick.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Change Nick" -state disabled \
         -command Main::showNickDialog]
@@ -50,22 +47,22 @@ proc Main::init_toolbar { } {
     ### Server/Channel ###
     set bbox [ButtonBox $Main::toolbar.bbox2 -spacing 0 -padx 1 -pady 1]
     set Main::toolbar_join [\
-    $bbox add -image [image create photo -file $icondir/join.gif] \
+    $bbox add -image [image create photo -file $About::icondir/join.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Join" -state disabled \
         -command Main::showJoinDialog]
     set Main::toolbar_part [\
-    $bbox add -image [image create photo -file $icondir/part.gif] \
+    $bbox add -image [image create photo -file $About::icondir/part.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Part" -state disabled \
         -command Main::part]
     set Main::toolbar_properties [\
-    $bbox add -image [image create photo -file $icondir/properties.gif] \
+    $bbox add -image [image create photo -file $About::icondir/properties.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Server/Channel Properties" -state disabled \
         -command Main::showProperties]
     set Main::toolbar_away [\
-    $bbox add -image [image create photo -file $icondir/away.gif] \
+    $bbox add -image [image create photo -file $About::icondir/away.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Away/Back" -state disabled \
         -command Main::pressAway]
@@ -75,12 +72,18 @@ proc Main::init_toolbar { } {
     
     ### Etc ###
     set bbox [ButtonBox $Main::toolbar.bbox3 -spacing 0 -padx 1 -pady 1]  
-    $bbox add -image [image create photo -file $icondir/find.gif] \
+    set Main::toolbar_find [\
+    $bbox add -image [image create photo -file $About::icondir/find.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Find"
-    $bbox add -image [image create photo -file $icondir/options.gif] \
+        -helptext "Find" -state disabled \
+        -command Main::find]
+    $bbox add -image [image create photo -file $About::icondir/options.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Options"
+    $bbox add -image [image create photo -file $About::icondir/about.gif] \
+        -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
+        -helptext "About" \
+        -command About::show
         
     #Close Tab
     #Clear Screen?
@@ -89,7 +92,6 @@ proc Main::init_toolbar { } {
 }
 
 proc Main::clearToolbar {} {
-    set icondir [pwd]/icons
     $Main::toolbar_join configure -state disabled
     $Main::toolbar_disconnect configure -state disabled
     $Main::toolbar_reconnect configure -state disabled
@@ -97,5 +99,6 @@ proc Main::clearToolbar {} {
     $Main::toolbar_channellist configure -state disabled
     $Main::toolbar_nick configure -state disabled
     $Main::toolbar_away configure -state disabled
-    $Main::toolbar_away configure -image [image create photo -file $icondir/away.gif]
+    $Main::toolbar_away configure -image [image create photo -file $About::icondir/away.gif]
+    $Main::toolbar_find configure -state disabled
 }

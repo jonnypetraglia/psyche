@@ -133,7 +133,7 @@ snit::type tabChannel {
     
     ############## Update the toolbar's statuses ##############
     method updateToolbar {mTarget} {
-        set icondir [pwd]/icons
+        $Main::toolbar_find configure -state normal
         #Is connected
         if { [string length [$ServerRef getconnDesc] ] > 0 } {
             #Is connected to this channel

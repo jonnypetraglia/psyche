@@ -134,7 +134,7 @@ snit::type tabServer {
             return
         }
         
-        set icondir [pwd]/icons
+        $Main::toolbar_find configure -state normal
         #Is connected
         if [info exists connDesc] {
             $Main::toolbar_join configure -state normal
@@ -152,7 +152,7 @@ snit::type tabServer {
             $Main::toolbar_properties configure -state disabled
             $Main::toolbar_channellist configure -state disabled
             $Main::toolbar_away configure -state disabled
-            $Main::toolbar_away configure -image [image create photo -file $icondir/away.gif]
+            $Main::toolbar_away configure -image [image create photo -file $About::icondir/away.gif]
         }
         $Main::toolbar_part configure -state disabled
     }
@@ -569,7 +569,6 @@ puts "findNext  '$evalString'"
             return
         }
         ::notebox::addmsg "$mNick - $mMsg"
-        set icondir [pwd]/icons
         $Main::notebook itemconfigure $id_var -background $Pref::mentionColor
         if {[string length $Pref::mentionSound] > 0 } {
             playSound $Pref::mentionSound
@@ -702,12 +701,11 @@ puts "findNext  '$evalString'"
             return
         }
         
-        set icondir [pwd]/icons
         set reason [$awayLabel cget -text]
         if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
-            $Main::toolbar_away configure -image [image create photo -file $icondir/back.gif] -helptext "Back"
+            $Main::toolbar_away configure -image [image create photo -file $About::icondir/back.gif] -helptext "Back"
         } else {
-            $Main::toolbar_away configure -image [image create photo -file $icondir/away.gif] -helptext "Away"
+            $Main::toolbar_away configure -image [image create photo -file $About::icondir/away.gif] -helptext "Away"
         }
     }
     

@@ -1,6 +1,7 @@
-package require Tk
-package require BWidget
-package require snit
+source about.tcl
+set About::tk_version [package require Tk]
+set About::bwidget_version [package require BWidget]
+set About::snit_version [package require snit]
 
 proc debug {arg} {
     puts $arg
@@ -14,9 +15,11 @@ proc debugE {arg} {
 namespace eval Main {
     variable APP_VERSION
     variable APP_NAME
+    variable APP_BUILD_DATE
     set APP_NAME Psyche
     set APP_VERSION 0.02
-
+    set APP_BUILD_DATE "July 20, 2013"
+    
     variable DEFAULT_PORT
     set DEFAULT_PORT 6667
     
@@ -41,6 +44,7 @@ namespace eval Main {
     variable toolbar_nick
     variable toolbar_properties
     variable toolbar_away
+    variable toolbar_find
 
     variable default_tab_color
     
@@ -149,8 +153,7 @@ proc Main::init { } {
     pack $Main::mainframe -fill both -expand yes
     
     
-    set icondir [pwd]/icons
-    wm iconphoto . -default [image create photo -file $icondir/butterfly-icon_48.gif]
+    wm iconphoto . -default [image create photo -file $About::icondir/butterfly-icon_48.gif]
     set Main::servers(1) [tabServer %AUTO%]
     $Main::notebook compute_size
     wm title . "$Main::APP_NAME v$Main::APP_VERSION"
@@ -235,7 +238,7 @@ proc Main::init { } {
 proc Main::find {} {
     destroy .findDialog
     toplevel .findDialog -padx 10 -pady 10
-    wm title .findDialog "Change Nick"
+    wm title .findDialog "Find"
     wm transient .findDialog .
     wm resizable .findDialog 0 0
     
