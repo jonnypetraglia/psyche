@@ -14,6 +14,7 @@ snit::type tabServer {
     variable lastSearchIndex
     variable lastSearchTerm
     variable lastSearchSwitches
+    variable lastSearchDirection
     
     # SPECIFIC
     variable server
@@ -373,25 +374,27 @@ snit::type tabServer {
     }
     
     ############## Issued when calling find ##############
-    method find {chann switches val} {
+    method find {chann direction switches val} {
         if {[string length $chann] > 0} {
             $channelMap($chann) find $switches $val
             return
         }
         $self findClear
-        if { (![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)) || \
-             (![info exists lastSearchSwitches] || ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches))} {
+        if {![info exists lastSearchSwitches] || ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches)} {
+            set lastSearchSwitches $switches
+        }
+        if { ![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)} {
             set lastSearchIndex 1.0
             set lastSearchTerm $val
-            set lastSearchSwitches $switches
         } else {
             if {$lastSearchIndex < 1 } {
                 set lastSearchIndex 1.0
             }
         }
+        set lastSearchDirection $direction
         $self findNext $chann
     }
-
+    
     method findNext {chann} {
         variable lastSearchLength
         if {[string length $chann] > 0} {
@@ -399,6 +402,10 @@ snit::type tabServer {
             return
         }
         
+        set offsetFromLast "+1c"
+        if {$lastSearchDirection == "-backwards"} {
+            set offsetFromLast "-1c"
+        }
         if {![info exists lastSearchTerm]} {
             return
         }
@@ -408,7 +415,8 @@ snit::type tabServer {
         $self findClear
         set loc ""
         catch {
-            set evalString "$chat search -count lastSearchLength $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex+1c\""
+            set evalString "$chat search -count lastSearchLength $lastSearchDirection $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex$offsetFromLast\""
+puts "findNext  '$evalString'"
             set loc [eval $evalString]
         }
         if { $loc == "" } {

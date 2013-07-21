@@ -14,6 +14,7 @@ snit::type tabChannel {
     variable lastSearchIndex
     variable lastSearchTerm
     variable lastSearchSwitches
+    variable lastSearchDirection
     
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
@@ -302,7 +303,7 @@ snit::type tabChannel {
     }
     
     ############## Issued when calling find ##############
-    method find {switches val} {
+    method find {direction switches val} {
         # Ignore chann
         $self findClear
         if { (![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)) || \
@@ -315,18 +316,24 @@ snit::type tabChannel {
                 set lastSearchIndex 1.0
             }
         }
+        set lastSearchDirection $direction
         $self findNext $chann
     }
 
     method findNext {} {
         variable lastSearchLength
+        set offsetFromLast "+1c"
+        if {$lastSearchDirection == "-backwards"} {
+            set offsetFromLast "-1c"
+        }
         if {![info exists lastSearchTerm]} {
             return
         }
         $self findClear
         set loc ""
         catch {
-            set evalString "$chat search -count lastSearchLength $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex+1c\""
+            set evalString "$chat search -count lastSearchLength $lastSearchDirection $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex$offsetFromLast\""
+puts "findNext  '$evalString'"
             set loc [eval $evalString]
         }
         if { $loc == "" } {

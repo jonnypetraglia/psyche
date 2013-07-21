@@ -275,7 +275,7 @@ proc Main::find {} {
     return
 }
 
-proc Main::doFind { switches } {
+proc Main::doFind { direction } {
     set target [$Main::notebook raise]
     if {[string length $target] == 0} {
         return
@@ -285,6 +285,8 @@ proc Main::doFind { switches } {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
+
+    set switches [list]
 
     if {[info exists Main::findRegex] && $Main::findRegex} {
         lappend switches "-regexp"
@@ -296,7 +298,7 @@ proc Main::doFind { switches } {
     #    lappend args "-regexp"
     #}
     
-    $Main::servers($serv) find $chan $switches [.findDialog.find get]
+    $Main::servers($serv) find $chan $direction $switches [.findDialog.find get]
 }
 
 proc Main::markAll {} {
