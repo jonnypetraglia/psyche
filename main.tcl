@@ -252,7 +252,7 @@ proc Main::find {} {
     # Buttons
     xbutton .findDialog.next -text "Find Next"
     xbutton .findDialog.previous -text "Find Previous"
-    #xbutton .findDialog.mark -text "Mark All"
+    xbutton .findDialog.mark -text "Mark All"
     
     grid config .findDialog.l_find      -row 0 -column 0 -padx 5 -sticky "w"
     grid config .findDialog.find        -row 0 -column 1 -padx 5 -columnspan 3
@@ -263,8 +263,9 @@ proc Main::find {} {
 
     grid config .findDialog.next        -row 0 -column 6 -padx 5 -sticky "ew"
     grid config .findDialog.previous    -row 1 -column 6 -padx 5 -sticky "ew"
-    #grid config .findDialog.mark        -row 2 -column 6 -padx 5 -sticky "ew"
+    grid config .findDialog.mark        -row 2 -column 6 -padx 5 -sticky "ew"
     
+    bind .findDialog.mark <ButtonPress> { Main::markAll}
     bind .findDialog.next <ButtonPress> { Main::doFind [list -forwards]}
     bind .findDialog.previous <ButtonPress> { Main::doFind  [list -backwards]}
     bind .findDialog.find <Return> { Main::doFind "-forwards"}
@@ -296,6 +297,30 @@ proc Main::doFind { switches } {
     #}
     
     $Main::servers($serv) find $chan $switches [.findDialog.find get]
+}
+
+proc Main::markAll {} {
+    set target [$Main::notebook raise]
+    if {[string length $target] == 0} {
+        return
+    }
+    regsub -all "__" $target "*" target
+    set parts [split $target "\*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    
+    if {[info exists Main::findRegex] && $Main::findRegex} {
+        lappend switches "-regexp"
+    }
+    if {[info exists Main::findCase] && !$Main::findCase} {
+        lappend switches "-nocase"
+    }
+    #if {$Main::findWord} {
+    #    lappend args "-regexp"
+    #}
+    puts "marking all $chan $switches [.findDialog.find get]"
+    $Main::servers($serv) findMarkAll $chan $switches [.findDialog.find get]
 }
 
 proc Main::doFindNext { switches } {

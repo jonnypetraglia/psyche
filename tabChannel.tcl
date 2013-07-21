@@ -12,7 +12,6 @@ snit::type tabChannel {
     variable sendHistoryIndex
     variable logDesc
     variable lastSearchIndex
-    variable lastSearchLength
     variable lastSearchTerm
     variable lastSearchSwitches
     
@@ -93,6 +92,7 @@ snit::type tabChannel {
         $chat tag config mention   -foreground red
         $chat configure -background white
         $chat configure -state disabled
+        $chat tag configure regionSearch -background yellow
         
         set lowerFrame [frame $topf.f]
         
@@ -304,30 +304,26 @@ snit::type tabChannel {
     ############## Issued when calling find ##############
     method find {switches val} {
         # Ignore chann
-        if [info exists lastSearchTerm] {
-            $self clearLastFind
-            if {$lastSearchTerm != $val || $lastSearchSwitches != $switches} {
-                debug "Starting new search: $val"
-                set lastSearchIndex 1.0
-                set lastSearchLength 0
-                set lastSearchTerm $val
-                set lastSearchSwitches $switches
-            }
-        } else {
-            debug "Starting new search: $val"
+        $self findClear
+        if { (![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)) || \
+             (![info exists lastSearchSwitches] || ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches))} {
             set lastSearchIndex 1.0
-            set lastSearchLength 0
             set lastSearchTerm $val
             set lastSearchSwitches $switches
+        } else {
+            if {$lastSearchIndex < 1 } {
+                set lastSearchIndex 1.0
+            }
         }
-        $self findNext
+        $self findNext $chann
     }
 
     method findNext {} {
+        variable lastSearchLength
         if {![info exists lastSearchTerm]} {
             return
         }
-        $self clearLastFind
+        $self findClear
         set loc ""
         catch {
             set evalString "$chat search -count lastSearchLength $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex+1c\""
@@ -335,24 +331,43 @@ snit::type tabChannel {
         }
         if { $loc == "" } {
             set lastSearchIndex 1.0
-            set lastSearchLength 0
             return
         }
         set lastSearchIndex $loc
     
         $chat see $lastSearchIndex
         $chat tag add regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
-        $chat tag configure regionSearch -background yellow
         set lastSearchIndex "$lastSearchIndex"
     }
     
-    method clearLastFind {} {
-        $chat tag remove regionSearch 1.0 end
-        #$chat tag remove regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
+    method findMarkAll {switches val} {
+        variable locLen
+        
+        $self findClear
+        #if { ([info exists lastSearchTerm] && $lastSearchTerm != $val) || \
+        #     ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches)} {
+        #    set lastSearchIndex 1.0
+        #    set lastSearchTerm $val
+        #    set lastSearchSwitches $switches
+        #}
+        
+        set lastFind -1
+        set evalString "$chat search -count locLen $switches -- \"$var\" 1.0"
+        set loc [eval $evalString]
+        while {$loc > $lastFind && $loc != ""} {
+            $chat tag add regionSearch $loc "$loc+${locLen}c"
+            set lastFind $loc
+            set evalString "$chat search -count locLen $switches -- \"$var\" \"$loc+1c\""
+            set loc [eval $evalString]
+        }
     }
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shared (same)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     method getId {} { return $id_var }
+    
+    method findClear {} {
+        $chat tag remove regionSearch 1.0 end
+    }
     
     ############## Change the tab name ##############
     method updateTabName {newName} {

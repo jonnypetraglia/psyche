@@ -12,7 +12,6 @@ snit::type tabServer {
     variable sendHistoryIndex
     variable logDesc
     variable lastSearchIndex
-    variable lastSearchLength
     variable lastSearchTerm
     variable lastSearchSwitches
     
@@ -44,7 +43,6 @@ snit::type tabServer {
         set sendHistory [list ""]
         set sendHistoryIndex 0
         set lastSearchIndex 1.0
-        set lastSearchLength 0
         
         # If it has no args it's a dummy tab for measurement
         if { [string length $args] > 0 } {
@@ -100,6 +98,7 @@ snit::type tabServer {
         $chat configure -state disabled
         #$chat configure -bd 1
         $chat configure -relief solid
+        $chat tag configure regionSearch -background yellow
     
         set lowerFrame [frame $topf.f]
         
@@ -379,30 +378,22 @@ snit::type tabServer {
             $channelMap($chann) find $switches $val
             return
         }
-        if [info exists lastSearchTerm] {
-            $self clearLastFind
-            if {$lastSearchTerm != $val || $lastSearchSwitches != $switches} {
-                debug "Starting new search: $val"
-                set lastSearchIndex 1.0
-                set lastSearchLength 0
-                set lastSearchTerm $val
-                set lastSearchSwitches $switches
-            } else {
-                if {$lastSearchIndex < 1 } {
-                    set lastSearchIndex 1.0
-                }
-            }
-        } else {
-            debug "Starting new search: $val"
+        $self findClear
+        if { (![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)) || \
+             (![info exists lastSearchSwitches] || ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches))} {
             set lastSearchIndex 1.0
-            set lastSearchLength 0
             set lastSearchTerm $val
             set lastSearchSwitches $switches
+        } else {
+            if {$lastSearchIndex < 1 } {
+                set lastSearchIndex 1.0
+            }
         }
         $self findNext $chann
     }
 
     method findNext {chann} {
+        variable lastSearchLength
         if {[string length $chann] > 0} {
             $channelMap($chann) findNext
             return
@@ -414,7 +405,7 @@ snit::type tabServer {
         if {$lastSearchIndex < 1 } {
             set lastSearchIndex 1.0
         }
-        $self clearLastFind
+        $self findClear
         set loc ""
         catch {
             set evalString "$chat search -count lastSearchLength $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex+1c\""
@@ -422,24 +413,47 @@ snit::type tabServer {
         }
         if { $loc == "" } {
             set lastSearchIndex 1.0
-            set lastSearchLength 0
             return
         }
         set lastSearchIndex $loc
     
         $chat see $lastSearchIndex
         $chat tag add regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
-        $chat tag configure regionSearch -background yellow
         set lastSearchIndex "$lastSearchIndex"
     }
     
-    method clearLastFind {} {
-        $chat tag remove regionSearch 1.0 end
-        #$chat tag remove regionSearch $lastSearchIndex "$lastSearchIndex+${lastSearchLength}c"
+    method findMarkAll {chann switches var} {
+        variable locLen
+        if {[string length $chann] > 0} {
+            $channelMap($chann) findMarkAll $switches $var
+            return
+        }
+        
+        $self findClear
+        #if { ([info exists lastSearchTerm] && $lastSearchTerm != $val) || \
+        #     ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches)} {
+        #    set lastSearchIndex 1.0
+        #    set lastSearchTerm $val
+        #    set lastSearchSwitches $switches
+        #}
+        
+        set lastFind -1
+        set evalString "$chat search -count locLen $switches -- \"$var\" 1.0"
+        set loc [eval $evalString]
+        while {$loc > $lastFind && $loc != ""} {
+            $chat tag add regionSearch $loc "$loc+${locLen}c"
+            set lastFind $loc
+            set evalString "$chat search -count locLen $switches -- \"$var\" \"$loc+1c\""
+            set loc [eval $evalString]
+        }
     }
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Shared (same)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     method getId {} { return $id_var }
+    
+    method findClear {} {
+        $chat tag remove regionSearch 1.0 end
+    }
     
     ############## Change the tab name ##############
     method updateTabName {newName} {
