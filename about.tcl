@@ -5,10 +5,13 @@ namespace eval About {
     variable snit_version
     variable copyright_year
     variable donate_url
+    variable BTC
 
     set icondir [pwd]/icons
     set copyright_year 2013
     set donate_url "http://qweex.com/donate"
+    set BTC "1G6cCKnhbESiBXLprxNjzjFDZsES4tH9ZM"
+    set LTC "LRthYyVMBUJJqkoJTnnWrTQpuATWfv5s7g"
 }
 
 
@@ -33,23 +36,39 @@ proc About::show {} {
     xlabel .aboutDialog.builton -text "Built on $Main::APP_BUILD_DATE"
     xlabel .aboutDialog.copyright -text "Copyright $About::copyright_year Jon Petraglia of Qweex"
     xlabel .aboutDialog.license -text "Released under the BSD 3-clause license"
-    grid config .aboutDialog.icon      -row 0 -column 0 -padx 5 -sticky "w" -rowspan 10
+    grid config .aboutDialog.icon      -row 0 -column 0 -padx 5 -sticky "w" -rowspan 5
     grid config .aboutDialog.title     -row 0 -column 1 -padx 5 -sticky "w"
     grid config .aboutDialog.cwith     -row 1 -column 1 -padx 5 -sticky "w"
     grid config .aboutDialog.builton   -row 2 -column 1 -padx 5 -sticky "w"
     grid config .aboutDialog.copyright -row 3 -column 1 -padx 5 -sticky "w"
     grid config .aboutDialog.license   -row 4 -column 1 -padx 5 -sticky "w"
     
+    label .aboutDialog.hr -foreground grey \
+        -text "_________________________________________________________________"
+    grid .aboutDialog.hr -row 5 -column 0 -padx 5 -columnspan 2
+    
+    # Donate
     xlabel .aboutDialog.donate -text "Like Psyche? Support the developer." -foreground blue
     if {$::this(platform) == "macosx"} {
         .aboutDialog.donate configure -cursor pointinghand
     } else {
         .aboutDialog.donate configure -cursor hand2
     }
-    puts "test [linsert [.aboutDialog.title cget -font] end -underline true]"
     .aboutDialog.donate configure -font [linsert [.aboutDialog.donate cget -font] end 12 underline]
-    grid config .aboutDialog.donate    -row 5 -column 0 -padx 5 -columnspan 2
+    grid config .aboutDialog.donate    -row 6 -column 0 -padx 5 -columnspan 2
     bind .aboutDialog.donate <ButtonRelease> About::donate
+    
+    # Crypto coins
+    xlabel .aboutDialog.btc_l -text "BTC"
+    xentry .aboutDialog.btc -textvariable About::BTC -state readonly -width 35 -foreground black
+puts [.aboutDialog.btc cget -font]
+    xlabel .aboutDialog.ltc_l -text "LTC"
+    xentry .aboutDialog.ltc -textvariable About::LTC -state readonly -width 35 -foreground black
+
+    grid config .aboutDialog.btc_l -row 7 -column 0 -padx 5 -sticky "e"
+    grid config .aboutDialog.btc   -row 7 -column 1 -padx 5 -sticky "w"
+    grid config .aboutDialog.ltc_l -row 8 -column 0 -padx 5 -sticky "e"
+    grid config .aboutDialog.ltc   -row 8 -column 1 -padx 5 -sticky "w"
 }
 
 proc About::donate {} {
