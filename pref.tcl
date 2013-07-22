@@ -1,9 +1,8 @@
 package require BWidget
 
 namespace eval Pref {
-    variable configDir
     #NOT a preference; for reference
-    set CONFIG_DIR $::env(HOME)/.psyche
+    set CONFIG_DIR ~/.psyche
 
     variable timeout
     variable raiseNewTabs
@@ -23,6 +22,7 @@ namespace eval Pref {
     variable maxScrollback	;#TODO
     variable mentionColor
     variable mentionSound
+    variable toolbarHidden
     
 
     set timeout 5000
@@ -36,14 +36,15 @@ namespace eval Pref {
     set logDir "$CONFIG_DIR/log"
     set popupTimeout 5000
     set popupFont {Helvetica 16}
-    switch $::this(platform) {
-        "windows" {
+    switch $::PLATFORM {
+        $::PLATFORM_WIN {
             set popupLocation se
         }
         default {
             set popupLocation ne
         }
     }
+    set toolbarHidden false
     
     set maxSendHistory 50
     set maxScrollback 200
@@ -52,8 +53,8 @@ namespace eval Pref {
     set mentionSound "[pwd]/mention.wav"
     
     
-    #This is for debug
-    set prefFile [pwd]/test.cfg
+    set prefFile "$CONFIG_DIR/psyche.cfg"
+    #set prefFile [pwd]/test.cfg                 ;#This is for debug
 }
 
 
@@ -67,13 +68,13 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
         set data [gets $fp]
         # Manually add the namespace
-        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor ).*)" $data -> data]} {
+        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden ).*)" $data -> data]} {
             set data "set Pref::$data"
         }
-        puts "Reading preference: '$data'"
+        debugV "Reading preference: '$data'"
 
         if {[catch {eval "$data"} prob]} {
-            puts "ERROR: Unable to load preference: '$data"
+            debugE "ERROR: Unable to load preference: '$data"
         }
     }
     close $fp
@@ -91,3 +92,4 @@ proc Pref::writePrefs {pref val} {
 
 }
 
+debugV "Preference file exists? [file exists $Pref::prefFile]"

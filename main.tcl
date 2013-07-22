@@ -1,7 +1,10 @@
-source about.tcl
-set About::tk_version [package require Tk]
-set About::bwidget_version [package require BWidget]
-set About::snit_version [package require snit]
+package require Tk
+package require BWidget
+package require snit
+
+proc debugV {arg} {
+    puts $arg
+}
 
 proc debug {arg} {
     puts $arg
@@ -48,6 +51,9 @@ namespace eval Main {
 
     variable default_tab_color
     
+    variable hiddenToolbar
+    variable meta_toolbar
+    
     variable MIDDLE_CLICK
     
     variable findRegex
@@ -55,24 +61,29 @@ namespace eval Main {
     #variable findWord
 }
 
-set ::this(platform) windows	;#TODO This should not be necessary
+set ::PLATFORM_MAC "macosx"
+set ::PLATFORM_WIN "windows"
+set ::PLATFORM_UNIX "unix"
+
+
+set ::PLATFORM windows	;#TODO This should not be necessary
 switch $tcl_platform(platform) {
     "unix" {
         if {$tcl_platform(os) == "Darwin"} {
-            set ::this(platform) macosx
+            set ::PLATFORM $::PLATFORM_OSX
             set Main::MIDDLE_CLICK 2
         } else {
-            set ::this(platform) unix
+            set ::PLATFORM $::PLATFORM_UNIX
             set Main::MIDDLE_CLICK 3
         }
     }
     "windows" {
-        set ::this(platform) windows
+        set ::PLATFORM $::PLATFORM_WIN
         set Main::MIDDLE_CLICK 3
     }
 }
 
-if {$tcl_version >= 18.5} {
+if {$tcl_version >= 8.5 && $::PLATFORM != $::PLATFORM_MAC} {
     interp alias {} xbutton {} ttk::button
     interp alias {} xlabel {} ttk::label
     interp alias {} xentry {} ttk::entry
@@ -83,6 +94,7 @@ if {$tcl_version >= 18.5} {
     interp alias {} xentry {} entry
     interp alias {} xcheckbutton {} checkbutton
 }
+source about.tcl
 source pref.tcl
 source irc.tcl
 source sound.tcl
@@ -103,7 +115,7 @@ option add *Notebox.Message.width 500
 
 
 proc Main::init { } {
-    variable mainframe
+    file mkdir $Pref::CONFIG_DIR
     
     #set top [toplevel .intro -relief raised -borderwidth 2]
     #BWidget::place $top 0 0 center
@@ -130,7 +142,7 @@ proc Main::init { } {
     
     
     # Status Bar & Toolbar
-    set mainframe [MainFrame .mainframe]
+    set Main::mainframe [MainFrame .mainframe]
                        #-menu         $Main::descmenu]
     
     
@@ -141,13 +153,11 @@ proc Main::init { } {
     } else {
         set sbfnt {}
     }
-    set indic .mainframe.status.lastpinged
+    set indic $Main::mainframe.status.lastpinged
     eval label $indic -textvariable Main::status_text -anchor e \
         -relief sunken -borderwidth 1 \
         -takefocus 0 -highlightthickness 0 $sbfnt
     pack $indic -anchor w -padx 2 -fill x -expand 1
-    
-    #incr _widget(.mainframe,nindic)
     
    
     init_toolbar
@@ -184,14 +194,14 @@ proc Main::init { } {
     unset Main::servers(1)
     
     # Find
-    if {$::this(platform) == "macosx"} {
+    if {$::PLATFORM == $::PLATFORM_MAC} {
         bind . <Command-F> { Main::find }
         bind . <Command-f> { Main::find }
         bind . <Command-G> { Main::findNext }
         bind . <Command-g> { Main::findNext }
     } else {
-        bind . <Control-F> { Main::findNext }
-        bind . <Control-f> { Main::findNext }
+        bind . <Control-F> { Main::find }
+        bind . <Control-f> { Main::find }
         bind . <F3>        { Main::findNext }
     }
     
@@ -245,6 +255,30 @@ proc Main::init { } {
     bind . <Activate> {
         Main::unsetTabMention
     }
+    
+    # Change to tab
+    if { $::PLATFORM == $::PLATFORM_MAC } {
+        for {set i 1} {$i < 10} {incr i} {
+            bind . <Command-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
+        }
+        bind . <Command-KeyPress-0> "Main::changeToTab 9]"
+    } else {
+        for {set i 1} {$i < 10} {incr i} {
+            bind . <Alt-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
+        }
+        bind . <Alt-KeyPress-0> "Main::changeToTab 9"
+    }
+    
+    # Toggle Toolbar
+    set Main::hiddenToolbar [expr {$Pref::toolbarHidden}]
+    if { $Main::hiddenToolbar} { Main::toggleToolbar }
+    bind . <F10> { Main::toggleToolbar }
+}
+
+proc Main::changeToTab {i} {
+    if { $i < [llength [$Main::notebook pages]] } {
+        $Main::notebook raise [$Main::notebook page $i]
+    }
 }
 
 proc Main::find {} {
@@ -253,6 +287,9 @@ proc Main::find {} {
     }
     
     if [winfo exists .findDialog] {
+        #if {[wm state .findDialog] == "withdrawn"} {
+            wm state .findDialog normal
+        #}
         return
     }
     toplevel .findDialog -padx 10 -pady 10
@@ -292,6 +329,14 @@ proc Main::find {} {
     bind .findDialog.find <Return> { Main::doFind "-forwards"}
     bind .findDialog.find <Shift-Return> { Main::doFind "-backwards"}
     
+    wm protocol .findDialog WM_DELETE_WINDOW {
+        set servs [array names Main::servers]
+        foreach s $servs {
+            $Main::servers($s) findClearAndChildren
+        }
+        wm state .findDialog withdrawn
+    }
+    
     Main::foreground_win .findDialog
 }
 
@@ -311,7 +356,7 @@ proc Main::doFind { direction } {
     if {[info exists Main::findRegex] && $Main::findRegex} {
         lappend switches "-regexp"
     }
-    if {[info exists Main::findCase] && !$Main::findCase} {
+    if {![info exists Main::findCase] || !$Main::findCase} {
         lappend switches "-nocase"
     }
     #if {$Main::findWord} {
@@ -332,6 +377,7 @@ proc Main::markAll {} {
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
+    set switches [list]
     if {[info exists Main::findRegex] && $Main::findRegex} {
         lappend switches "-regexp"
     }
@@ -476,12 +522,17 @@ proc Main::updateStatusbar {} {
     if {[string length $target] == 0} {
         return
     }
+    regsub -all "__" $target "*" target
     set parts [split $target "*"]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
 
     set pingtime [$Main::servers($serv) getPingtime]
+    if {$pingtime == 0} {
+        set Main::status_text "Disconnected"
+    }
+    
     set pingtime [expr {[clock seconds] - $pingtime}]
     if {$pingtime < 90} {
         set Main::status_text "Last Ping: $pingtime seconds ago"
@@ -821,6 +872,17 @@ proc set_close_bindings {notebook page} {
         Main::closeTab $page
     }
     "
+}
+
+proc set_scroll_helper {notebookctl widget x y dir xory} {
+    set widgetUnderMouse [winfo containing $x $y]
+    if [regexp {(.*\.scrollable).*$} $widgetUnderMouse -> scrollControl] {
+        $scrollControl ${xory}view scroll $dir units
+    }
+}
+
+proc startsWith {haystack needle} {
+    return [string equal [string range $haystack 0 [expr {[string length $needle]}]] $needle]
 }
 
 Main::init

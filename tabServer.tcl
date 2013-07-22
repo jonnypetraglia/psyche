@@ -97,11 +97,12 @@ snit::type tabServer {
         $chat tag config timestamp -font {Arial 7} -foreground grey60
         $chat tag config blue   -foreground blue
         $chat tag config mention   -foreground red
+        $chat configure -background white
         $chat configure -state disabled
         #$chat configure -bd 1
         $chat configure -relief solid
         $chat tag configure regionSearch -background yellow
-    
+        
         set lowerFrame [frame $topf.f]
         
         # Create the away label
@@ -119,7 +120,8 @@ snit::type tabServer {
         grid columnconfigure $lowerFrame 1 -weight 1
         pack $lowerFrame -side bottom -fill x
     
-        ## No Nicklist Widget for Server ##
+        ## And this where a NickList widget would go
+        ## IF I HAD ONE
         
         pack $chat -fill both -expand 1
         pack $topf -fill both -expand 1
@@ -376,7 +378,7 @@ snit::type tabServer {
     ############## Issued when calling find ##############
     method find {chann direction switches val} {
         if {[string length $chann] > 0} {
-            $channelMap($chann) find $switches $val
+            $channelMap($chann) find $direction $switches $val
             return
         }
         $self findClear
@@ -435,14 +437,7 @@ snit::type tabServer {
             $channelMap($chann) findMarkAll $switches $var
             return
         }
-        
         $self findClear
-        #if { ([info exists lastSearchTerm] && $lastSearchTerm != $val) || \
-        #     ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches)} {
-        #    set lastSearchIndex 1.0
-        #    set lastSearchTerm $val
-        #    set lastSearchSwitches $switches
-        #}
         
         set lastFind -1
         set evalString "$chat search -count locLen $switches -- \"$var\" 1.0"
@@ -452,6 +447,14 @@ snit::type tabServer {
             set lastFind $loc
             set evalString "$chat search -count locLen $switches -- \"$var\" \"$loc+1c\""
             set loc [eval $evalString]
+        }
+    }
+    
+    method findClearAndChildren {} {
+        $self findClear
+        set chanNames [array names channelMap]
+        foreach c $chanNames {
+            $channelMap($c) findClear
         }
     }
     
@@ -607,7 +610,7 @@ snit::type tabServer {
                         set connectStatus timeout
                 }}
             # Create the connection; -async means it will continue on until it hits vwait
-                    debug "Attempting to connect $server $port"
+            debug "Attempting to connect $server $port"
             set connDesc [socket -async $server $port]
             # Dummy handler to detect when the socket is writeable (i.e. open)
             fileevent $connDesc readable {set connectStatus ok}
@@ -639,7 +642,6 @@ snit::type tabServer {
                 return
             }
             default {
-                debug "timeout $connectStatus"
                 close connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
@@ -748,7 +750,12 @@ snit::type tabServer {
         }
     }
     
-    method getPingtime {} {return $pingtime}
+    method getPingtime {} {
+        if [info exists connDesc] {
+            return $pingtime
+        }
+        return 0
+    }
     
     method getSelectedNickOfChannel {mChann} {
         return [$channelMap($mChann) getSelectedNick]

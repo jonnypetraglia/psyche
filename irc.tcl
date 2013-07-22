@@ -317,7 +317,7 @@ proc getTitle {mCode} {
 # http://www.user-com.undernet.org/documents/ctcpdcc.txt
 # returns 1 if it was handled (if it was a special case), 0 otherwise
 proc performSpecialCase {msg obj} {
-    puts "!!!!!!$msg"
+    debug "performSpecialCase !!!! $msg"
 
     #/connect
     if [regexp {^connect ([^ ]+) ?([0-9]*)} $msg -> serv port] {
@@ -508,7 +508,7 @@ proc performSpecialCase {msg obj} {
         return false
     }
     #return true
-    puts "SENDING:    $msg"
+    debug "SENDING:    $msg"
     return false
 
     

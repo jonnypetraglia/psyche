@@ -177,23 +177,23 @@ snit::type tabChannel {
     method isServer {} { return 0 }
     
     method propogateMessage {what timestamp title titleStyle msg msgStyle} {
-        puts "Propogating message: $what  $title  $msg"
+        debug "Propogating message: $what  $title  $msg"
         switch $what {
             "NICK" {
-            # If it is not in the nickList, no need to propogate it here
-            regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
-            if {[$self NLrename $oldNick $newNick] != 1 } {
-                return
-            }
+                # If it is not in the nickList, no need to propogate it here
+                regexp {([^ ]+) is now known as (.*)} $msg -> oldNick newNick
+                if {[$self NLrename $oldNick $newNick] != 1 } {
+                    return
+                }
             }
             "MYNICK" {
-            regexp {You are now known as (.*)} $msg -> newNick
-            catch {$self NLrename $nick $newNick}
-            #TODO
+                regexp {You are now known as (.*)} $msg -> newNick
+                catch {$self NLrename $nick $newNick}
+                #TODO
             }
             "QUIT" {
-            regexp {([^ ]+) has quit.* } $msg -> newNick
-            $self NLremove $newNick
+                regexp {([^ ]+) has quit.* } $msg -> newNick
+                $self NLremove $newNick
             }
         }
         
@@ -304,7 +304,6 @@ snit::type tabChannel {
     
     ############## Issued when calling find ##############
     method find {direction switches val} {
-        # Ignore chann
         $self findClear
         if { (![info exists lastSearchTerm] || ([info exists lastSearchTerm] && $lastSearchTerm != $val)) || \
              (![info exists lastSearchSwitches] || ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches))} {
@@ -317,7 +316,7 @@ snit::type tabChannel {
             }
         }
         set lastSearchDirection $direction
-        $self findNext $chann
+        $self findNext
     }
 
     method findNext {} {
@@ -333,7 +332,6 @@ snit::type tabChannel {
         set loc ""
         catch {
             set evalString "$chat search -count lastSearchLength $lastSearchDirection $lastSearchSwitches -- \"$lastSearchTerm\" \"$lastSearchIndex$offsetFromLast\""
-puts "findNext  '$evalString'"
             set loc [eval $evalString]
         }
         if { $loc == "" } {
@@ -349,14 +347,7 @@ puts "findNext  '$evalString'"
     
     method findMarkAll {switches val} {
         variable locLen
-        
         $self findClear
-        #if { ([info exists lastSearchTerm] && $lastSearchTerm != $val) || \
-        #     ([info exists lastSearchSwitches] && $lastSearchSwitches != $switches)} {
-        #    set lastSearchIndex 1.0
-        #    set lastSearchTerm $val
-        #    set lastSearchSwitches $switches
-        #}
         
         set lastFind -1
         set evalString "$chat search -count locLen $switches -- \"$var\" 1.0"
@@ -392,7 +383,6 @@ puts "findNext  '$evalString'"
         $chat insert end $timestamp\  timestamp
         $chat insert end $title\  $style1
         $chat insert end $message\n $style2
-        puts "APPEND:  [expr [lindex [split [$chat index end] .] 0] -1] > $Pref::maxScrollback"
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
@@ -416,8 +406,8 @@ puts "findNext  '$evalString'"
     ############## Creates the logDesc ##############
     method createLog {} {
         file mkdir $Pref::logDir
-        set logDesc [open "$Pref::logDir\\$id_var.log" a+]
-        debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+        set logDesc [open "$Pref::logDir/$id_var.log" a+]
+        debugV "Creating log:  $Pref::logDir/$id_var.log      $logDesc"
     }
     
     ############## Closes the log handle ##############
@@ -644,9 +634,8 @@ puts "findNext  '$evalString'"
         foreach usr $users {
             # If it's a special user add it
             set temp [$self getNickPrefixes]
-            puts "Adding User: $usr   looking for ^(\[$temp\])(.*)"
+            debugV "Adding User: $usr   looking for ^(\[$temp\])(.*)"
             if {[regexp "^(\[$temp\])(.*)" $usr -> mod usr]} {
-                puts "Found"
                 lappend nickList $usr
                 $self NLchmod $usr $mod "+"
             } else {
@@ -670,21 +659,18 @@ puts "findNext  '$evalString'"
     ############## Gui Event ##############
     method DoubleclickNicklist {} {
         set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
-        puts $nickName
         $self createPMTabIfNotExist $nickName
     }
     
     ############## Gui Event ##############
     method RightclickNicklist {x y} {
-        set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
-        puts $nickName
         set x [expr [winfo rootx $nicklistCtrl] + $x]
         set y [expr [winfo rooty $nicklistCtrl] + $y]
         tk_popup .nicklistMenu $x $y
     }
     
     method touchLastSpoke {nick} {
-        puts " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
+        debugV " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
         set LastSpoke($nick) [clock seconds]
     }
     

@@ -10,11 +10,11 @@ proc playSound {sound} {
             [list mpg123 ""] \      ;# Only works for mp3
             ]   ;# wav only: aplay || cat $sount > /dev/pcsp
     }
-    switch $::this(platform) {
-        "macosx" {
+    switch $::PLATFORM {
+        $::PLATFORM_MAC {
             catch {exec "afplay" "[file nativename [file normalize $sound]]" "&"}
         }
-        "windows" {
+        $::PLATFORM_WIN {
             catch {exec "[pwd]/sap" "[file nativename [file normalize $sound]]" "&"}
         }
         default {

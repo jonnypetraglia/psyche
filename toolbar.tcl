@@ -1,4 +1,75 @@
+proc Main::metaToolbar {} {
+    # Meta toolbar
+    set toolbar2  [$Main::mainframe addtoolbar]
+    set bbox2 [ButtonBox $toolbar2.bbox1 -spacing 0 -padx 0 -pady 0 -homogeneous 0]
+    set Main::meta_toolbar [\
+    $bbox2 add -image [image create bitmap metameta -data {
+        #define plus2_width 16
+        #define plus2_height 11
+        static char plus2_bits = {
+        0x00, 0x00,
+        0x00, 0x00,
+        0x10, 0x02,
+        0x20, 0x04,
+        0x40, 0x08,
+        0x80, 0x10,
+        0x40, 0x08,
+        0x20, 0x04,
+        0x10, 0x02,
+        0x00, 0x00,
+        0x00, 0x00
+        }
+    }] -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 0 -pady 0 \
+    -command { Main::toggleToolbar }]
+    pack $bbox2 -side left -anchor w
+    
+}
+
+proc Main::toggleToolbar {} {
+    set Main::hiddenToolbar [expr {!$Main::hiddenToolbar}]
+    $Main::mainframe showtoolbar 1 $Main::hiddenToolbar
+    if { $Main::hiddenToolbar } {
+        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
+            #define plus2_width 16
+            #define plus2_height 11
+            static char plus2_bits = {
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x41, 0x41,
+            0x22, 0x22,
+            0x14, 0x14,
+            0x08, 0x08,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00
+            }
+        }]
+    } else {
+        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
+            #define plus2_width 16
+            #define plus2_height 11
+            static char plus2_bits = {
+            0x00, 0x00,
+            0x00, 0x00,
+            0x10, 0x02,
+            0x20, 0x04,
+            0x40, 0x08,
+            0x80, 0x10,
+            0x40, 0x08,
+            0x20, 0x04,
+            0x10, 0x02,
+            0x00, 0x00,
+            0x00, 0x00
+            }
+        }]
+    }
+}
+
 proc Main::init_toolbar { } {
+    Main::metaToolbar
+    
     set Main::toolbar  [$Main::mainframe addtoolbar]
         
     ### Connection ###
@@ -8,7 +79,7 @@ proc Main::init_toolbar { } {
         -helptext "Connect" \
         -command Main::showConnectDialog
     # Dropdown button
-    $bbox add -image [image create bitmap %AUTO% -data {
+    $bbox add -image [image create bitmap bookmarksdropdown -data {
         #define plus_width 11
         #define plus_height 11
         static char plus_bits = {

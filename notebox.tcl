@@ -13,9 +13,9 @@ package provide notebox 1.0
 namespace eval ::notebox {
     
     array set fontPlat {
-        unix    {Helvetica 12}
-        windows {Arial 8}
-        macosx  {Geneva 9}
+        $::PLATFORM_UNIX    {Helvetica 12}
+        $::PLATFORM_WIN {Arial 8}
+        $::PLATFORM_MAC  {Geneva 9}
     }
 
     option add *Notebox.millisecs                  0         widgetDefault
@@ -28,7 +28,7 @@ namespace eval ::notebox {
     option add *Notebox.closeButtonBgWinxp         "#ca2208" widgetDefault
     option add *Notebox.closeButtonImage           ""        widgetDefault
         
-    option add *Notebox.font $fontPlat($::this(platform)) widgetDefault
+    option add *Notebox.font $fontPlat($::PLATFORM) widgetDefault
 
     set MAX_INT 0x7FFFFFFF
     set hex [format {%x} [expr {int($MAX_INT*rand())}]]
