@@ -501,8 +501,8 @@ snit::type tabServer {
     ############## Creates the logDesc ##############
     method createLog {} {
         file mkdir $Pref::logDir
-        set logDesc [open "$Pref::logDir\\$id_var.log" a+]
-        debug "Creating log:  $Pref::logDir\\$id_var.log      $logDesc"
+        set logDesc [open "$Pref::logDir/$id_var.log" a+]
+        debug "Creating log:  $Pref::logDir/$id_var.log      $logDesc"
     }
     
     ############## Closes the log handle ##############
