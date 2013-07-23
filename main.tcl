@@ -1,5 +1,8 @@
 package require Tk
+clipboard append [zvfs::list *]
+lappend ::auto_path [file dirname [zvfs::list */bwidget1.9.5/pkgIndex.tcl]]
 package require BWidget
+lappend ::auto_path [file dirname [zvfs::list */snit/pkgIndex.tcl]]
 package require snit
 
 proc debugV {arg} {
@@ -113,6 +116,9 @@ option add *Notebox.millisecs $Pref::popupTimeout widgetDefault
 option add *Notebox.font $Pref::popupFont widgetDefault
 option add *Notebox.Message.width 500
 
+
+#font create myDefaultFont -family Helvetica -size 10
+#option add *font {-family Helvetica -size 10}
 
 proc Main::init { } {
     file mkdir $Pref::CONFIG_DIR

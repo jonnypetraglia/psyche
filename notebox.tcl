@@ -12,11 +12,11 @@ package provide notebox 1.0
 
 namespace eval ::notebox {
     
-    array set fontPlat {
+    array set fontPlat "
         $::PLATFORM_UNIX    {Helvetica 12}
         $::PLATFORM_WIN {Arial 8}
         $::PLATFORM_MAC  {Geneva 9}
-    }
+    "
 
     option add *Notebox.millisecs                  0         widgetDefault
     option add *Notebox.anchor                     nw        widgetDefault

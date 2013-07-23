@@ -36,7 +36,7 @@ namespace eval About {
     set config(maxScrollback) {"(integer)" "how many lines on screen the chats should be limited"}
     set config(mentionColor) {"(string/hex)" "the color to change a tab to when it has been mentioned; can use the strings builtin to Tcl/Tk or a custom RGB value"}
     set config(mentionSound) {"(string)" "the path to the sound file to be played when you are mentioned; set to the empty string if you want to disable sounds"}
-    set config(bookmarks) {"" "bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect. If any channels are given, they are joined automatically.\nSyntax:   bookmarks($nickname) \{$server $port $nick _$channel1 $channel2 ...\}"}
+    set config(bookmarks) {"" "bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect. If any channels are given, they are joined automatically.\nSyntax:   bookmarks($nickname) \{$server $port $nick $channel1 $channel2 ...\}"}
     set config(toolbarHidden) {"boolean" "hides the toolbar by default"}
     
     
@@ -107,14 +107,15 @@ proc About::show {} {
     grid $theFrame.hr -row 5 -column 0 -padx 5 -pady 15 -columnspan 2
     
     # Donate
-    xlabel $theFrame.donate -text "Like Psyche? Support the developer." -foreground blue -pady 15
-    $theFrame.donate configure -font [linsert [$theFrame.donate cget -font] end 10 underline]       ;#TODO: reliable way of getting font size
+    xlabel $theFrame.donate -text "Like Psyche? Support the developer." -foreground blue
+    puts "butts [$theFrame.donate cget -font]"
+    $theFrame.donate configure -font [linsert [$theFrame.donate cget -font] end -underline true]       ;#TODO: reliable way of getting font size
     if {$::PLATFORM == $::PLATFORM_MAC} {
         $theFrame.donate configure -cursor pointinghand
     } else {
         $theFrame.donate configure -cursor hand2
     }
-    grid config $theFrame.donate    -row 6 -column 0 -padx 5 -columnspan 2
+    grid config $theFrame.donate    -row 6 -column 0 -padx 5 -columnspan 2 -pady 15
     bind $theFrame.donate <ButtonRelease> {platformOpen $About::donateUrl}
     
     # Crypto coins
@@ -141,28 +142,28 @@ proc About::show {} {
     set options [$sf getframe]
     
     # Headers
-    xlabel $options.a -text "Key" -bg white
-    $options.a configure -font [linsert [$options.a cget -font] end 11 bold underline]     ;#TODO how do get real font size
+    xlabel $options.a -text "Variable" -background white
+    $options.a configure -font [linsert [$options.a cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
     grid config $options.a -row 0 -column 0 -padx 2 -pady 2 -sticky "w"
     
-    xlabel $options.b -text "Type" -bg white
-    $options.b configure -font [linsert [$options.b cget -font] end 11 bold underline]     ;#TODO how do get real font size
+    xlabel $options.b -text "Type" -background white
+    $options.b configure -font [linsert [$options.b cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
     grid config $options.b -row 0 -column 1 -padx 2 -pady 2 -sticky "w"
     
-    xlabel $options.c -text "Description" -bg white
-    $options.c configure -font [linsert [$options.c cget -font] end 11 bold underline]     ;#TODO how do get real font size
+    xlabel $options.c -text "Description" -background white
+    $options.c configure -font [linsert [$options.c cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
     grid config $options.c -row 0 -column 2 -padx 2 -pady 2 -sticky "w"
     
     set i 1
     foreach c [array names About::config] {
-        xlabel $options.a$i -text $c -bg white
-        $options.a$i configure -font [linsert [$options.a$i cget -font] end 9 bold]     ;#TODO how do get real font size
+        xlabel $options.a$i -text $c -background white
+        $options.a$i configure -font [linsert [$options.a$i cget -font] end -size 9 -weight bold]     ;#TODO how do get real font size
         grid config $options.a$i -row $i -column 0 -padx 2 -pady 2 -sticky "w"
         
-        xlabel $options.b$i -text [lindex $About::config($c) 0] -bg white
+        xlabel $options.b$i -text [lindex $About::config($c) 0] -background white
         grid config $options.b$i -row $i -column 1 -padx 2 -pady 2 -sticky "w"
         
-        xlabel $options.c$i -text [lindex $About::config($c) 1] -bg white -justify left
+        xlabel $options.c$i -text [lindex $About::config($c) 1] -background white -justify left
         grid config $options.c$i -row $i -column 2 -padx 2 -pady 2 -sticky "w"
 
         incr i
@@ -173,7 +174,8 @@ proc About::show {} {
     xlabel $theFrame.locationL -text "\nPsyche's configuration is stored in a Tcl file located at:" -anchor w
     pack $theFrame.locationL -fill x -expand 1
     xlabel $theFrame.location -text "$Pref::prefFile" -anchor w -foreground blue
-    $theFrame.location configure -font [linsert [$theFrame.location cget -font] end 9 underline]       ;#TODO: reliable way of getting font size
+    #$theFrame.location configure -font [linsert [$theFrame.location cget -font] end 9 underline]       ;#TODO: reliable way of getting font size
+    $theFrame.location configure -font [list underline]       ;#TODO: reliable way of getting font size
     pack $theFrame.location -anchor w
     if {$::PLATFORM == $::PLATFORM_MAC} {
         $theFrame.location configure -cursor pointinghand
@@ -196,21 +198,21 @@ proc About::show {} {
     set options [$sf getframe]
     
     # Headers
-    xlabel $options.a -text "Keys" -bg white
-    $options.a configure -font [linsert [$options.a cget -font] end 11 bold underline]     ;#TODO how do get real font size
+    xlabel $options.a -text "Keys" -background white
+    $options.a configure -font [linsert [$options.a cget -font] end -size 11 -weight bold -underline true]     ;#TODO how do get real font size
     grid config $options.a -row 0 -column 0 -padx 2 -pady 2 -sticky "w"
     
-    xlabel $options.b -text "Action" -bg white
-    $options.b configure -font [linsert [$options.b cget -font] end 11 bold underline]     ;#TODO how do get real font size
+    xlabel $options.b -text "Action" -background white
+    $options.b configure -font [linsert [$options.b cget -font] end -size 11 -weight bold -underline true]     ;#TODO how do get real font size
     grid config $options.b -row 0 -column 1 -padx 16 -pady 2 -sticky "w"
     
     set i 1
     foreach keyAndAction $About::keystrokes {
-        xlabel $options.a$i -text [lindex $keyAndAction 0] -bg white
-        $options.a$i configure -font [linsert [$options.a$i cget -font] end 9 bold]     ;#TODO how do get real font size
+        xlabel $options.a$i -text [lindex $keyAndAction 0] -background white
+        $options.a$i configure -font [linsert [$options.a$i cget -font] end -size 9 -weight bold]     ;#TODO how do get real font size
         grid config $options.a$i -row $i -column 0 -padx 2 -sticky "w"
         
-        xlabel $options.b$i -text [lindex $keyAndAction 1] -bg white
+        xlabel $options.b$i -text [lindex $keyAndAction 1] -background white
         grid config $options.b$i -row $i -column 1 -padx 16 -sticky "w"
         
         incr i

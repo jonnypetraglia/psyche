@@ -1,0 +1,207 @@
+As a Tcl/Tk program, Psyche does not require compilation.
+There are, however, tools available to assist in creating 
+an executable that does not require Tcl to be installed.
+
+The official means of compiling Psyche is freeWrap. But -since Psyche
+and all of its dependencies are pure Tcl/Tk, using any other tool
+you come across should not be difficult.
+
+
+
+Following are instructions on how to compile freeWrap,
+since it is not available on x86 in binary form, and
+I spent an entire night trying to get it to compile,
+then wrap.
+
+Primary Reference:
+    http://freewrap.sourceforge.net/freeWrapDocs.pdf
+    
+Secondary References:
+    http://wiki.tcl.tk/865
+    http://wiki.tcl.tk/855
+    
+
+For the most part, the official document for freeWrap listed
+above is spot on. But there are some steps that are ever so slightly
+lacking, so here is my method of how I got it working.
+
+I prefer to start with a virgin system. If you want to try to build on
+your own machine, by all means go ahead. But this guide is intended for
+an Arch VM, starting from the ISO.
+
+0. Get a working Arch VM installed (with networking)
+    Follow the guide https://wiki.archlinux.org/index.php/Installation_Guide
+	Seriously, it is that easy.
+	If your dhcp daemon doesn't start on boot, just run dhcpcd [interface]
+
+    Install needed build tools:
+	pacman -S wget gcc make libx11 tcllib
+	
+    For Tk you will also need:
+	pacman -S libxss libxft 
+	
+	Unfortunately tklib is in the aur...
+	    wget https://aur.archlinux.org/packages/tk/tklib/PKGBUILD
+	Remove tk from the dependencies. We'll be installing it later.
+	    makepkg --asroot
+	
+	Check if the directory /usr/local/lib/tcllib1.15 exists.
+	If it doesn't (and you installed tcllib like I told you), you will need to symlink tcllib:
+	    ln -s /usr/lib/tcllib /usr/local/lib/tcllib1.15
+	(If you're using another distro use 'locate tcllib' to determine where it is)
+	
+	You might have to symlink tklib as well. I can't remember.
+	
+	
+    Create a "build dir", where you will extract all the libraries needed for compilation.
+	cd to this directory, then prepare to get and untar all the packages.
+	
+    Get packages
+	wget http://prdownloads.sourceforge.net/tcl/tcl8.6.0-src.tar.gz
+	wget http://prdownloads.sourceforge.net/tcl/tk8.6.0-src.tar.gz
+	wget http://zlib.net/zlib-1.2.8.tar.gz
+	wget http://sourceforge.net/projects/infozip/files/Zip%202.2x%20and%20earlier/2.32/zip232.zip/download && move download zip232.zip
+	wget http://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.6/freewrapsrc66.tar.gz/download && mv download freewrapsrc66.tar.gz
+	tar -xf *.tar.gz
+	
+    You can do 'rm *.tar.gz' if you wish, or move them to another directory or whatever.
+	
+    The Contents of your build directory should now be:
+	build
+	docs
+	tcl8.6.0
+	tk8.6.0
+	TKtable2.10
+	zip-2.32
+	zlib-1.28
+    If you want, define a shell variable to refer to this folder, i.e. $BUILD_DIR.
+    Makes for a much easier following this guide, otherwise, just manually replace $BUILD_DIR with the
+    folder that contains all these subfolders
+  
+   Edit $BUILD_DIR/build/linux/makefile.linux
+       set BUILD_DIR to your build dir
+
+1. Compile static libraries for TCL and for TK
+
+    cd $BUILD_DIR/tcl8.6.0/unix
+    ./configure --disable-shared
+    make
+    make install
+    
+    cd $BUILD_DIR/tk8.6.0/unix
+    ./configure --disable-shared
+    make
+    make install
+	
+2. Compile zlib
+
+    cd $BUILD_DIR/zlib-1.2.8
+    ./configure --static
+    make
+    make install
+    
+3. Get ZIP-2.32. ONLY THIS VERSION WILL WORK
+
+    We need the object files for freewrap, but the zip binary for the creation of the freewrap.
+    In my experience (on a virgin VM) the former always failed to compile completely, so I had to do two steps.
+
+    A. zip binary
+    
+	There are two methods of getting the zip binary.
+	1. install via pacman and copy (my preferred)
+	    pacman -S zip
+	    cp $(which zip) $BUILD_DIR/build/linux/
+	2. build it, since we have the source
+	    cd $BUILD_DIR/zip-2.32
+	    make -f unix/Makefile clean
+	    make -f unix/Makefile flags
+	    make -f unix/Makefile generic
+	    cp zip ../build/linux/
+	
+	Basically the goal is to have a zip binary in BUILD_DIR/build/linux
+    
+    B. object files
+	The second part, of course, is getting the files needed for the actual compilation
+
+	cd $BUILD_DIR/zip-2.32
+	make -f unix/Makefile clean
+	make -f unix/Makefile flags
+	    open 'flags' with the editor of your choice (or use some shell fu to do to the following)
+	    replace '-DUNIX' with '-DUSE_ZLIB -DUNIX'
+	    replace 'LFLAGS2=""' with 'LFLAGS2="/usr/local/lib/libz.a"'
+	make -f unix/Makefile generic
+	    
+	NOTE: You might get a ton of errors about "multiple definition of crc32" and "undefined reference to strstart".
+	    It's ok, because we just need some of the object files, not the finished binary. Cross your fingers and continue on.
+	
+4. TkTable
+
+    cd $BUILD_DIR/tkTable2.10
+    ./configure --disable-shared
+    
+    You then have to open Makefile in your preferred editor and remove "-DUSE_TCL_STUBS=1 -DUSE_TK_STUBS=1"
+    Then continue
+    
+    make
+    make install
+    
+6. freeWrap
+
+    IMPORTANT: There is (AFAIK) only one error in the mainfile.linux, but it is a big one.
+    In the section for zipmain.o, you need to add "-DUSE_ZLIB" just like you did when compiling zip,
+    right before "-DUNIX". After that, it should (hopefully) compile.
+    
+	cd $BUILD_DIR/build/linux
+	make -f makefile.linux
+	
+    If you get an error about "tcllib is not installed, please install tcllib", scroll up to step 0 and
+    see the part about symlinking some libraries. I got it on both
+
+    BAM! You shoud now have:
+	freewishTCLSH - Tcl shell
+	freewrapTCLSH - freeWrap wrapper
+	freewrapTCLSH_bare - ???
+	
+    AND if you included Tk:
+	freewish - Tcl/Tk shell
+	freewrap - freeWrap with Tk
+	freewrap_bare - ???
+	
+	
+	
+
+Further notes for the sake of posterity:
+
+    In order to pull in a non-included pure-Tcl extension, you have to do the following:
+    
+    1. Create a file containing the paths to the files you want "wrapped" (i.e. all files in the extension)
+    
+	Example:
+	    /usr/share/tcltk/tcllib1.14/snit/snit2.tcl
+	    /usr/share/tcltk/tcllib1.14/snit/pkgIndex.tcl
+	    /usr/share/tcltk/tcllib1.14/snit/validate.tcl
+	    /usr/share/tcltk/tcllib1.14/snit/main2.tcl
+
+    2. In your main Tcl file, before you do any 'package require', make sure the package is in auto_path:
+    
+	Example:
+	    lappend ::auto_path [file dirname [zvfs::list */snit/pkgIndex.tcl]]
+	    package require snit
+	
+	
+    2.1 Unfortunately I am not positive on the syntax of the above; if you still get problems after step 3,
+	create a test.tcl file with the contents:
+	
+	    clipboard append [zvfs::list *]
+	
+	then run it with freewish, and paste into your favorite text editor. Ctrl+F for your extension
+	(e.g. snit), and make sure it's being wrapped.
+	
+	Other than that I don't know what to tell you.
+	
+    3. Run tclwrap with the flag '-f' and path to the include file:
+    
+	Example:
+	    freewrap main.tcl -f TheFileYouCreatedInStep1
+	
+	Note that the include file comes *after* your main file.

@@ -3,6 +3,11 @@ package require BWidget
 namespace eval Pref {
     #NOT a preference; for reference
     set CONFIG_DIR ~/.psyche
+    if {[file exists "[pwd]/portable"] && $::PLATFORM == $::PLATFORM_WIN} {
+        set CONFIG_DIR "[pwd]"
+    }
+    
+    puts "[file dirname [info script]]"
 
     variable timeout
     variable raiseNewTabs
@@ -19,7 +24,7 @@ namespace eval Pref {
     variable popupFont
     # (n|s)(e|w)   OR   999x999 for absolute path
     variable maxSendHistory
-    variable maxScrollback	;#TODO
+    variable maxScrollback
     variable mentionColor
     variable mentionSound
     variable toolbarHidden
@@ -36,13 +41,10 @@ namespace eval Pref {
     set logDir "$CONFIG_DIR/log"
     set popupTimeout 5000
     set popupFont {Helvetica 16}
-    switch $::PLATFORM {
-        $::PLATFORM_WIN {
-            set popupLocation se
-        }
-        default {
-            set popupLocation ne
-        }
+    if {$::PLATFORM == $::PLATFORM_WIN} {
+        set popupLocation se
+    } else {
+        set popupLocation ne
     }
     set toolbarHidden false
     
@@ -51,7 +53,6 @@ namespace eval Pref {
     
     set mentionColor "LightGreen" ;#PaleGreen, PaleGreen3
     set mentionSound "[pwd]/mention.wav"
-    
     
     set prefFile "$CONFIG_DIR/psyche.cfg"
     #set prefFile [pwd]/test.cfg                 ;#This is for debug
