@@ -3,15 +3,16 @@
 #### http://qweex.com ####
 
 ### Contents: ###
-  0. Configuration
-  1. What is Psyche
-  2. Dependencies
-  3. License
-  4. Icons & Sounds
+  1. Configuration
+  2. What is Psyche
+  3. Dependencies
+  4. License
+  5. Icons & Sounds
+  6. Compiling
 
 ------------------------------------------------------
 
-0. Configuration
+1. Configuration
 ----------------
 
 Psyche's user configuration is stored in one file located at ~/.psyche/config.tcl (the '~' means your home directory, for you Windows users). 
@@ -64,7 +65,7 @@ For default values, see the "pref.tcl" file.
 ** Note:** Even though the file is all written in Tcl, it is filtered before being executed, so you can't just throw in any old Tcl. Currently the only thing currently accepted is calling "set" on the listed values. Anything else will be ignored. And it's currently up to you use the right data types/domains when entering values.
 
 
-1. What is Psyche?
+2. What is Psyche?
 ------------------
 
 I wrote/am writing/have written Psyche for the following reasons:
@@ -99,7 +100,7 @@ as the word for "soul", and that word is "psyche".
 
 
 
-2. Dependencies
+3. Dependencies
 ---------------
 Psyche uses just a few dependencies, all of which are written in pure Tcl/Tk:
 
@@ -153,13 +154,13 @@ types and yeah, you have to copy a few functions between both, but you don't gai
 by overriding functions differently. You can do that anyway.
 
 
-3. License
+4. License
 ----------
 I've decided to go ahead and release Psyche under the BSD license.
 Because Fuck yeah, free software!
 
 
-4. Icons & Sounds
+5. Icons & Sounds
 -----------------
 The icons I am (currently) using for Psyche are compliments of David Keegan[https://github.com/kgn/kgn_icons],
 which are released under a loose license. He's totally cool like that.
@@ -170,3 +171,7 @@ which is released under the CC BY-NC-ND 3.0. Which is still pretty cool.
 
 The sound for mentions is from on freesound by DJ Chronos.
 Bless his mouth. [http://www.freesound.org/people/DJ%20Chronos/sounds/29927/]
+
+5. Compiling
+-----------------
+The preferred method of "compiling" Psyche is by using another one of my projects named [tclkitty](https://github.com/notbryant/tclkitty).
