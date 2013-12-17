@@ -108,7 +108,6 @@ proc About::show {} {
     
     # Donate
     xlabel $theFrame.donate -text "Like Psyche? Support the developer." -foreground blue
-    puts "butts [$theFrame.donate cget -font]"
     $theFrame.donate configure -font [linsert [$theFrame.donate cget -font] end -underline true]       ;#TODO: reliable way of getting font size
     if {$::PLATFORM == $::PLATFORM_MAC} {
         $theFrame.donate configure -cursor pointinghand
@@ -229,16 +228,17 @@ proc About::show {} {
 }
 
 proc platformOpen { whatwhat } {
-    switch $::PLATFORM {
-        $::PLATFORM_WIN {
-            set evalString "exec \"[auto_execok START]\" \"$whatwhat\""
-            eval $evalString
-        }
-        $::PLATFORM_MAC {
-            exec "open" $whatwhat
-        }
-        default {
-            catch {exec "xdg-open" $whatwhat}
+    debug "Attempting to open  ${whatwhat}"
+    if {$::PLATFORM == $::PLATFORM_WIN} {
+        debugV "Opening on Windows"
+        exec {*}[auto_execok start] "$whatwhat"
+    } elseif {$::PLATFORM == $::PLATFORM_MAC} {
+        debugV "Opening on Mac"
+        exec "open" $whatwhat
+    } else {
+        debugV "Opening on Etc"
+        if { [catch {exec "xdg-open" $whatwhat}] } {
+            debugE "Could not open  $whatwhat"
         }
     }
 }

@@ -150,7 +150,8 @@ proc Main::init_toolbar { } {
         -command Main::find]
     $bbox add -image [image create photo -file $About::icondir/options.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
-        -helptext "Options"
+        -helptext "Preferences" \
+        -command Pref::show
     $bbox add -image [image create photo -file $About::icondir/about.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "About" \

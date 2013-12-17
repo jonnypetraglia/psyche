@@ -1,8 +1,7 @@
 package require Tk
-clipboard append [zvfs::list *]
-lappend ::auto_path [file dirname [zvfs::list */bwidget1.9.5/pkgIndex.tcl]]
+#lappend ::auto_path [file dirname [zvfs::list */bwidget1.9.5/pkgIndex.tcl]]
+#lappend ::auto_path [file dirname [zvfs::list */snit/pkgIndex.tcl]]
 package require BWidget
-lappend ::auto_path [file dirname [zvfs::list */snit/pkgIndex.tcl]]
 package require snit
 
 proc debugV {arg} {
@@ -56,6 +55,7 @@ namespace eval Main {
     
     variable hiddenToolbar
     variable meta_toolbar
+    variable win
     
     variable MIDDLE_CLICK
     
@@ -79,10 +79,12 @@ switch $tcl_platform(platform) {
             set ::PLATFORM $::PLATFORM_UNIX
             set Main::MIDDLE_CLICK 3
         }
+        set Main::fs_sep "/"
     }
     "windows" {
         set ::PLATFORM $::PLATFORM_WIN
         set Main::MIDDLE_CLICK 3
+        set Main::fs_sep "\\"
     }
 }
 
@@ -91,11 +93,17 @@ if {$tcl_version >= 8.5 && $::PLATFORM != $::PLATFORM_MAC} {
     interp alias {} xlabel {} ttk::label
     interp alias {} xentry {} ttk::entry
     interp alias {} xcheckbutton {} ttk::checkbutton
+    interp alias {} xspinbox {} ttk::spinbox
+    interp alias {} xlabelframe {} ttk::labelframe
+    interp alias {} xradiobutton {} ttk::radiobutton
 } else {
     interp alias {} xbutton {} button
     interp alias {} xlabel {} label
     interp alias {} xentry {} entry
     interp alias {} xcheckbutton {} checkbutton
+    interp alias {} xspinbox {} spinbox
+    interp alias {} xlabelframe {} labelframe
+    interp alias {} xradiobutton {} radiobutton
 }
 source about.tcl
 source pref.tcl
@@ -146,16 +154,16 @@ proc Main::init { } {
         }
     }
     
-    
+    set Main::win .
     # Status Bar & Toolbar
-    set Main::mainframe [MainFrame .mainframe]
+    set Main::mainframe [MainFrame ${Main::win}mainframe]
                        #-menu         $Main::descmenu]
     
     
     # Create status bar
         # Modified version of MainFrame::addindicator
-    if {[string length [Widget::getoption .mainframe -statusbarfont]]} {
-        set sbfnt [list -font [Widget::getoption .mainframe -statusbarfont]]
+    if {[string length [Widget::getoption ${Main::win}mainframe -statusbarfont]]} {
+        set sbfnt [list -font [Widget::getoption ${Main::win}mainframe -statusbarfont]]
     } else {
         set sbfnt {}
     }
@@ -180,18 +188,20 @@ proc Main::init { } {
     $Main::notebook raise [$Main::notebook page 0]
     pack $Main::mainframe -fill both -expand yes
     
-    
-    wm iconphoto . -default [image create photo -file $About::icondir/butterfly-icon_48.gif]
+    if {$Main::win != "."} {
+        toplevel ${Main::win} -padx 10 -pady 10
+    }
+    wm iconphoto ${Main::win} -default [image create photo -file $About::icondir/butterfly-icon_48.gif]
     set Main::servers(1) [tabServer %AUTO%]
     $Main::notebook compute_size
-    wm title . "$Main::APP_NAME v$Main::APP_VERSION"
+    wm title ${Main::win} "$Main::APP_NAME v$Main::APP_VERSION"
     
     # Measure the GUI
-    bind . <Configure> { 
-        if {"%W" == ".mainframe.status.prgf"} {
-            bind . <Configure> ""
-            wm minsize . [winfo width .] [winfo height .]
-            debug "MinSize: [winfo width .]x[winfo height .]"
+    bind ${Main::win} <Configure> { 
+        if {"%W" == "${Main::win}mainframe.status.prgf"} {
+            bind ${Main::win} <Configure> ""
+            wm minsize ${Main::win} [winfo width ${Main::win}] [winfo height ${Main::win}]
+            debug "MinSize: [winfo width ${Main::win}]x[winfo height ${Main::win}]"
         }
     }
     set Main::default_tab_color [$Main::notebook itemcget [$Main::servers(1) getId] -background]
@@ -201,84 +211,85 @@ proc Main::init { } {
     
     # Find
     if {$::PLATFORM == $::PLATFORM_MAC} {
-        bind . <Command-F> { Main::find }
-        bind . <Command-f> { Main::find }
-        bind . <Command-G> { Main::findNext }
-        bind . <Command-g> { Main::findNext }
+        bind ${Main::win} <Command-F> { Main::find }
+        bind ${Main::win} <Command-f> { Main::find }
+        bind ${Main::win} <Command-G> { Main::findNext }
+        bind ${Main::win} <Command-g> { Main::findNext }
     } else {
-        bind . <Control-F> { Main::find }
-        bind . <Control-f> { Main::find }
-        bind . <F3>        { Main::findNext }
+        bind ${Main::win} <Control-F> { Main::find }
+        bind ${Main::win} <Control-f> { Main::find }
+        bind ${Main::win} <F3>        { Main::findNext }
     }
     
     # Create the tab menu
-    menu .tabMenu -tearoff false -title Bookmarks
-    .tabMenu add command -label "Join channel" -command Main::showJoinDialog
-    .tabMenu add command -label "Part or Quit" -command Main::partOrQuit
-    .tabMenu add command -label "Close tab" -command Main::closeTabFromGui
+    menu ${Main::win}tabMenu -tearoff false -title Bookmarks
+    ${Main::win}tabMenu add command -label "Join channel" -command Main::showJoinDialog
+    ${Main::win}tabMenu add command -label "Part or Quit" -command Main::partOrQuit
+    ${Main::win}tabMenu add command -label "Close tab" -command Main::closeTabFromGui
     
     # Create the nicklist menu
-    menu .nicklistMenu -tearoff false -title Bookmarks
-    .nicklistMenu add command -label "PM" -command Main::NLpm 
-    .nicklistMenu add separator
-    .nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois "}
-    .nicklistMenu add command -label "Version" -command {Main::NLcmd "/version "}
-    .nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping "}
+    menu ${Main::win}nicklistMenu -tearoff false -title Bookmarks
+    ${Main::win}nicklistMenu add command -label "PM" -command Main::NLpm 
+    ${Main::win}nicklistMenu add separator
+    ${Main::win}nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois "}
+    ${Main::win}nicklistMenu add command -label "Version" -command {Main::NLcmd "/version "}
+    ${Main::win}nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping "}
     # Modes submenu
-    menu .nicklistMenu.modes
-    .nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
-    .nicklistMenu.modes add command -label "Take Op" -command "Main::NLmode -o"
-    .nicklistMenu.modes add command -label "Give HalfOp" -command "Main::NLmode +h"
-    .nicklistMenu.modes add command -label "Take HalfOp" -command "Main::NLmode -h"
-    .nicklistMenu.modes add command -label "Give Voice" -command "Main::NLmode +v"
-    .nicklistMenu.modes add command -label "Take Voice" -command "Main::NLmode -v"
-    .nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
+    menu ${Main::win}nicklistMenu.modes
+    ${Main::win}nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
+    ${Main::win}nicklistMenu.modes add command -label "Take Op" -command "Main::NLmode -o"
+    ${Main::win}nicklistMenu.modes add command -label "Give HalfOp" -command "Main::NLmode +h"
+    ${Main::win}nicklistMenu.modes add command -label "Take HalfOp" -command "Main::NLmode -h"
+    ${Main::win}nicklistMenu.modes add command -label "Give Voice" -command "Main::NLmode +v"
+    ${Main::win}nicklistMenu.modes add command -label "Take Voice" -command "Main::NLmode -v"
+    ${Main::win}nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
     # Ban submenu
-    menu .nicklistMenu.kickban
-    .nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
-    .nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
-    .nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
-    .nicklistMenu.kickban add separator
-    .nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host false"
-    .nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain false"
-    .nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban *!user@*.host false"
-    .nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban *!user@domain false"
-    .nicklistMenu.kickban add separator
-    .nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLban *!*@*.host true"
-    .nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLban *!*@domain true"
-    .nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLban *!user@*.host true"
-    .nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLban *!user@domain true"
-    .nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
-    .nicklistMenu add command -label "Ignore" -command {Main::NLcmd "/ignore"}
-    .nicklistMenu add command -label "Watch" -command {Main::NLcmd "/watch +"}
+    menu ${Main::win}nicklistMenu.kickban
+    ${Main::win}nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
+    ${Main::win}nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
+    ${Main::win}nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
+    ${Main::win}nicklistMenu.kickban add separator
+    ${Main::win}nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host false"
+    ${Main::win}nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain false"
+    ${Main::win}nicklistMenu.kickban add command -label "Ban *!user@*.host" -command "Main::NLban *!user@*.host false"
+    ${Main::win}nicklistMenu.kickban add command -label "Ban *!user@domain" -command "Main::NLban *!user@domain false"
+    ${Main::win}nicklistMenu.kickban add separator
+    ${Main::win}nicklistMenu.kickban add command -label "Kickban *!*@*.host" -command "Main::NLban *!*@*.host true"
+    ${Main::win}nicklistMenu.kickban add command -label "Kickban *!*@domain" -command "Main::NLban *!*@domain true"
+    ${Main::win}nicklistMenu.kickban add command -label "Kickban *!user@*.host" -command "Main::NLban *!user@*.host true"
+    ${Main::win}nicklistMenu.kickban add command -label "Kickban *!user@domain" -command "Main::NLban *!user@domain true"
+    ${Main::win}nicklistMenu add cascade -label "Kick/Ban" -menu .nicklistMenu.kickban
+    ${Main::win}nicklistMenu add command -label "Ignore" -command {Main::NLcmd "/ignore"}
+    ${Main::win}nicklistMenu add command -label "Watch" -command {Main::NLcmd "/watch +"}
     
-    wm protocol . WM_DELETE_WINDOW {
-    #wm command . [expr {"0x111"}]
+    wm protocol ${Main::win} WM_DELETE_WINDOW {
+    #wm command ${Main::win} [expr {"0x111"}]
     #if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
-        exit
+        #puts herpaderp
+        #exit
     #}
     }
-    bind . <Activate> {
+    bind ${Main::win} <Activate> {
         Main::unsetTabMention
     }
     
     # Change to tab
     if { $::PLATFORM == $::PLATFORM_MAC } {
         for {set i 1} {$i < 10} {incr i} {
-            bind . <Command-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
+            bind ${Main::win} <Command-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
         }
-        bind . <Command-KeyPress-0> "Main::changeToTab 9]"
+        bind ${Main::win} <Command-KeyPress-0> "Main::changeToTab 9]"
     } else {
         for {set i 1} {$i < 10} {incr i} {
-            bind . <Alt-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
+            bind ${Main::win} <Alt-KeyPress-$i> "Main::changeToTab [expr {$i -1}]"
         }
-        bind . <Alt-KeyPress-0> "Main::changeToTab 9"
+        bind ${Main::win} <Alt-KeyPress-0> "Main::changeToTab 9"
     }
     
     # Toggle Toolbar
     set Main::hiddenToolbar [expr {$Pref::toolbarHidden}]
     if { $Main::hiddenToolbar} { Main::toggleToolbar }
-    bind . <F10> { Main::toggleToolbar }
+    bind ${Main::win} <F10> { Main::toggleToolbar }
 }
 
 proc Main::changeToTab {i} {
@@ -486,6 +497,8 @@ proc Main::closeTab {target} {
     set serv [lindex $parts 0]
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
+    
+    debug "Closing tab: $serv $chan"
     
     set tabIndex [$Main::notebook index $target]
     if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {

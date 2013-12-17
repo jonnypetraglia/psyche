@@ -473,7 +473,7 @@ snit::type tabChannel {
     method notifyMention {mNick mMsg} {
         #tk_messageBox -message "$mNick \n\n $mMsg" -parent . -title "You have been mentioned" -icon error -type ok
         ::notebox::addmsg "$mNick - $mMsg"
-        $Main::notebook itemconfigure $id_var -background $mentionColor
+        $Main::notebook itemconfigure $id_var -background $Pref::mentionColor
         if {[string length $Pref::mentionSound] > 0 } {
             playSound $Pref::mentionSound
         }

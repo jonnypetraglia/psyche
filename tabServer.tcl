@@ -214,6 +214,7 @@ snit::type tabServer {
     ############## Quit the server ##############
     method quit {reason} {
         set timestamp [$self getTimestamp]
+        debug "Quitting server: [$self getServer]"
         $self _send "QUIT $reason"
         close $connDesc
         unset connDesc
@@ -622,7 +623,7 @@ snit::type tabServer {
             debugE "tabServer::initServer - $problemDesc"
             tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
                 if [info exists connDesc] {
-                    close connDesc
+                    close $connDesc
                     unset connDesc
                 }
             return
@@ -634,7 +635,7 @@ snit::type tabServer {
                 debug "Connect ok!"
             }
             "timeout" {
-                close connDesc
+                close $connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Connection timed out" ""
                 debugE "tabServer::initServer - Connection timed out"
@@ -642,7 +643,7 @@ snit::type tabServer {
                 return
             }
             default {
-                close connDesc
+                close $connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
                 debugE "tabServer::initServer - Unknown"
@@ -685,7 +686,7 @@ snit::type tabServer {
                 fileevent $connDesc readable [mymethod _recv]
             } probDesc]} {
             if [info exists connDesc] {
-                close connDesc
+                close $connDesc
                 unset connDesc
             }
             debugE "initServer - $probDesc"
