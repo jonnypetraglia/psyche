@@ -1,5 +1,5 @@
 # Psyche - IRC in Tlc/Tk #
-#### Copyright Jon Petraglia of Qweex ####
+#### Copyright 2013 Jon Petraglia of Qweex ####
 #### http://qweex.com ####
 
 ### Contents: ###
@@ -15,12 +15,14 @@
 1. Configuration
 ----------------
 
+Of course, you can use the nice GUI preferences dialog to configure Psyche, but you can also manually write the config file, which is surprisingly easy!
+
 Psyche's user configuration is stored in one file located at ~/.psyche/config.tcl (the '~' means your home directory, for you Windows users). 
 
 To set a value, use the same nomenclature as regular Tcl:
 
-	set defaultKick "You have done something bad. You should not do that."
-	
+    set defaultKick "You have done something bad. You should not do that."
+
 #### Values: ###
 
   * timeout = (integer)
@@ -57,12 +59,13 @@ To set a value, use the same nomenclature as regular Tcl:
     * the path to the sound file to be played when you are mentioned; set to the empty string "" if you want to disable sounds
   * bookmarks = (array entry containing list)
     * bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect. If any channels are given, they are joined automatically.
-    * Syntax:   bookmarks($nickname) {$server $port $nick _$channel1 $channel2 ..._}
+    * Syntax:   bookmarks($nickname) {$server $port {$nick _$pass_} _$channel1 $channel2 ..._}
     * Example:  bookmarks(Geekshed) {irc.geekshed.net 6667 notbryant #qweex}
 
 For default values, see the "pref.tcl" file.
 
-** Note:** Even though the file is all written in Tcl, it is filtered before being executed, so you can't just throw in any old Tcl. Currently the only thing currently accepted is calling "set" on the listed values. Anything else will be ignored. And it's currently up to you use the right data types/domains when entering values.
+** Note:** Even though the file is all written in Tcl, it is filtered before being executed, so you can't just throw in any old Tcl. Currently the only thing currently accepted is calling "set" on the listed values. Anything else will be ignored.
+And it's currently up to you use the right data types/domains when entering values.
 
 
 2. What is Psyche?
@@ -115,20 +118,20 @@ just the separate libraries and manually install them.
 tcllib is released under the same [BSD-style license](http://www.tcl.tk/software/tcltk/license.html)
 used by Tcl and Tk.
 
-[tcllib Website](http://core.tcl.tk/tcllib/home)
-[tcllib Download](http://core.tcl.tk/tcllib/wiki?name=Downloads)
-[tcllib Github](https://github.com/tcltk/tcllib)
-[tcllib Gutter](http://www.flightlab.com/~joe/gutter/packages/tcllib.html)
+  * [tcllib Website](http://core.tcl.tk/tcllib/home)
+  * [tcllib Download](http://core.tcl.tk/tcllib/wiki?name=Downloads)
+  * [tcllib Github](https://github.com/tcltk/tcllib)
+  * [tcllib Gutter](http://www.flightlab.com/~joe/gutter/packages/tcllib.html)
 
 ##### BWidget #####
 
 BWidget provides a variety of advanced widgets for Tk and is written in pure Tcl/Tk.
 
-The current version of Psyched was tested with BWidget **1.9.6**.
+The current version of Psyche was tested with BWidget **1.9.6**.
 
-[BWidget Download](http://sourceforge.net/projects/tcllib/files/BWidget)
-[BWidget Github](https://github.com/tcltk/bwidget)
-[BWidget Gutter](http://www.flightlab.com/~joe/gutter/packages/bwidget.html)
+  * [BWidget Download](http://sourceforge.net/projects/tcllib/files/BWidget)
+  * [BWidget Github](https://github.com/tcltk/bwidget)
+  * [BWidget Gutter](http://www.flightlab.com/~joe/gutter/packages/bwidget.html)
 
 I chose BWidget purely for the Notebook (tabs) widget. It's pure Tcl, doesn't look like crap, and is
 included inside tcllib.
@@ -137,11 +140,11 @@ included inside tcllib.
 
 snit is a "type system", which means that it's kinda sorta like OO for Tcl.
 
-The current version of Psyched was tested with snit **2.3.2**.
+The current version of Psyche was tested with snit **2.3.2**.
 
-[snit Home](http://www.flightlab.com/~joe/gutter/packages/snit.html)
-[snit Github](https://github.com/tcltk/tcllib/tree/master/modules/snit)
-[snit Gutter](http://www.flightlab.com/~joe/gutter/packages/snit.html)
+  * [snit Home](http://www.flightlab.com/~joe/gutter/packages/snit.html)
+  * [snit Github](https://github.com/tcltk/tcllib/tree/master/modules/snit)
+  * [snit Gutter](http://www.flightlab.com/~joe/gutter/packages/snit.html)
 
 
 I chose snit as the "OO-esque" extension because it really doesn't get in your way, and it
@@ -169,9 +172,11 @@ The logo icon (the butterfly) is compliments of Ergosign
 [http://www.iconarchive.com/show/free-spring-icons-by-ergosign/butterfly-icon.html],
 which is released under the CC BY-NC-ND 3.0. Which is still pretty cool.
 
-The sound for mentions is from on freesound by DJ Chronos.
-Bless his mouth. [http://www.freesound.org/people/DJ%20Chronos/sounds/29927/]
+The sound for mentions is from freesound by DJ Chronos [http://www.freesound.org/people/DJ%20Chronos/sounds/29927/]
+and is released under the CC BY 3.0. Bless his mouth.
 
 5. Compiling
 -----------------
 The preferred method of "compiling" Psyche is by using another one of my projects named [tclkitty](https://github.com/notbryant/tclkitty).
+
+More information about how to "compile" Psyche into a single executable should be found at tclkitty's wiki portion on its Github.
