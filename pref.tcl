@@ -113,7 +113,7 @@ proc Pref::readPrefs {} {
         }
     }
     close $fp
-    menu .bookmarkMenu -tearoff true -title Bookmarks
+    menu .bookmarkMenu -tearoff false -title Bookmarks
     Pref::createBookmarkMenu
     return 1
 }

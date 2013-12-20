@@ -29,8 +29,8 @@ namespace eval Main {
     variable APP_NAME
     variable APP_BUILD_DATE
     set APP_NAME Psyche
-    set APP_VERSION 0.02
-    set APP_BUILD_DATE "July 20, 2013"
+    set APP_VERSION 0.05
+    set APP_BUILD_DATE "December 20, 2013"
     
     variable DEFAULT_PORT
     set DEFAULT_PORT 6667
@@ -230,13 +230,13 @@ proc Main::init { } {
     }
     
     # Create the tab menu
-    menu ${Main::win}tabMenu -tearoff false -title Bookmarks
+    menu ${Main::win}tabMenu -tearoff false
     ${Main::win}tabMenu add command -label "Join channel" -command Main::showJoinDialog
     ${Main::win}tabMenu add command -label "Part or Quit" -command Main::partOrQuit
     ${Main::win}tabMenu add command -label "Close tab" -command Main::closeTabFromGui
     
     # Create the nicklist menu
-    menu ${Main::win}nicklistMenu -tearoff false -title Bookmarks
+    menu ${Main::win}nicklistMenu -tearoff false
     ${Main::win}nicklistMenu add command -label "PM" -command Main::NLpm 
     ${Main::win}nicklistMenu add separator
     ${Main::win}nicklistMenu add command -label "Whois" -command {Main::NLcmd "/whois "}

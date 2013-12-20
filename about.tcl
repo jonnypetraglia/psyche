@@ -218,6 +218,31 @@ proc About::show {} {
     }
     pack $sw -fill both -expand 1 -padx 2
     
+    #################### License tab ####################
+    set page [$notebook insert end license -text "License"]
+    $notebook raise [$notebook page 0]
+    set theFrame [frame $page.frame]
+    pack $theFrame -fill both -expand 1
+    
+    # Scroll window content
+    set sw [ScrolledWindow $theFrame.sv -background white ]
+    set sf [ScrollableFrame $sw.scrollable -background white]
+    $sw setwidget $sf
+    set license [$sf getframe]
+    
+    # Header
+    xlabel $license.header -text "BSD 3-Clause License" -background white
+    $license.header configure -font [linsert [$license.header cget -font] end -weight bold -underline true]
+    
+    # Read in dat license!
+    set fp [open "LICENSE" r]
+    xlabel $license.content -text "[read $fp]" -background white
+    close $fp
+    
+    # Pack it in
+    pack $license.header -expand 1
+    pack $license.content -fill both -expand 1
+    pack $sw -fill both -expand 1 -padx 2
     
     
     # Bindings for scrollviews
