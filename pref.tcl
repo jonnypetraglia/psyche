@@ -44,6 +44,9 @@ namespace eval Pref {
     variable glogDirBtn
     variable gptimeout
     variable gpopupFontBtn
+    variable graiseNew
+    variable gtoolbar
+    variable glogEnabled
     variable vnewFont
     
     set timeout 5000
@@ -127,8 +130,11 @@ proc Pref::show {} {
     
     set notebook [NoteBook .prefDialog.nb]
     $notebook compute_size
-    xbutton .prefDialog.save -text "Save"
-    xbutton .prefDialog.cancel -text "Cancel"
+    xbutton .prefDialog.save -text "Save" -command {
+        Pref::writePrefs
+        destroy .prefDialog
+    }
+    xbutton .prefDialog.cancel -text "Cancel" -command {destroy .prefDialog}
     grid config $notebook        -row 0 -column 0 -padx 4 -pady 4 -columnspan 100
     grid config .prefDialog.save -row 1 -column 98
     grid config .prefDialog.cancel -row 1 -column 99 -padx 4 -pady 4
@@ -146,13 +152,14 @@ proc Pref::show {} {
     xlabel $theFrame.l_scrollback       -text "Max Scrollback"
     set Pref::gscrollback [xspinbox $theFrame.scrollback       -from 0 -increment 10 -to 100000]
     xlabel $theFrame.l_raiseNewTabs     -text "Raise New Tabs"
-    xcheckbutton $theFrame.raiseNewTabs -onvalue true -offvalue false \
-        -variable Pref::raiseNewTabs
+    set Pref::graiseNew [xcheckbutton $theFrame.raiseNewTabs -onvalue true -offvalue false]
     xlabel $theFrame.l_mcolor           -text "Mention Color"
     set Pref::gmenColorBtn [button $theFrame.mcolor -width 10]
     xlabel $theFrame.l_msound           -text "Mention Sound"
     set Pref::gmenSound [xentry $theFrame.msound -width 50]
     set Pref::gmenSoundBtn [xbutton $theFrame.b_msound -width 4 -text "..."]
+    xlabel $theFrame.l_hideToolbar          -text "Toolbar Hidden"
+    set Pref::gtoolbar [xcheckbutton $theFrame.hideToolbar -onvalue true -offvalue false]
     
     grid config $theFrame.l_timeout      -row 0 -column 0 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.timeout        -row 0 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
@@ -167,6 +174,8 @@ proc Pref::show {} {
     grid config $theFrame.l_msound       -row 5 -column 0 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.msound         -row 5 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
     grid config $theFrame.b_msound       -row 5 -column 4 -padx 5 -pady 5
+    grid config $theFrame.l_hideToolbar  -row 6 -column 0 -padx 5 -pady 5 -sticky "w"
+    grid config $theFrame.hideToolbar    -row 6 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
     
     #################### Messages tab ####################
     set page [$notebook insert end preftab2 -text "Default Messages"]
@@ -234,12 +243,12 @@ proc Pref::show {} {
     pack $theFrame -fill both -expand 1
     
     xlabel $theFrame.l_logenabled -text "Logging enabled"
-    xcheckbutton $theFrame.logenabled -variable Pref::logEnabled -onvalue true -offvalue false
+    set Pref::glogEnabled [xcheckbutton $theFrame.logenabled -onvalue true -offvalue false]
     
     xlabel $theFrame.l_logdir           -text "Logging Directory"
     set Pref::glogDir [xentry $theFrame.logdir -width 50]
     set Pref::glogDirBtn [xbutton $theFrame.b_logdir -width 4 -text "..."]
-    xbutton $theFrame.openlogdir -text "Open Data Location"
+    xbutton $theFrame.openlogdir -text "Open Data Location" -command {platformOpen $Pref::logDir}
     
     grid config $theFrame.l_logenabled      -row 0 -column 0 -padx 5 -pady $pady -sticky "w"
     grid config $theFrame.logenabled        -row 0 -column 1 -padx 5 -pady $pady -sticky "w"
@@ -248,22 +257,20 @@ proc Pref::show {} {
     grid config $theFrame.b_logdir          -row 1 -column 4 -padx 5 -pady 5
     grid config $theFrame.openlogdir        -row 2 -column 0 -padx 5 -pady 5 -columnspan 4
     
-    Pref::setValues
-    
     #################### Binding clicks ####################
-    bind $Pref::gmenColorBtn <ButtonRelease> {
+    $Pref::gmenColorBtn configure -command {
         set newColor [tk_chooseColor -initialcolor $Pref::mentionColor -parent .prefDialog]
         if {[string length $newColor] > 0} {
             set $Pref::mentionColor [string range $newColor 1 end]
             $Pref::gmenColorBtn configure -background $newColor -activebackground $newColor
         }
     }
-    bind $Pref::gmenSoundBtn <ButtonRelease> {
+    $Pref::gmenSoundBtn configure -command {
         set newFile [tk_getOpenFile -filetypes {{{Wave Files} {.wav}}} -parent .prefDialog]
         $Pref::gmenSound delete 0 end
         $Pref::gmenSound insert 0 $newFile
     }
-    bind $Pref::gpopupFontBtn <ButtonRelease> {
+    $Pref::gpopupFontBtn configure -command {
         set newFont [SelectFont .prefDialog.font -font $Pref::popupFont]
         if {[string length $newFont] > 0} {
             set Pref::vnewFont $newFont
@@ -271,16 +278,8 @@ proc Pref::show {} {
             
         }
     }
-    bind .prefDialog.cancel <ButtonRelease> {
-        destroy .prefDialog
-    }
-    bind .prefDialog.save <ButtonRelease> {
-        wm withdraw .prefDialog
-        Pref::writePrefs
-    }
-    bind $theFrame.openlogdir <ButtonRelease> {
-        platformOpen $Pref::logDir
-    }
+    
+    Pref::setValues
 }
 
 proc Pref::setValues {} {
@@ -305,6 +304,10 @@ proc Pref::setValues {} {
     $Pref::gaway delete 0 end
     $Pref::gaway insert 0 $Pref::defaultAway
     $Pref::gptimeout    set $Pref::popupTimeout
+    set ::[$Pref::graiseNew cget -variable]   $Pref::raiseNewTabs
+    set ::[$Pref::gtoolbar cget -variable]    $Pref::toolbarHidden
+    set ::[$Pref::glogEnabled cget -variable] $Pref::logEnabled
+    
     set ::nsew $Pref::popupLocation
     $Pref::gpopupFontBtn configure -text [join $Pref::popupFont " "]  -font $Pref::popupFont
 }
