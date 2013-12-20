@@ -215,6 +215,9 @@ snit::type tabServer {
     method quit {reason} {
         set timestamp [$self getTimestamp]
         debug "Quitting server: [$self getServer]"
+        if {![info exists connDesc]} {
+            return
+        }
         $self _send "QUIT $reason"
         close $connDesc
         unset connDesc
@@ -740,6 +743,7 @@ snit::type tabServer {
     
     method closeChannel {chann} {
         $Main::notebook delete [$channelMap($chann) getId]
+        $self _send "part $chann"
         $channelMap($chann) closeLog
         $self removeActiveChannel $chann
         unset channelMap($chann)
@@ -773,6 +777,7 @@ snit::type tabServer {
     
     ############## Internal Function ##############
     method _recv {} {
+        catch {
         gets $connDesc line
         set timestamp [$self getTimestamp]
         debug $line
@@ -1236,5 +1241,10 @@ snit::type tabServer {
             return
         }
         debug "WHAT: $line"
+        } error_code
+        if {[string length $error_code] > 0} {
+            ::notebox::addmsg "ERROR: $server  -  $error_code"
+            puts "ERROR: $server ${error_code}"
+        }
     }
 }

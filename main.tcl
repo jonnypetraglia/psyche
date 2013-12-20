@@ -196,6 +196,7 @@ proc Main::init { } {
     $Main::notebook compute_size
     wm title ${Main::win} "$Main::APP_NAME v$Main::APP_VERSION"
     
+    
     # Measure the GUI
     bind ${Main::win} <Configure> { 
         if {"%W" == "${Main::win}mainframe.status.prgf"} {
@@ -266,7 +267,7 @@ proc Main::init { } {
     #wm command ${Main::win} [expr {"0x111"}]
     #if { [tk_messageBox -type yesno -icon question -message "Are you sure you want to quit?"] != "no" } {
         #puts herpaderp
-        #exit
+        exit
     #}
     }
     bind ${Main::win} <Activate> {
@@ -498,16 +499,16 @@ proc Main::closeTab {target} {
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
-    debug "Closing tab: $serv $chan"
-    
     set tabIndex [$Main::notebook index $target]
     if { $tabIndex == [expr {[llength [$Main::notebook pages]] - 1}]} {
         set tabIndex [expr {$tabIndex -1}]
     }
     
     if {[string length $chan] > 0} {
+        debug "Closing channel: $serv $chan"
         $Main::servers($serv) closeChannel $chan
     } else {
+        debug "Closing server: $serv $chan"
         $Main::servers($serv) quit $Pref::defaultQuit
         $Main::servers($serv) closeAllChannelTabs
         $Main::notebook delete $target
