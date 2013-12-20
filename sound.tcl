@@ -11,7 +11,7 @@ proc playSound {sound} {
             ]   ;# wav only: aplay || cat $sount > /dev/pcsp
     }
     if {$::PLATFORM == $::PLATFORM_WIN} {
-        catch {exec "[pwd]/sap" "[file nativename [file normalize $sound]]" "&"}
+        catch {exec "[pwdW]/sap" "[file nativename [file normalize $sound]]" "&"}
     } elseif {$::PLATFORM == $::PLATFORM_MAC} {
         catch {exec "afplay" "[file nativename [file normalize $sound]]" "&"}
     } else {

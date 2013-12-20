@@ -16,6 +16,13 @@ proc debugE {arg} {
     puts "DEBUG: $arg"
 }
 
+# takes care of file separator
+proc pwdW {} {
+    if {$::PLATFORM==$::PLATFORM_WIN} {
+        return [regsub -all {/} [pwd] "\\"]
+    }
+    return [pwd]
+}
 
 namespace eval Main {
     variable APP_VERSION

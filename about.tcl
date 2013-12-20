@@ -13,7 +13,7 @@ namespace eval About {
     set bwidget_version [package version BWidget]
     set snit_version [package version snit]
     
-    set icondir [pwd]/icons
+    set icondir [pwdW]/icons
     set copyright_year 2013
     set donateUrl "http://qweex.com/donate"
     set BTC "1G6cCKnhbESiBXLprxNjzjFDZsES4tH9ZM"
