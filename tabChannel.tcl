@@ -386,8 +386,12 @@ snit::type tabChannel {
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
-            set lastSearchIndex [expr {$lastSearchIndex -1}]
-            if {$lastSearchIndex < 1 } {
+            if {[info exists logDesc]} {
+                set lastSearchIndex [expr {$lastSearchIndex -1}]
+                if {$lastSearchIndex < 1 } {
+                    set lastSearchIndex 1.0
+                }
+            } else {
                 set lastSearchIndex 1.0
             }
         }

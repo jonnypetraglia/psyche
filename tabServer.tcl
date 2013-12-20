@@ -40,7 +40,7 @@ snit::type tabServer {
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Similar (same name)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Constructor ##############
-    constructor {args} {    ;# args = irc.geekshed.net 6697 nick
+    constructor {args} {    ;# args = irc.geekshed.net 6697 nick pass
         set server ""
         set sendHistory [list ""]
         set sendHistoryIndex 0
@@ -59,7 +59,7 @@ snit::type tabServer {
             if {$Pref::logEnabled} {
                 $self createLog
             }
-            $self initServer
+            $self initServer [lindex $args 3]
         }
     }
     
@@ -75,6 +75,8 @@ snit::type tabServer {
         set id_var "$server"
         set nick [string trim $arg2]
         debug "  Server: $server"
+        debug "  Port:   $port"
+        debug "  Nick:   $nick"
     }
     
     ############## GUI stuff ##############
@@ -190,7 +192,7 @@ snit::type tabServer {
     
     ############## Send a Private Message to a user...or maybe channel? ##############    
     method sendPM { mNick mMsg} {
-        $self _send "PRIVMSG $mNick $mMsg"
+        $self _send "PRIVMSG $mNick :$mMsg"
         $self createPMTabIfNotExist $mNick
         $channelMap($mNick) handleReceived [$self getTimestamp] <$mNick> bold $mMsg ""
     }
@@ -488,8 +490,12 @@ snit::type tabServer {
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
-            set lastSearchIndex [expr {$lastSearchIndex -1}]
-            if {$lastSearchIndex < 1 } {
+            if {[info exists logDesc]} {
+                set lastSearchIndex [expr {$lastSearchIndex -1}]
+                if {$lastSearchIndex < 1 } {
+                    set lastSearchIndex 1.0
+                }
+            } else {
                 set lastSearchIndex 1.0
             }
         }
@@ -600,7 +606,7 @@ snit::type tabServer {
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Specific init ##############
-    method initServer {} {
+    method initServer {pass} {
         global connectStatus
         $self handleReceived [$self getTimestamp] \[Connect\] bold "Connecting to $server on port $port..." ""
         set connectStatus "unknown"
@@ -687,6 +693,9 @@ snit::type tabServer {
                 #TODO: What is this
                 $self _send "USER $nick 0 * :Psyche user"
                 fileevent $connDesc readable [mymethod _recv]
+                if {[string length $pass]>0} {
+                    $self _send "PRIVMSG NickServ :identify $pass"
+                }
             } probDesc]} {
             if [info exists connDesc] {
                 close $connDesc
@@ -832,11 +841,11 @@ snit::type tabServer {
             debug "REC: PRIVMSG"
             # PM to me
             if {$mTo == [$self getNick]} {
-                set style "mention"
-                $channelMap($mFrom) notifyMention $mFrom $mMsg
                 $self createPMTabIfNotExist $mFrom
+                $channelMap($mFrom) notifyMention $mFrom $mMsg
                 # PM - /me
                 if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
+                    set style "mention"
                     $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
                 # PM - general
                 } else {
@@ -1150,6 +1159,7 @@ snit::type tabServer {
                     $self handleReceived $timestamp "***" bold "You have left ($mMsg)" $style
                     $channelMap($mChannel) NLremove $mNick
                     }
+                    return
                 }
                 "QUIT" {
                     if {$mTarget == [$self getNick]} {
@@ -1162,9 +1172,11 @@ snit::type tabServer {
                     }
                     $self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
                     }
+                    return
                 }
-                default {
-                    $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
+                "NOTICE" {
+                    $self handleReceived $timestamp \[Notice\] bold $mMsg ""
+                    return
                 }
             }
         }
@@ -1241,10 +1253,10 @@ snit::type tabServer {
             return
         }
         debug "WHAT: $line"
-        } error_code
-        if {[string length $error_code] > 0} {
-            ::notebox::addmsg "ERROR: $server  -  $error_code"
-            puts "ERROR: $server ${error_code}"
+        } error_msg error_options
+        if {[string length $error_msg] > 0} {
+            ::notebox::addmsg "ERROR: $server  -  $error_msg"
+            puts "ERROR: $server ${error_options}"
         }
     }
 }

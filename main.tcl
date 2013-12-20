@@ -530,6 +530,7 @@ proc Main::pressTab { args} {
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
+    debugV "Pressing Tab $serv $chan"
     if [info exists Main::servers($serv)] {
         $Main::servers($serv) updateToolbar $chan
     }
@@ -679,7 +680,8 @@ proc Main::joinChannel {} {
 }
 
 # serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
-proc Main::createConnection {serv por nick} {
+proc Main::createConnection {serv por nick pass} {
+    debugV "Creating Connection: $serv $por $nick ******"
     if [info exists Main::servers($serv)] {
         if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
@@ -688,7 +690,7 @@ proc Main::createConnection {serv por nick} {
             $Main::servers($serv) initServer
         }
     } else {
-        set Main::servers($serv) [tabServer %AUTO% $serv $por $nick]
+        set Main::servers($serv) [tabServer %AUTO% $serv $por $nick $pass]
     }
     .tabMenu unpost
     $Main::notebook raise [$Main::servers($serv) getId]
@@ -709,7 +711,7 @@ proc Main::connectDialogConfirm {} {
     catch {grab set .}
     wm state .connectDialog withdrawn
 
-    Main::createConnection $serv $por $nick
+    Main::createConnection $serv $por $nick ""
 }
 
 proc Main::reconnect {} {
@@ -850,7 +852,7 @@ proc Main::nickDialogConfirm {} {
     
     $Main::servers($serv) _send "NICK $newnick"
     if {[string length $newpass] > 0 } {
-        $Main::servers($serv) _send "PRIVMSG NickServ identify $newpass"
+        $Main::servers($serv) _send "PRIVMSG NickServ :identify $newpass"
     }
 }
 
@@ -866,7 +868,12 @@ proc Main::openBookmark {target} {
     set serv [lindex $Pref::bookmarks($target) 0]
     set por [lindex $Pref::bookmarks($target) 1]
     set nic [lindex $Pref::bookmarks($target) 2]
-    Main::createConnection $serv $por $nic
+    debug "Opening bookmark: $serv $por $nic"
+    if {[llength $nic] > 1} {
+        Main::createConnection $serv $por [lindex $nic 0] [lindex $nic 1]
+    } else {
+        Main::createConnection $serv $por $nic ""
+    }
     if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
         for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
             $Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
