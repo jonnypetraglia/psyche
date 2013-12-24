@@ -491,8 +491,9 @@ snit::type tabServer {
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
             if {[info exists logDesc]} {
-                set lastSearchIndex [expr {$lastSearchIndex -1}]
-                if {$lastSearchIndex < 1 } {
+                if {[info exists lastSearchIndex]} {
+                    set lastSearchIndex [expr {$lastSearchIndex -1}]
+                } else {
                     set lastSearchIndex 1.0
                 }
             } else {
@@ -864,7 +865,8 @@ snit::type tabServer {
                     $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
                 # Msg - general
                 } else {
-                    $channelMap($mTo) handleReceived $timestamp <$mFrom> bold $mMsg $style
+                    debugV "ColorForNick:   [Main::colorForNick $mFrom]"
+                    $channelMap($mTo) handleReceived $timestamp <$mFrom> {bold [Main::colorForNick $mFrom]} $mMsg $style
                 }
             }
             return

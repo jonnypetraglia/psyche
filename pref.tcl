@@ -72,7 +72,7 @@ namespace eval Pref {
     set defaultPart "Partin'"
     set defaultAway "I'm away"
     set logEnabled false
-    set logDir "$CONFIG_DIR${Main::fs_sep}log"
+    set logDir "${CONFIG_DIR}${Main::fs_sep}log"
     set popupTimeout 5000
     set popupFont {Helvetica 16}
     if {$::PLATFORM == $::PLATFORM_WIN} {
@@ -104,7 +104,7 @@ proc Pref::readPrefs {} {
         set data [gets $fp]
         # Manually add the namespace
         if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden ).*)" $data -> data]} {
-            set data "set Pref::$data"
+            set data "set Pref::[regsub -all {\\} $data {\\\\}]"
         }
         debugV "Reading preference: '$data'"
 

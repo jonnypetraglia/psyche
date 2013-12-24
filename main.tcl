@@ -59,6 +59,7 @@ namespace eval Main {
     variable toolbar_find
 
     variable default_tab_color
+    variable nick_colors
     
     variable hiddenToolbar
     variable meta_toolbar
@@ -145,6 +146,9 @@ proc Main::init { } {
     #Url Catcher
     #Channel List
     #Logfile
+    
+    # Some Colors
+    set Main::nick_colors [list #E90E7F #8E55E9 #B30E0E #18B33C #58ADB3 #9E54B3 #B39875 #3176B3 #000001]
     
     # Menu description
     if { false || true } {
@@ -891,6 +895,14 @@ proc Main::openBookmark {target} {
 proc Main::foreground_win { w } {
     wm withdraw $w
     wm deiconify $w
+}
+
+proc Main::colorForNick {nickname} {
+    set nickvalue 0
+    foreach char [split $nickname ""] {
+        set nickvalue [expr {$nickvalue + [scan $char %c]}]
+    }
+    return [lindex $Main::nick_colors [expr {$nickvalue % [llength $Main::nick_colors]}]]
 }
 
 #http://www.tek-tips.com/viewthread.cfm?qid=1668522
