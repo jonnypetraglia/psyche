@@ -64,6 +64,7 @@ namespace eval Main {
     variable hiddenToolbar
     variable meta_toolbar
     variable win
+    variable cursor_link
     
     variable MIDDLE_CLICK
     
@@ -83,15 +84,18 @@ switch $tcl_platform(platform) {
         if {$tcl_platform(os) == "Darwin"} {
             set ::PLATFORM $::PLATFORM_OSX
             set Main::MIDDLE_CLICK 2
+            set Main::cursor_link pointinghand
         } else {
             set ::PLATFORM $::PLATFORM_UNIX
             set Main::MIDDLE_CLICK 3
+            set Main::cursor_link hand2
         }
         set Main::fs_sep "/"
     }
     "windows" {
         set ::PLATFORM $::PLATFORM_WIN
         set Main::MIDDLE_CLICK 3
+        set Main::cursor_link hand2
         set Main::fs_sep "\\"
     }
 }

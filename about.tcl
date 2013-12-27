@@ -109,11 +109,7 @@ proc About::show {} {
     # Donate
     xlabel $theFrame.donate -text "Like Psyche? Support the developer." -foreground blue
     $theFrame.donate configure -font [linsert [$theFrame.donate cget -font] end -underline true]       ;#TODO: reliable way of getting font size
-    if {$::PLATFORM == $::PLATFORM_MAC} {
-        $theFrame.donate configure -cursor pointinghand
-    } else {
-        $theFrame.donate configure -cursor hand2
-    }
+    $theFrame.donate configure -cursor $Main::cursor_link
     grid config $theFrame.donate    -row 6 -column 0 -padx 5 -columnspan 2 -pady 15
     bind $theFrame.donate <ButtonRelease> {platformOpen $About::donateUrl}
     
@@ -176,11 +172,7 @@ proc About::show {} {
     #$theFrame.location configure -font [linsert [$theFrame.location cget -font] end 9 underline]       ;#TODO: reliable way of getting font size
     $theFrame.location configure -font [list underline]       ;#TODO: reliable way of getting font size
     pack $theFrame.location -anchor w
-    if {$::PLATFORM == $::PLATFORM_MAC} {
-        $theFrame.location configure -cursor pointinghand
-    } else {
-        $theFrame.location configure -cursor hand2
-    }
+    $theFrame.location configure -cursor $Main::cursor_link
     bind $theFrame.location <ButtonRelease> {platformOpen $Pref::prefFile}
     
     

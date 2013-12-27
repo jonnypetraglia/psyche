@@ -483,10 +483,32 @@ snit::type tabServer {
     method handleReceived {timestamp title style1 message style2} {
         set isAtBottom [lindex [$chat yview] 1]
         
+        set beginning [$chat index [list end - 1 lines]]
         $chat configure -state normal
         $chat insert end $timestamp\  timestamp
         $chat insert end $title\  $style1
         $chat insert end $message\n $style2
+        
+        # Aw yiss. Mother. Fucking. Hyperlinks.
+        set linkRegex {(http|https|ftp)\://([a-zA-Z0-9\.\-]+(\:[a-zA-Z0-9\.&amp;%\$\-]+)*@)*((25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])|localhost|([a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(\:[0-9]+)*(/($|[a-zA-Z0-9\.\,\?\'\\\+&amp;%\$#\=~_\-]+))*}
+            # ^ via http://stackoverflow.com/questions/3726807/regex-expression-for-valid-website-link
+        set lastMatchInd 0
+        while {[regexp -start $lastMatchInd -indices -- $linkRegex $message location]} {
+            set msgStart [expr {[string length $timestamp] + [string length $title] + 2}]
+            set urlStart [$chat index [list $beginning + [expr {[lindex $location 0] + $msgStart}] chars]]
+            set urlEnd   [$chat index [list $beginning + [expr {[lindex $location 1] + $msgStart + 1}] chars]]
+            set url [$chat get $urlStart $urlEnd]
+            set tagname "${id_var}[clock milliseconds]"
+            $chat tag add $tagname $urlStart $urlEnd
+            $chat tag configure $tagname -underline true
+            $chat tag configure $tagname -foreground blue
+            $chat tag bind      $tagname "<Enter>" "$chat configure -cursor $Main::cursor_link"
+            $chat tag bind      $tagname "<Leave>" "$chat configure -cursor arrow"
+            $chat tag bind      $tagname "<Button-1>" "platformOpen $url"
+            
+            set lastMatchInd [lindex $location 1] 
+        }
+        
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
@@ -766,7 +788,7 @@ snit::type tabServer {
     }
     
     method getPingtime {} {
-        if [info exists connDesc] {
+        if {[info exists connDesc] && [info exists pingtime]} {
             return $pingtime
         }
         return 0
