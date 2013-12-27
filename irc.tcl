@@ -344,7 +344,8 @@ proc performSpecialCase {msg obj} {
     #/quit
     if [regexp {^quit ?(.*)} $msg -> reason] {
         debug "Quitting: $reason"
-        if { [string length $reason] > 0 } {
+        set reason [string trim $reason]
+        if { [string length $reason] == 0 } {
             set reason $Pref::defaultQuit
         }
         $obj quit $reason

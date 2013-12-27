@@ -211,22 +211,26 @@ snit::type tabServer {
     }
     
     ############## Internal function ##############
-    method _send {str} { puts $connDesc $str; flush $connDesc }
+    method _send {str} {
+        debugV "SEND: $str"
+        puts $connDesc $str;
+        flush $connDesc
+    }
  
     ############## Quit the server ##############
     method quit {reason} {
         set timestamp [$self getTimestamp]
-        debug "Quitting server: [$self getServer]"
+        debug "Quitting server: [$self getServer]  : $reason"
         if {![info exists connDesc]} {
             return
         }
-        $self _send "QUIT $reason"
+        $self _send "QUIT :$reason"
         close $connDesc
         unset connDesc
-        $self handleReceived $timestamp "\[Quit\] " bold "You have left the server" ""
+        $self handleReceived $timestamp "\[Quit\] " bold "You have left the server ($reason)" ""
         $self updateToolbar ""
         
-        $self propogateMessage ALL $timestamp "\[Quit\] " bold "You have left the server" ""
+        $self propogateMessage ALL $timestamp "\[Quit\] " bold "You have left the server ($reason)" ""
     }
     
     ############## Part a channel ##############

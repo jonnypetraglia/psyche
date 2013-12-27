@@ -537,8 +537,7 @@ proc Pref::savePrefs {} {
 
 proc Pref::writePrefs {} {
     set fp [open $Pref::prefFile w]
-    set prefsToWrite {timeout raiseNewTabs defaultQuit defaultBan defaultKick defaultPart defaultAway logEnabled logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound}
-    #set fileId [open $filename "w"]
+    set prefsToWrite {timeout raiseNewTabs defaultQuit defaultBan defaultKick defaultPart defaultAway logEnabled logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound toolbarHidden}
     foreach pref $prefsToWrite {
         set val "Pref::$pref"
         set val "[expr $$val]"

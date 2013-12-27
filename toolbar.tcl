@@ -9,13 +9,13 @@ proc Main::metaToolbar {} {
         static char plus2_bits = {
         0x00, 0x00,
         0x00, 0x00,
-        0x10, 0x02,
-        0x20, 0x04,
-        0x40, 0x08,
-        0x80, 0x10,
-        0x40, 0x08,
-        0x20, 0x04,
-        0x10, 0x02,
+        0x00, 0x00,
+        0x41, 0x41,
+        0x22, 0x22,
+        0x14, 0x14,
+        0x08, 0x08,
+        0x00, 0x00,
+        0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00
         }
@@ -27,26 +27,8 @@ proc Main::metaToolbar {} {
 
 proc Main::toggleToolbar {} {
     set Main::hiddenToolbar [expr {!$Main::hiddenToolbar}]
-    $Main::mainframe showtoolbar 1 $Main::hiddenToolbar
+    $Main::mainframe showtoolbar 1 [expr {!$Main::hiddenToolbar}]
     if { $Main::hiddenToolbar } {
-        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
-            #define plus2_width 16
-            #define plus2_height 11
-            static char plus2_bits = {
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x41, 0x41,
-            0x22, 0x22,
-            0x14, 0x14,
-            0x08, 0x08,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00
-            }
-        }]
-    } else {
         $Main::meta_toolbar configure -image [image create bitmap metameta -data {
             #define plus2_width 16
             #define plus2_height 11
@@ -60,6 +42,24 @@ proc Main::toggleToolbar {} {
             0x40, 0x08,
             0x20, 0x04,
             0x10, 0x02,
+            0x00, 0x00,
+            0x00, 0x00
+            }
+        }]
+    } else {
+        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
+            #define plus2_width 16
+            #define plus2_height 11
+            static char plus2_bits = {
+            0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00,
+            0x41, 0x41,
+            0x22, 0x22,
+            0x14, 0x14,
+            0x08, 0x08,
+            0x00, 0x00,
+            0x00, 0x00,
             0x00, 0x00,
             0x00, 0x00
             }

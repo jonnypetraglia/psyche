@@ -303,7 +303,7 @@ proc Main::init { } {
     }
     
     # Toggle Toolbar
-    set Main::hiddenToolbar [expr {$Pref::toolbarHidden}]
+    set Main::hiddenToolbar [expr {!!$Pref::toolbarHidden}]
     if { $Main::hiddenToolbar} { Main::toggleToolbar }
     bind ${Main::win} <F10> { Main::toggleToolbar }
 }
