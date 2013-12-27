@@ -4,16 +4,9 @@ package require Tk
 package require BWidget
 package require snit
 
-proc debugV {arg} {
-    puts $arg
-}
-
-proc debug {arg} {
-    puts $arg
-}
-
-proc debugE {arg} {
-    puts "DEBUG: $arg"
+set logLvl V
+proc Log {lvl msg} {
+    if {[lsearch {V D I W E WTF} $lvl] >= [lsearch {V D I W E WTF} $::logLvl]} { puts "$lvl - $msg" }
 }
 
 # takes care of file separator
@@ -217,7 +210,7 @@ proc Main::init { } {
         if {"%W" == "${Main::win}mainframe.status.prgf"} {
             bind ${Main::win} <Configure> ""
             wm minsize ${Main::win} [winfo width ${Main::win}] [winfo height ${Main::win}]
-            debug "MinSize: [winfo width ${Main::win}]x[winfo height ${Main::win}]"
+            Log V "MinSize: [winfo width ${Main::win}]x[winfo height ${Main::win}]"
         }
     }
     set Main::default_tab_color [$Main::notebook itemcget [$Main::servers(1) getId] -background]
@@ -520,10 +513,10 @@ proc Main::closeTab {target} {
     }
     
     if {[string length $chan] > 0} {
-        debug "Closing channel: $serv $chan"
+        Log D "Closing channel: $serv $chan"
         $Main::servers($serv) closeChannel $chan
     } else {
-        debug "Closing server: $serv $chan"
+        Log D "Closing server: $serv $chan"
         $Main::servers($serv) quit $Pref::defaultQuit
         $Main::servers($serv) closeAllChannelTabs
         $Main::notebook delete $target
@@ -545,7 +538,7 @@ proc Main::pressTab { args} {
     regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
-    debugV "Pressing Tab $serv $chan"
+    Log V "Pressing Tab $serv $chan"
     if [info exists Main::servers($serv)] {
         $Main::servers($serv) updateToolbar $chan
     }
@@ -676,7 +669,7 @@ proc Main::showJoinDialog { } {
 proc Main::joinChannel {} {
     set chan [.joinDialog.chan get]
     if { [string length $chan] == 0 } {
-        debugE "Main::joinChannel - Insufficient data"
+        Log W "Main::joinChannel - Insufficient data"
         tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
         return
     }
@@ -696,7 +689,7 @@ proc Main::joinChannel {} {
 
 # serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
 proc Main::createConnection {serv por nick pass} {
-    debugV "Creating Connection: $serv $por $nick ******"
+    Log V "Creating Connection: $serv $por $nick ******"
     if [info exists Main::servers($serv)] {
         if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
@@ -718,7 +711,7 @@ proc Main::connectDialogConfirm {} {
     if [ expr { [string length $serv] == 0 || \
         [string length $por] == 0  || \
         [string length $nick] == 0}] {
-    debugE "Main::connectDialogConfirm - Insufficient data"
+        Log W "Main::connectDialogConfirm - Insufficient data"
         tk_messageBox -message "Insufficient data" -parent .connectDialog -title "Error"
         return
     }
@@ -750,7 +743,7 @@ proc Main::partOrQuit {} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
-    debug "partOrQuit: [array names Main::servers]"
+    Log D "partOrQuit: [array names Main::servers]"
     if {[string length $chan]>0} {
         $Main::servers($serv) part $chan $Pref::defaultPart
     } else {
@@ -883,7 +876,7 @@ proc Main::openBookmark {target} {
     set serv [lindex $Pref::bookmarks($target) 0]
     set por [lindex $Pref::bookmarks($target) 1]
     set nic [lindex $Pref::bookmarks($target) 2]
-    debug "Opening bookmark: $serv $por $nic"
+    Log D "Opening bookmark: $serv $por $nic"
     if {[llength $nic] > 1} {
         Main::createConnection $serv $por [lindex $nic 0] [lindex $nic 1]
     } else {

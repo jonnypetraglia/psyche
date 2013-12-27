@@ -73,7 +73,7 @@
     method createLog {} {
         file mkdir $Pref::logDir
         set logDesc [open "$Pref::logDir/$id_var.log" a+]
-        debug "Creating log:  $Pref::logDir/$id_var.log      $logDesc"
+        Log D "Creating log:  $Pref::logDir/$id_var.log      $logDesc"
     }
     
     ############## Closes the log handle ##############

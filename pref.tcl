@@ -106,10 +106,10 @@ proc Pref::readPrefs {} {
         if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden ).*)" $data -> data]} {
             set data "set Pref::[regsub -all {\\} $data {\\\\}]"
         }
-        debugV "Reading preference: '$data'"
+        Log V "Reading preference: '$data'"
 
         if {[catch {eval "$data"} prob]} {
-            debugE "ERROR: Unable to load preference: '$data"
+            Log E "ERROR: Unable to load preference: '$data"
         }
     }
     close $fp
@@ -389,7 +389,7 @@ proc Pref::editBookmark {} {
     if {[$Pref::gBlist curselection] >=0} {
         set name [$Pref::gBlist get [$Pref::gBlist curselection]]
         set bookmark $Pref::tempbookmarks($name)
-        debug "Editing Bookmark: [lindex $bookmark 0]"
+        Log D "Editing Bookmark: [lindex $bookmark 0]"
         $Pref::gBname     insert 0 $name
         $Pref::gBserver   insert 0 [lindex $bookmark 0]
         $Pref::gBport     insert 0 [lindex $bookmark 1]
@@ -423,7 +423,7 @@ proc Pref::clearBookmarks {} {
 
 proc Pref::saveBookmark {} {
     $Pref::gBlist     configure -state normal
-    debug "Selected: [$Pref::gBlist curselection]"
+    Log D "Selected: [$Pref::gBlist curselection]"
     set oldname [$Pref::gBlist get active]
     set newname [$Pref::gBname get]
     set thing [list [$Pref::gBserver get] [$Pref::gBport get]]
@@ -542,15 +542,15 @@ proc Pref::writePrefs {} {
         set val "Pref::$pref"
         set val "[expr $$val]"
         puts $fp "set $pref \"$val\""
-        debug "Writing preference:   $pref = \"$val\""
+        Log D "Writing preference:   $pref = \"$val\""
     }
     foreach {key value} [array get Pref::bookmarks] {
         #do something with key and value
-        debug "Writing preference:   bookmarks($key) = {$value}"
+        Log D "Writing preference:   bookmarks($key) = {$value}"
         puts $fp "set bookmarks($key) {$value}"
     }
     flush $fp
     close $fp
 }
 
-debugV "Preference file exists? [file exists $Pref::prefFile]"
+Log V "Preference file exists? [file exists $Pref::prefFile]"

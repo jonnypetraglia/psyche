@@ -317,33 +317,33 @@ proc getTitle {mCode} {
 # http://www.user-com.undernet.org/documents/ctcpdcc.txt
 # returns 1 if it was handled (if it was a special case), 0 otherwise
 proc performSpecialCase {msg obj} {
-    debug "performSpecialCase !!!! $msg"
+    Log D "performSpecialCase !!!! $msg"
 
     #/connect
     if [regexp {^connect ([^ ]+) ?([0-9]*)} $msg -> serv port] {
         if {[string length $port] == 0} {
             set port $Main::DEFAULT_PORT
         }
-        debug "Connecting: $serv $port"
+        Log D "Connecting: $serv $port"
         Main::createConnection $serv $port [$obj getNick]
         return true
     }
     #/join
     if [regexp {^join ([^ ]+) ?(.*)} $msg -> chann channPass] {
-        debug "Joining: $chann"
+        Log D "Joining: $chann"
         $obj _send "$msg"
         return true
     }
     #/msg OR /query
     if [regexp {^(msg|query) ([^ ]+) (.*)} $msg -> derp nick msg] {
-        debug "Msging: $nick"
+        Log D "Msging: $nick"
         $obj sendPM $nick $msg
         #$obj _send "PRIVMSG notbryant Hello"
         return true
     }
     #/quit
     if [regexp {^quit ?(.*)} $msg -> reason] {
-        debug "Quitting: $reason"
+        Log D "Quitting: $reason"
         set reason [string trim $reason]
         if { [string length $reason] == 0 } {
             set reason $Pref::defaultQuit
@@ -353,7 +353,7 @@ proc performSpecialCase {msg obj} {
     }
     #/part
     if [regexp {^part ?(.*)} $msg -> msg] {
-        debug "Parting: $msg"
+        Log D "Parting: $msg"
         if { [string length $msg] > 0 } {
             set reason $Pref::defaultPart
         }
@@ -389,13 +389,13 @@ proc performSpecialCase {msg obj} {
     #/identify
     set thingsToChannelize "(kick|topic|identify)"
     if [regexp "^$thingsToChannelize \(.*\)" $msg -> cmd target] {
-        debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
+        Log D "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
         if [regexp "^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)" $msg -> chann target] {
             set chann $chann
         } else {
             set chann [$obj getChannel]
         }
-        debug "CMD: $cmd $chann $target"
+        Log D "CMD: $cmd $chann $target"
         $obj _send "$cmd $chann $target"
         return true
     }
@@ -403,13 +403,13 @@ proc performSpecialCase {msg obj} {
     #/invite
     set thingsToChannelizePost "(invite)"
     if [regexp "^$thingsToChannelizePost \(.*\)" $msg -> cmd target] {
-        debug "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
+        Log D "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
         if [regexp "\(\[^ \]+\) \(\[[$obj getChannPrefixes]\].*\)" $msg -> target chann] {
             set chann $chann
         } else {
             set chann [$obj getChannel]
         }
-        debug "INVITE: $target $chann"
+        Log D "INVITE: $target $chann"
         $obj _send "$cmg $target $chann"
         return true
     }
@@ -509,7 +509,7 @@ proc performSpecialCase {msg obj} {
         return false
     }
     #return true
-    debug "SENDING:    $msg"
+    Log D "SENDING:    $msg"
     return false
 
     

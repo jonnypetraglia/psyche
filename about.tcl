@@ -245,17 +245,17 @@ proc About::show {} {
 }
 
 proc platformOpen { whatwhat } {
-    debug "Attempting to open  ${whatwhat}"
+    Log D "Attempting to open  ${whatwhat}"
     if {$::PLATFORM == $::PLATFORM_WIN} {
-        debugV "Opening on Windows"
+        Log V "Opening on Windows"
         exec {*}[auto_execok start] "$whatwhat"
     } elseif {$::PLATFORM == $::PLATFORM_MAC} {
-        debugV "Opening on Mac"
+        Log V "Opening on Mac"
         exec "open" $whatwhat
     } else {
-        debugV "Opening on Etc"
+        Log V "Opening on Etc"
         if { [catch {exec "xdg-open" $whatwhat}] } {
-            debugE "Could not open  $whatwhat"
+            Log E "Could not open  $whatwhat"
         }
     }
 }

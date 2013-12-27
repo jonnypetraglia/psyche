@@ -62,13 +62,13 @@ snit::type tabChannel {
         set nickList [list]
         set activeChannels [list]
         
-        debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
+        Log D "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
         
         set ServerRef $arg0
         set channel $arg1
         set temp [$ServerRef getServer]
         set id_var "${temp}__${channel}"
-        debug "  Channel: $channel"
+        Log D "  Channel: $channel"
     }
     
     ############## GUI stuff ##############
@@ -180,7 +180,7 @@ snit::type tabChannel {
     method isServer {} { return 0 }
     
     method propogateMessage {what timestamp title titleStyle msg msgStyle} {
-        debug "Propogating message: $what  $title  $msg"
+        Log D "Propogating message: $what  $title  $msg"
         switch $what {
             "NICK" {
                 # If it is not in the nickList, no need to propogate it here
@@ -481,7 +481,7 @@ snit::type tabChannel {
                     set nickList [lsort -command [mymethod compareNick] $nickList]
                     return 1
                 } else {
-                    debugE "_NLchangeTheNickAndOrUpdateItsMode - Found $oldNick inst SpecialUsers($m), but not in the nickList"
+                    Log E "_NLchangeTheNickAndOrUpdateItsMode - Found $oldNick inst SpecialUsers($m), but not in the nickList"
                 }
                 return 0
             }
@@ -533,7 +533,7 @@ snit::type tabChannel {
         foreach usr $users {
             # If it's a special user add it
             set temp [$self getNickPrefixes]
-            debugV "Adding User: $usr   looking for ^(\[$temp\])(.*)"
+            Log V "Adding User: $usr   looking for ^(\[$temp\])(.*)"
             if {[regexp "^(\[$temp\])(.*)" $usr -> mod usr]} {
                 lappend nickList $usr
                 $self NLchmod $usr $mod "+"
@@ -569,7 +569,7 @@ snit::type tabChannel {
     }
     
     method touchLastSpoke {nick} {
-        debugV " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
+        Log V " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
         set LastSpoke($nick) [clock seconds]
     }
     
@@ -592,8 +592,8 @@ snit::type tabChannel {
             set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
         }
         
-        debug "Looking for nick that starts with: '$NickSearchTerm'"
-        debug "Must be earlier than $earlierThan"
+        Log D "Looking for nick that starts with: '$NickSearchTerm'"
+        Log D "Must be earlier than $earlierThan"
         
         # If there is a prior tabbed, make sure our starting point is not it
         if {[info exists LastTabbed] && [lindex $nickList $nickloc]==$LastTabbed} {	;#&& [info exists LastSpoke($LastTabbed)] 
@@ -603,8 +603,8 @@ snit::type tabChannel {
                 set nickloc -1
             }
         }
-        debug "Checking normal. Starting point is $nickloc"
-        debug "  [lindex $nickList $nickloc]"
+        Log D "Checking normal. Starting point is $nickloc"
+        Log D "  [lindex $nickList $nickloc]"
         
         
         # Check normal nicks, if there are any
@@ -615,8 +615,8 @@ snit::type tabChannel {
             }
         }
         
-        debug "Post post - $nickloc"
-        debug "Post post - [lindex $nickList $nickloc]"
+        Log D "Post post - $nickloc"
+        Log D "Post post - [lindex $nickList $nickloc]"
         
         # Do mods and such
         set modes [split [$ServerRef getNickPrefixes] {}]
@@ -630,8 +630,8 @@ snit::type tabChannel {
         }
         
         # Regular
-        debug "Post modes - $nickloc"
-        debug "Post modes - [lindex $nickList $nickloc]"
+        Log D "Post modes - $nickloc"
+        Log D "Post modes - [lindex $nickList $nickloc]"
         
         if {$nickloc == -1} { return}
         
@@ -656,7 +656,7 @@ snit::type tabChannel {
                      $LastSpoke([lindex $nickList $i]) < $earlierThan)} {
                 # DEBUG
                 if [info exists LastSpoke([lindex $nickList $nickloc])] {
-                    debug "   [lindex $nickList $i] @ $LastSpoke([lindex $nickList $i]) < [lindex $nickList $nickloc] @ $LastSpoke([lindex $nickList $nickloc])" }
+                    Log D "   [lindex $nickList $i] @ $LastSpoke([lindex $nickList $i]) < [lindex $nickList $nickloc] @ $LastSpoke([lindex $nickList $nickloc])" }
                 # GUBED
                 set nickloc $i
             }

@@ -68,15 +68,15 @@ snit::type tabServer {
         set nickList [list]
         set activeChannels [list]
     
-        debug "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
+        Log D "~~~~~~~~~~NEW TAB~~~~~~~~~~~~~~"
         
         set server $arg0
         set port $arg1
         set id_var "$server"
         set nick [string trim $arg2]
-        debug "  Server: $server"
-        debug "  Port:   $port"
-        debug "  Nick:   $nick"
+        Log D "  Server: $server"
+        Log D "  Port:   $port"
+        Log D "  Nick:   $nick"
     }
     
     ############## GUI stuff ##############
@@ -212,7 +212,7 @@ snit::type tabServer {
     
     ############## Internal function ##############
     method _send {str} {
-        debugV "SEND: $str"
+        Log V "SEND: $str"
         puts $connDesc $str;
         flush $connDesc
     }
@@ -220,7 +220,7 @@ snit::type tabServer {
     ############## Quit the server ##############
     method quit {reason} {
         set timestamp [$self getTimestamp]
-        debug "Quitting server: [$self getServer]  : $reason"
+        Log D "Quitting server: [$self getServer]  : $reason"
         if {![info exists connDesc]} {
             return
         }
@@ -513,7 +513,7 @@ snit::type tabServer {
                         set connectStatus timeout
                 }}
             # Create the connection; -async means it will continue on until it hits vwait
-            debug "Attempting to connect $server $port"
+            Log D "Attempting to connect $server $port"
             set connDesc [socket -async $server $port]
             # Dummy handler to detect when the socket is writeable (i.e. open)
             fileevent $connDesc readable {set connectStatus ok}
@@ -522,7 +522,7 @@ snit::type tabServer {
         } problemDesc]} {
             # Catch any exceptions thrown
             $self handleReceived [$self getTimestamp] \[Connect\] bold $problemDesc ""
-            debugE "tabServer::initServer - $problemDesc"
+            Log E "tabServer::initServer - $problemDesc"
             tk_messageBox -message "$problemDesc" -parent . -title "Error" -icon error -type ok
                 if [info exists connDesc] {
                     close $connDesc
@@ -534,13 +534,13 @@ snit::type tabServer {
         # Catch any errors
         switch $connectStatus {
             "ok" {
-                debug "Connect ok!"
+                Log D "Connect ok!"
             }
             "timeout" {
                 close $connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Connection timed out" ""
-                debugE "tabServer::initServer - Connection timed out"
+                Log E "tabServer::initServer - Connection timed out"
                 tk_messageBox -message "Connection timed out" -parent . -title "Error" -icon error -type ok
                 return
             }
@@ -548,7 +548,7 @@ snit::type tabServer {
                 close $connDesc
                 unset connDesc
                 $self handleReceived [$self getTimestamp] \[Connect\] bold "Unable to connect" ""
-                debugE "tabServer::initServer - Unknown"
+                Log E "tabServer::initServer - Unknown"
                 tk_messageBox -message "An unknown error has occurred; the world is probably ending" -parent . -title "Error" -icon error -type ok
                 return
             }
@@ -594,7 +594,7 @@ snit::type tabServer {
                 close $connDesc
                 unset connDesc
             }
-            debugE "initServer - $probDesc"
+            Log E "initServer - $probDesc"
             tk_messageBox -message "$probDesc" -parent . -title "Error" -icon error -type ok
         }
         
@@ -638,7 +638,7 @@ snit::type tabServer {
     
     ############## Removes a channel from the active list ##############
     method removeActiveChannel {chann} {
-        debug "REMOVING: $activeChannels"
+        Log D "REMOVING: $activeChannels"
         set idx [lsearch $activeChannels $chann]
         set activeChannels [lreplace $activeChannels $idx $idx]
     }
@@ -669,7 +669,7 @@ snit::type tabServer {
     }
 
     method requestBan {var1 var2 var3 var4} {
-        debug "WRONG REQUEST BAN CALLED. THIS IS A SERVER"
+        Log W "WRONG REQUEST BAN CALLED. THIS IS A SERVER"
     }
 
     method requestBan {thenick thechan bantype shouldkick banmsg} {
@@ -682,7 +682,7 @@ snit::type tabServer {
         catch {
         gets $connDesc line
         set timestamp [$self getTimestamp]
-        debug $line
+        Log D $line
         set style ""
         
         # PING
@@ -690,14 +690,14 @@ snit::type tabServer {
             $self _send "PONG :$mResponse"
             set pingtime [clock seconds]
             after 1000 Main::updateStatusbar
-            debug "Ping: $pingtime"
+            Log D "Ping: $pingtime"
             return
         }
         
         # CTCP - EXCEPT for ACTION
         if {[regexp ":(\[^!\]*)!.* (\[^ \]*) [$self getNick] :\001\(\[^ \]*\) ?\(.*\)\001" \
                 $line -> mFrom mThing mCmd mContent]} {
-            debug "REC: CTCP"
+            Log V "REC: CTCP"
             # mFrom    = User that sent CTCP msg
             # mThing   = NOTICE for response, PRIVMSG for initiation
             # mCmd     = VERSION, PING, etc
@@ -731,7 +731,7 @@ snit::type tabServer {
         
         # Private message - sent to channel or user
         if {[regexp {:([^!]*)(![^ ]+) +PRIVMSG ([^ :]+) +:(.*)} $line -> mFrom mHost mTo mMsg]} {
-            debug "REC: PRIVMSG"
+            Log V "REC: PRIVMSG"
             # PM to me
             if {$mTo == [$self getNick]} {
                 $self createPMTabIfNotExist $mFrom
@@ -767,7 +767,7 @@ snit::type tabServer {
         #  Type A: Has an intended target, even if that target is blank;
         #          Following the nick, there is a string of length 0 or more, then a space, then a colon
         if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] ?\[=@\]? ?(\[^ \]*) :(.*)" $line -> mServer mCode mTarget mMsg]} {
-            debug "REC: Numbered from server"
+            Log V "REC: Numbered from server"
                 set style "" ;# TODO: Can numbered messages be addressed to me?
             set mTarget [string trim $mTarget]
             set mMsg [string trim $mMsg]
@@ -864,7 +864,7 @@ snit::type tabServer {
         }
         #  Type B: Is still a numbered message, but the content immediately follows the nick
         if {[regexp ":(\[^ \]*) (\[0-9\]+) [$self getNick] (.*)" $line -> mServer mCode mMsg]} {
-            debug "REC: Numbered2 from server"
+            Log V "REC: Numbered2 from server"
             set style ""	;#TODO: Can a numbered message be addressed to me?
             switch $mCode {
                 005 {
@@ -891,7 +891,7 @@ snit::type tabServer {
                         set whspc [expr {33 - $whspc}]
                         set whspc [string repeat " " $whspc]
                         set sss [$self getServer]
-                        debug "RPL_LIST: $mTarget$whspc$mMsg"
+                        Log V "RPL_LIST: $mTarget$whspc$mMsg"
                         lappend Main::channelList($sss) "$mTarget$whspc$mMsg"
                     }
                     if {[wm state .channelList]=="normal"} {
@@ -956,7 +956,7 @@ snit::type tabServer {
                                 set banCommand "${banCommand}@*[string range $mHostmask [string first . $mHostmask] end]"
                             }
                             
-                            debug "BANNING: $banCommand"
+                            Log V "BANNING: $banCommand"
                             $self _send "MODE $chann +b $banCommand"
                             if {$shouldkick} {
                                 $self _send "KICK $chann $mNick $banmsg"
@@ -993,10 +993,10 @@ snit::type tabServer {
     
         #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
         if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^:]*:(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
-            debug "REC: Special: $mSomething"
+            Log V "REC: Special: $mSomething"
             switch $mSomething {
                 "NICK" {
-                    debug "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
+                    Log V "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
                     if {[string equal $mNick [$self getNick]]} {
                         $self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
                         $self propogateMessage MYNICK $timestamp "***" bold "You are now known as $mMsg" ""
@@ -1056,7 +1056,7 @@ snit::type tabServer {
                 }
                 "QUIT" {
                     if {$mTarget == [$self getNick]} {
-                    debugE "You quit? What the hell?"
+                    Log E "You quit? What the hell?"
                     #$self removeActiveChannel $mChannel
                     } else {
                     if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
@@ -1076,7 +1076,7 @@ snit::type tabServer {
     
         #:ChanServ!services@geekshed.net MODE #qweex +qo notbryant notbryant
         if {[regexp {:([^!]*)![^ ]* ([^ ]*) ([^ ]*) (.*)} $line -> mNick mSomething mChann mMsg]} {
-            debug "REC: Special2: $mSomething"
+            Log V "REC: Special2: $mSomething"
             if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
                 set style "mention"
                 $channelMap($mChann) notifyMention $mNick $mMsg
@@ -1095,9 +1095,9 @@ snit::type tabServer {
                                 continue
                             }
                             set modePos [string first $m $NickPrefixesA ]
-                            debug "?MODE: $m  $modePos  $NickPrefixesA"
+                            Log V "?MODE: $m  $modePos  $NickPrefixesA"
                             if {$modePos > -1 && $what!="?"} {
-                                debug "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
+                                Log V "!MODE: [string index $NickPrefixesS $modePos]$mTarget"
                                 $channelMap($mChann) NLchmod $mTarget [string index $NickPrefixesS $modePos] $what
                                 break
                             }
@@ -1114,7 +1114,7 @@ snit::type tabServer {
     
         # Server message with no numbers but sent explicitely from server
         if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
-            debug "REC: Etc: $mSomething $mTarget"
+            Log V "REC: Etc: $mSomething $mTarget"
             switch $mSomething {
                 "MODE" {
                     set mMsg "$ServerName has set your personal modes: $mMsg"
@@ -1145,7 +1145,7 @@ snit::type tabServer {
             $self handleReceived $timestamp \[Notice\] bold $mMsg "";
             return
         }
-        debug "WHAT: $line"
+        Log V "WHAT: $line"
         } error_msg error_options
         if {[string length $error_msg] > 0} {
             ::notebox::addmsg "ERROR: $server  -  $error_msg"
