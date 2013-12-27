@@ -726,8 +726,7 @@ snit::type tabServer {
                     $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
                 # Msg - general
                 } else {
-                    debugV "ColorForNick:   [Main::colorForNick $mFrom]"
-                    $channelMap($mTo) handleReceived $timestamp <$mFrom> {bold [Main::colorForNick $mFrom]} $mMsg $style
+                    $channelMap($mTo) handleReceived $timestamp <$mFrom> "bold nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
                 }
             }
             return

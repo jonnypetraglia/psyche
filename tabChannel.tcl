@@ -94,6 +94,9 @@ snit::type tabChannel {
         $chat configure -background white
         $chat configure -state disabled
         $chat tag configure regionSearch -background yellow
+        for {set i 0} {$i < [llength $Main::nick_colors]} {incr i} {
+            $chat tag config "nick_color$i" -foreground [lindex $Main::nick_colors $i]
+        }
         
         set lowerFrame [frame $topf.f]
         

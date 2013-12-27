@@ -702,7 +702,7 @@ proc Main::createConnection {serv por nick pass} {
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
         } else {
             $Main::servers($serv) _setData $por $nick
-            $Main::servers($serv) initServer
+            $Main::servers($serv) initServer $pass
         }
     } else {
         set Main::servers($serv) [tabServer %AUTO% $serv $por $nick $pass]
@@ -901,12 +901,12 @@ proc Main::foreground_win { w } {
     wm deiconify $w
 }
 
-proc Main::colorForNick {nickname} {
+proc Main::colorIndexForNick {nickname} {
     set nickvalue 0
     foreach char [split $nickname ""] {
         set nickvalue [expr {$nickvalue + [scan $char %c]}]
     }
-    return [lindex $Main::nick_colors [expr {$nickvalue % [llength $Main::nick_colors]}]]
+    return [expr {$nickvalue % [llength $Main::nick_colors]}]
 }
 
 #http://www.tek-tips.com/viewthread.cfm?qid=1668522
