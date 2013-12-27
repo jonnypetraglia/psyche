@@ -366,6 +366,34 @@ snit::type tabChannel {
     source "_shared.tcl"
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+    ############## Send Message ##############
+    method sendMessage {msg} {
+        #sendHistory
+        set sendHistoryIndex [expr {[llength $sendHistory] - 1}]
+        lset sendHistory $sendHistoryIndex $msg
+        if {[llength $sendHistory] > $Pref::maxSendHistory} {
+            set sendHistory [lreplace $sendHistory 0 0]
+        }
+        lappend sendHistory ""
+        set sendHistoryIndex [expr {[llength $sendHistory] -1}]
+
+        # Starts with a backslash
+        if [regexp {^/(.+)} $msg -> msg] {
+            if { [string index $msg 0] != "/"} {
+                if {![performSpecialCase $msg $self ]} {
+                    $ServerRef _send $msg
+                    $ServerRef handleReceived [$self getTimestamp] \[Raw\] {bold blue} $msg ""
+                }
+            }
+        }
+        
+        $self _send "PRIVMSG $channel :$msg"
+        $self handleReceived [$self getTimestamp] <[$self getNick]> {bold blue} $msg ""
+        
+        #TODO: Scroll only if at bottom
+        $chat yview end
+    }
+    
     ############## Init Channel ##############
     method initChan {pass} {
         if {[string index $channel 0] == "#"} {

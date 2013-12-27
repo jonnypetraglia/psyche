@@ -90,33 +90,6 @@
         $self sendMessage $msg
     }
     
-    ############## Send Message ##############
-    method sendMessage {msg} {
-        #sendHistory
-        set sendHistoryIndex [expr {[llength $sendHistory] - 1}]
-        lset sendHistory $sendHistoryIndex $msg
-        if {[llength $sendHistory] > $Pref::maxSendHistory} {
-            set sendHistory [lreplace $sendHistory 0 0]
-        }
-        lappend sendHistory ""
-        set sendHistoryIndex [expr {[llength $sendHistory] -1}]
-
-        # Starts with a backslash
-        if [regexp {^/(.+)} $msg -> msg] {
-            if { [string index $msg 0] != "/"} {
-                if [performSpecialCase $msg $self ] {
-                    return
-                }
-            }
-        }
-        
-        $self _send $msg
-        $self handleReceived [$self getTimestamp] \[Raw\] {bold blue} $msg ""
-        
-        #TODO: Scroll only if at bottom
-        $chat yview end
-    }
-    
     method getTimestamp {} {
         return [clock format [clock seconds] -format \[%H:%M\] ]
     }
