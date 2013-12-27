@@ -384,6 +384,7 @@ snit::type tabChannel {
                     $ServerRef _send $msg
                     $ServerRef handleReceived [$self getTimestamp] \[Raw\] {bold blue} $msg ""
                 }
+                return
             }
         }
         
