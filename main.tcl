@@ -367,14 +367,8 @@ proc Main::find {} {
 }
 
 proc Main::doFind { direction } {
-    set target [$Main::notebook raise]
-    if {[string length $target] == 0} {
-        return
-    }
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
 
     set switches [list]
@@ -393,14 +387,8 @@ proc Main::doFind { direction } {
 }
 
 proc Main::markAll {} {
-    set target [$Main::notebook raise]
-    if {[string length $target] == 0} {
-        return
-    }
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     set switches [list]
@@ -417,37 +405,24 @@ proc Main::markAll {} {
 }
 
 proc Main::doFindNext { switches } {
-    set target [$Main::notebook raise]
-    if {[string length $target] == 0} {
-        return
-    }
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
 
     $Main::servers($serv) findNext $chan
 }
 
 proc Main::findNext {} {
-    set target [$Main::notebook raise]
-    if {[string length $target] == 0} { return }
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
 
     $Main::servers($serv) findNext $chan
 }
 
 proc Main::NLpm {} {
-    set target [$Main::notebook raise]
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
 
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
@@ -456,11 +431,8 @@ proc Main::NLpm {} {
 }
 
 proc Main::NLcmd {the_cmd} {
-    set target [$Main::notebook raise]
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
@@ -469,11 +441,8 @@ proc Main::NLcmd {the_cmd} {
 }
 
 proc Main::NLmode {the_mode} {
-    set target [$Main::notebook raise]
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
@@ -483,11 +452,8 @@ proc Main::NLmode {the_mode} {
 proc Main::NLkick {} {
 }
 proc Main::NLban {bantype shouldkick} {
-    set target [$Main::notebook raise]
-    regsub -all "__" $target "*" target
-    set parts [split $target "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
@@ -501,10 +467,8 @@ proc Main::closeTabFromGui {} {
 }
 
 proc Main::closeTab {target} {
-    regsub -all "__" $target "*" target2
-    set parts [split $target2 "\*"]
+    set parts [Main::getServAndChan $target]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     set tabIndex [$Main::notebook index $target]
@@ -533,9 +497,8 @@ proc Main::closeTab {target} {
 }
 
 proc Main::pressTab { args} {
-    set parts [split $args "\*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     Log V "Pressing Tab $serv $chan"
@@ -547,15 +510,9 @@ proc Main::pressTab { args} {
 }
 
 proc Main::updateStatusbar {} {
-    set target [$Main::notebook raise]
-    if {[string length $target] == 0} {
-        return
-    }
-    regsub -all "__" $target "*" target
-    set parts [split $target "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    regsub -all "_" $serv "." serv
 
     set pingtime [$Main::servers($serv) getPingtime]
     if {$pingtime == 0} {
@@ -591,22 +548,29 @@ proc Main::tabContext { x y tabId } {
     tk_popup .tabMenu [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
 }
 
-proc Main::pressAway { args } {
-    set parts [split [$Main::notebook raise] "*"]
+proc Main::pressAway {} {
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     $Main::servers($serv) toggleAway
 }
 
 proc Main::updateAwayButton {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     set chan [lindex $parts 1]
     
     $Main::servers($serv) updateToolbarAway $chan
+}
+
+proc Main::getServAndChan {arg} {
+    regsub -all "__" $arg "*" arg
+    set parts [split $arg "*"]
+    set serv [lindex $parts 0]
+    regsub -all "_" $serv "." serv
+    set chan [lindex $parts 1]
+    return [list $serv $chan]
 }
 
 proc Main::showConnectDialog { } {
@@ -677,9 +641,8 @@ proc Main::joinChannel {} {
     catch {grab set .}
     wm state .joinDialog withdrawn
     
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     
     if { [string length [$Main::servers($serv) getconnDesc]] > 0 } {
         $Main::servers($serv) _send "JOIN $chan"
@@ -723,23 +686,21 @@ proc Main::connectDialogConfirm {} {
 }
 
 proc Main::reconnect {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    regsub -all "_" $serv "." serv
     $Main::servers($serv) initServer
 }
 
 proc Main::disconnect {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    regsub -all "_" $serv "." serv
     $Main::servers($serv) quit $Pref::defaultQuit
 }
 
 proc Main::partOrQuit {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
@@ -752,7 +713,7 @@ proc Main::partOrQuit {} {
 }
 
 proc Main::part {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     regsub -all "_" $serv "." serv
@@ -762,9 +723,8 @@ proc Main::part {} {
 proc Main::channelList {} {
     variable chanL
     
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     if { ![info exists Main::channelList($serv)] } {
         set Main::channelList($serv) [list]
         $Main::servers($serv) _send LIST
@@ -807,16 +767,14 @@ proc Main::joinChannelList {} {
     catch {grab set .}
     wm state .channelList withdrawn
     
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     $Main::servers($serv) joinChan $chanName ""
 }
 
 proc Main::refreshChannelList {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     
     # Clear the list & update
     set Main::channelList($serv) [list]
@@ -854,9 +812,8 @@ proc Main::nickDialogConfirm {} {
     set newpass [.nickDialog.pass get]
     wm state .nickDialog withdrawn
 
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
-    regsub -all "_" $serv "." serv
     
     $Main::servers($serv) _send "NICK $newnick"
     if {[string length $newpass] > 0 } {
@@ -865,10 +822,9 @@ proc Main::nickDialogConfirm {} {
 }
 
 proc Main::showProperties {} {
-    set parts [split [$Main::notebook raise] "*"]
+    set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    regsub -all "_" $serv "." serv
     $Main::servers($serv) showProperties $chan
 }
 

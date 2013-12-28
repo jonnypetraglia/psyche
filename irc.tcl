@@ -338,7 +338,6 @@ proc performSpecialCase {msg obj} {
     if [regexp {^(msg|query) ([^ ]+) (.*)} $msg -> derp nick msg] {
         Log D "Msging: $nick"
         $obj sendPM $nick $msg
-        #$obj _send "PRIVMSG notbryant Hello"
         return true
     }
     #/quit
@@ -386,9 +385,12 @@ proc performSpecialCase {msg obj} {
     
     #/kick
     #/topic
-    #/identify
-    set thingsToChannelize "(kick|topic|identify)"
+    set thingsToChannelize "(kick|topic)"
     if [regexp "^$thingsToChannelize \(.*\)" $msg -> cmd target] {
+        #TODO form should be
+        #    'KICK #chan nick :reason'    with a colon
+        #    'TOPIC #test :words'         with a colon
+        #    'TOPIC #test'                to check the topic
         Log D "CMD: ^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)"
         if [regexp "^\(\[[$obj getChannPrefixes]\]\[^ \]+\) \(.*\)" $msg -> chann target] {
             set chann $chann
@@ -410,13 +412,13 @@ proc performSpecialCase {msg obj} {
             set chann [$obj getChannel]
         }
         Log D "INVITE: $target $chann"
-        $obj _send "$cmg $target $chann"
+        $obj _send "$cmd $target $chann"
         return true
     }
     
     #/away
     if [regexp "^away ?\(.*\)" $msg -> reason] {
-        $obj _send "AWAY $reason"
+        $obj _send "AWAY :$reason"
         # This is the only place we can get the reason, so we have to signal from here
         $obj awaySignalServer $reason
         return true

@@ -604,7 +604,7 @@ snit::type tabServer {
     ############## Update the specific Away button ##############
     method updateToolbarAway {mTarget} {
         if [info exists channelMap($mTarget)] {
-            $channelMap($mTarget) updateToolbarAway $mTarget
+            $channelMap($mTarget) updateToolbarAway
             return
         }
         

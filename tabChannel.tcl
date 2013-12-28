@@ -141,9 +141,9 @@ snit::type tabChannel {
         if { [string length [$ServerRef getconnDesc] ] > 0 } {
             #Is connected to this channel
             if { [$ServerRef isChannelConnected $mTarget] } {
-            $Main::toolbar_part configure -state normal
+                $Main::toolbar_part configure -state normal
             } else {
-            $Main::toolbar_part configure -state disabled
+                $Main::toolbar_part configure -state disabled
             }
             $Main::toolbar_join configure -state normal
             $Main::toolbar_disconnect configure -state normal
@@ -217,10 +217,9 @@ snit::type tabChannel {
         
         $ServerRef removeActiveChannel $chann
     
-        set parts [split [$Main::notebook raise] "*"]
+        set parts [Main::getServAndChan [$Main::notebook raise]]
         set serv [lindex $parts 0]
         set chan [lindex $parts 1]
-        regsub -all "_" $serv "." serv
         $self updateToolbar $chan
     }
     
@@ -417,6 +416,16 @@ snit::type tabChannel {
             
             $self _send "MODE $channel"
             $self _send "MODE $channel +b"
+        }
+    }
+    
+    ############## Update the specific Away button ##############
+    method updateToolbarAway {} {
+        set reason [$awayLabel cget -text]
+        if {[regexp {^\(Away: (.+)\)} $reason -> reason]} {
+            $Main::toolbar_away configure -image [image create photo -file $About::icondir/back.gif] -helptext "Back"
+        } else {
+            $Main::toolbar_away configure -image [image create photo -file $About::icondir/away.gif] -helptext "Away"
         }
     }
     
