@@ -23,13 +23,14 @@
         $chat insert end $title\  $style1
         $chat insert end $message\n $style2
         
+        set msgStart [expr {[string length $timestamp] + [string length $title] + 2}]
+        
         # Aw yiss. Mother. Fucking. Hyperlinks.
         set linkRegex {(http|https|ftp)\://([a-zA-Z0-9\.\-]+(\:[a-zA-Z0-9\.&amp;%\$\-]+)*@)*((25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])|localhost|([a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))(\:[0-9]+)*(/($|[a-zA-Z0-9\.\,\?\'\\\+&amp;%\$#\=~_\-]+))*}
             # ^ via http://stackoverflow.com/questions/3726807/regex-expression-for-valid-website-link
         set lastMatchInd 0
         # helped a ton by https://gist.github.com/marvin/4130284
         while {[regexp -start $lastMatchInd -indices -- $linkRegex $message location]} {
-            set msgStart [expr {[string length $timestamp] + [string length $title] + 2}]
             set urlStart [$chat index [list $beginning + [expr {[lindex $location 0] + $msgStart}] chars]]
             set urlEnd   [$chat index [list $beginning + [expr {[lindex $location 1] + $msgStart + 1}] chars]]
             set url [$chat get $urlStart $urlEnd]
@@ -42,6 +43,41 @@
             $chat tag bind      $tagname "<Button-1>" "platformOpen $url"
             
             set lastMatchInd [lindex $location 1] 
+        }
+        
+        # Bold
+        while {[regexp -indices -- "" $message locationA]} {
+            set locationA [lindex $locationA 0]
+            set message [string replace $message $locationA $locationA ""]
+            $chat delete [$chat index [list $beginning + [expr {$locationA + $msgStart}] chars]] \
+                         [$chat index [list $beginning + [expr {$locationA + $msgStart + 1}] chars]]
+            if {[regexp -indices -- "" $message locationB]} {
+                set locationB [lindex $locationB 0]
+                set message [string replace $message $locationB $locationB ""]
+                $chat delete       [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]] \
+                                   [$chat index [list $beginning + [expr {$locationB + $msgStart + 1}] chars]]
+                Log WTF "[$chat get [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]]   [$chat index [list $beginning + [expr {$locationB + $msgStart + 1}] chars]]]"
+                Log WTF [$chat get $beginning end]
+                $chat tag add bold [$chat index [list $beginning + [expr {$locationA + $msgStart}] chars]] \
+                                   [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]]
+            }
+        }
+        # Italic
+        while {[regexp -indices -- "" $message locationA]} {
+            set locationA [lindex $locationA 0]
+            set message [string replace $message $locationA $locationA ""]
+            $chat delete [$chat index [list $beginning + [expr {$locationA + $msgStart}] chars]] \
+                         [$chat index [list $beginning + [expr {$locationA + $msgStart + 1}] chars]]
+            if {[regexp -indices -- "" $message locationB]} {
+                set locationB [lindex $locationB 0]
+                set message [string replace $message $locationB $locationB ""]
+                $chat delete       [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]] \
+                                   [$chat index [list $beginning + [expr {$locationB + $msgStart + 1}] chars]]
+                Log WTF "[$chat get [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]]   [$chat index [list $beginning + [expr {$locationB + $msgStart + 1}] chars]]]"
+                Log WTF [$chat get $beginning end]
+                $chat tag add italic [$chat index [list $beginning + [expr {$locationA + $msgStart}] chars]] \
+                                     [$chat index [list $beginning + [expr {$locationB + $msgStart}] chars]]
+            }
         }
         
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?

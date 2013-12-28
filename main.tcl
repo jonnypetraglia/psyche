@@ -147,21 +147,6 @@ proc Main::init { } {
     # Some Colors
     set Main::nick_colors [list #E90E7F #8E55E9 #B30E0E #18B33C #58ADB3 #9E54B3 #B39875 #3176B3 #000001]
     
-    # Menu description
-    if { false || true } {
-        set Main::descmenu {
-            "&File" all file 0 {
-            {command "E&xit" {} "Exit BWidget demo" {} -command exit}
-            }
-            "&Options" all options 0 {
-            {checkbutton "Toolbar &1" {all option} "Show/hide toolbar 1" {}
-                -variable Main::toolbar
-                -command  {$Main::mainframe showtoolbar 0 $Main::toolbar}
-            }
-            }
-        }
-    }
-    
     set Main::win .
     # Status Bar & Toolbar
     set Main::mainframe [MainFrame ${Main::win}mainframe]
@@ -513,7 +498,11 @@ proc Main::updateStatusbar {} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-
+    if {[string length $serv] == 0 || ![info exists Main::servers($serv)]} {
+        return
+    }
+    Log I "Updating statusbar: $serv $chan"
+    
     set pingtime [$Main::servers($serv) getPingtime]
     if {$pingtime == 0} {
         set Main::status_text "Disconnected"
