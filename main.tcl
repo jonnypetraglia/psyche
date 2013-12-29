@@ -577,7 +577,10 @@ proc Main::showConnectDialog { } {
     xentry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
     xlabel .connectDialog.l_nick -text "Nick"
-    xentry .connectDialog.nick -width 20
+    xentry .connectDialog.nick -width 35
+    .connectDialog.nick configure -background white
+    xlabel .connectDialog.l_pass -text "Nickserv Pass"
+    xentry .connectDialog.pass -width 35
     .connectDialog.nick configure -background white
     xbutton .connectDialog.go -text "Connect"
     
@@ -586,9 +589,11 @@ proc Main::showConnectDialog { } {
     grid config .connectDialog.l_port -row 0 -column 1 -sticky "w"
     grid config .connectDialog.port   -row 1 -column 1
     grid config .connectDialog.l_nick -row 2 -column 0 -sticky "w"
-    grid config .connectDialog.nick   -row 3 -column 0
-    grid config .connectDialog.go     -row 3 -column 1
-    bind .connectDialog.go <ButtonPress> Main::connectDialogConfirm
+    grid config .connectDialog.nick   -row 3 -column 0 -columnspan 2
+    grid config .connectDialog.l_pass -row 4 -column 0 -sticky "w"
+    grid config .connectDialog.pass   -row 5 -column 0 -columnspan 2
+    grid config .connectDialog.go     -row 6 -column 1
+    .connectDialog.go configure -command Main::connectDialogConfirm
     
     foreground_win .connectDialog
     catch {grab release .}
@@ -660,6 +665,7 @@ proc Main::connectDialogConfirm {} {
     set serv [.connectDialog.serv get]
     set por [.connectDialog.port get]
     set nick [.connectDialog.nick get]
+    set pass [.connectDialog.pass get]
     if [ expr { [string length $serv] == 0 || \
         [string length $por] == 0  || \
         [string length $nick] == 0}] {
@@ -671,14 +677,14 @@ proc Main::connectDialogConfirm {} {
     catch {grab set .}
     wm state .connectDialog withdrawn
 
-    Main::createConnection $serv $por $nick ""
+    Main::createConnection $serv $por $nick $pass
 }
 
 proc Main::reconnect {} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    $Main::servers($serv) initServer
+    $Main::servers($serv) initServer ""
 }
 
 proc Main::disconnect {} {

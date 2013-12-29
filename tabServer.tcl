@@ -682,8 +682,19 @@ snit::type tabServer {
         catch {
         gets $connDesc line
         set timestamp [$self getTimestamp]
+        
         Log D $line
         set style ""
+        
+        # ERROR
+        if {[regexp {^ERROR :(.*)} $line -> mMsg]} {
+            close $connDesc
+            unset connDesc
+            $self handleReceived $timestamp \[Error\] bold $mMsg ""
+            $self propogateMessage "" $timestamp \[Error\] bold $mMsg ""
+            $self updateToolbar ""
+            return
+        }
         
         # PING
         if {[regexp {^PING :(.*)} $line -> mResponse]} {
