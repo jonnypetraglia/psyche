@@ -434,7 +434,14 @@ proc Main::NLmode {the_mode} {
 }
 
 proc Main::NLkick {} {
+    set parts [Main::getServAndChan [$Main::notebook raise]]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    
+    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
+    $Main::servers($serv) _send "KICK $chan $theNick :$Pref::defaultKick"
 }
+
 proc Main::NLban {bantype shouldkick} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
