@@ -207,7 +207,7 @@ proc Pref::show {} {
     
     
     set Pref::gBlist   [listbox $theFrame.list -width 40]
-    set Pref::gBadd    [xbutton $theFrame.add              -text "Add"    -width 6 -command Pref::addBookmark]
+    set Pref::gBadd    [xbutton $theFrame.add              -text "Add"    -width 6 -command {$Pref::gBlist selection clear 0 end; Pref::addBookmark}]
     set Pref::gBremove [xbutton $theFrame.remove           -text "Remove" -width 9 -command Pref::removeBookmark]
     set Pref::gBedit   [xbutton $theFrame.edit             -text "Edit"   -width 6 -command Pref::editBookmark]
     
@@ -285,7 +285,7 @@ proc Pref::show {} {
     
     xlabel $theFrame.l_plocation        -text "Location"
     xlabelframe $theFrame.plocation
-    set ::nsew "new"
+    set ::nsew "nw"
     set nw [radiobutton $theFrame.plocation.nw -value "nw" -variable nsew -text "Top/Left" -indicatoron 0]
     set ne [radiobutton $theFrame.plocation.ne -value "ne" -variable nsew -text "Top/Right" -indicatoron 0]
     set sw [radiobutton $theFrame.plocation.sw -value "sw" -variable nsew -text "Bottom/Left" -indicatoron 0]
@@ -435,14 +435,19 @@ proc Pref::saveBookmark {} {
     if {[string length [$Pref::gBchannels get]] > 0} {
         lappend thing [$Pref::gBchannels get]
     }
-    set cur [$Pref::gBlist index active]
-    $Pref::gBlist delete $cur
-    $Pref::gBlist insert $cur $newname
-    $Pref::gBlist activate $cur
-    if {$oldname!=$newname} {
-        unset Pref::tempbookmarks($oldname)
+    set cur [$Pref::gBlist curselection]
+    if {$cur != ""} {
+        if {$oldname!=$newname} {
+            unset Pref::tempbookmarks($oldname)
+        }
+        set curi [$Pref::gBlist index active]
+        $Pref::gBlist delete $curi
+    } else {
+        set curi [$Pref::gBlist index end]
     }
+    $Pref::gBlist insert $curi $newname
     set Pref::tempbookmarks($newname) $thing
+    $Pref::gBlist activate $curi
     
     Pref::clearBookmarks
 }
@@ -544,10 +549,10 @@ proc Pref::writePrefs {} {
         puts $fp "set $pref \"$val\""
         Log D "Writing preference:   $pref = \"$val\""
     }
-    foreach {key value} [array get Pref::bookmarks] {
+    foreach key [lsort -dictionary [array names Pref::bookmarks]] {
         #do something with key and value
-        Log D "Writing preference:   bookmarks($key) = {$value}"
-        puts $fp "set bookmarks($key) {$value}"
+        Log D "Writing preference:   bookmarks($key) = {$Pref::bookmarks($key)}"
+        puts $fp "set bookmarks($key) {$Pref::bookmarks($key)}"
     }
     flush $fp
     close $fp
