@@ -145,6 +145,7 @@ proc Main::init { } {
     set Main::nick_colors [list #E90E7F #8E55E9 #B30E0E #18B33C #58ADB3 #9E54B3 #B39875 #3176B3 #000001]
     
     set Main::win .
+    bind $Main::win <FocusIn> {Main::pressTab}
     # Status Bar & Toolbar
     set Main::mainframe [MainFrame ${Main::win}mainframe]
                        #-menu         $Main::descmenu]
@@ -529,7 +530,7 @@ proc Main::unsetTabMention {} {
 
 proc Main::tabContext { x y tabId } {
     $Main::notebook raise $tabId
-    Main::pressTab $tabId
+    Main::pressTab
     tk_popup .tabMenu [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
 }
 

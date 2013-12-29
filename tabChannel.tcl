@@ -362,6 +362,10 @@ snit::type tabChannel {
         }
     }
     
+    method resetMentionColor {} {
+        $chat tag config mention   -foreground $Pref::mentionColor
+    }
+    
     source "_shared.tcl"
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

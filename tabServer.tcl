@@ -98,7 +98,7 @@ snit::type tabServer {
         $chat tag config italic -font [linsert [$chat cget -font] end italic]
         $chat tag config timestamp -font {Arial 7} -foreground grey60
         $chat tag config blue   -foreground blue
-        $chat tag config mention   -foreground red
+        $self resetMentionColor
         $chat configure -background white
         $chat configure -state disabled
         #$chat configure -bd 1
@@ -465,6 +465,14 @@ snit::type tabServer {
         set chanNames [array names channelMap]
         foreach c $chanNames {
             $channelMap($c) findClear
+        }
+    }
+    
+    method resetMentionColor {} {
+        $chat tag config mention   -foreground $Pref::mentionColor
+        set chanNames [array names channelMap]
+        foreach c $chanNames {
+            $channelMap($c) resetMentionColor
         }
     }
     
@@ -1003,7 +1011,7 @@ snit::type tabServer {
         }
     
         #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
-        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^:]*:(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
+        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^ ]* :?(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
             Log V "REC: Special: $mSomething"
             switch $mSomething {
                 "NICK" {
@@ -1023,14 +1031,15 @@ snit::type tabServer {
                 }
                 "JOIN" {
                     if {[string equal $mNick [$self getNick]]} {
-                    $self joinChan $mMsg ""
+                        Log D "Truly joining: $mMsg"
+                        $self joinChan $mMsg ""
                     } else {
-                    if {[regexp ".*$nick.*" "$mNick"]} {
-                        set style "mention"
-                        $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
-                    }
-                    $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
-                    $channelMap($mMsg) NLadd $mNick
+                        if {[regexp ".*$nick.*" "$mNick"]} {
+                            set style "mention"
+                            $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
+                        }
+                        $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
+                        $channelMap($mMsg) NLadd $mNick
                     }
                     return
                 }
@@ -1160,7 +1169,7 @@ snit::type tabServer {
         } error_msg error_options
         if {[string length $error_msg] > 0} {
             ::notebox::addmsg "ERROR: $server  -  $error_msg"
-            puts "ERROR: $server ${error_options}"
+            Log WTF "$server ${error_options}"
         }
     }
 }

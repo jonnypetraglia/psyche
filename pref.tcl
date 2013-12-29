@@ -538,6 +538,12 @@ proc Pref::savePrefs {} {
     array unset ::Pref::bookmarks
     array set ::Pref::bookmarks [array get ::Pref::tempbookmarks]
     Pref::createBookmarkMenu
+    # color
+    
+    set servs [array names Main::servers]
+    foreach serv $servs {
+        $Main::servers($serv) resetMentionColor
+    }
 }
 
 proc Pref::writePrefs {} {
