@@ -59,8 +59,8 @@ To set a value, use the same nomenclature as regular Tcl:
     * the path to the sound file to be played when you are mentioned; set to the empty string "" if you want to disable sounds
   * bookmarks = (array entry containing list)
     * bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect. If any channels are given, they are joined automatically.
-    * Syntax:   bookmarks($nickname) {$server $port {$nick _$pass_} _$channel1 $channel2 ..._}
-    * Example:  bookmarks(Geekshed) {irc.geekshed.net 6667 notbryant #qweex}
+    * Syntax:   bookmarks($nickname) {$server $port {$nick _$pass_} _{$channel1 $channel2 ...}_}
+    * Example:  bookmarks(Geekshed) {irc.geekshed.net 6667 {notbryant} {#qweex}}
 
 For default values, see the "pref.tcl" file.
 

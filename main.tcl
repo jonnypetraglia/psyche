@@ -827,9 +827,11 @@ proc Main::openBookmark {target} {
     } else {
         Main::createConnection $serv $por $nic ""
     }
+    # Open Channels
     if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
-        for {set x 3} {$x<[llength $Pref::bookmarks($target)]} {incr x} {
-            $Main::servers($serv) _send "JOIN [lindex $Pref::bookmarks($target) $x]"
+        set channels [lindex $Pref::bookmarks($target) 3]
+        foreach chann $channels {
+            $Main::servers($serv) _send "JOIN $chann"
         }
     }
 }
