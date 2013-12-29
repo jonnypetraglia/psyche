@@ -82,7 +82,7 @@ snit::type tabChannel {
         #regsub -all " " $id_var "__" id_var
         
         # Magic bullshit
-        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwdW]/icons/x.gif"]]
+        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwdW]/icons/x.gif"] -raisecmd Main::pressTab]
         set_close_bindings $Main::notebook $id_var
         set topf  [frame $frame.topf]
         
@@ -121,17 +121,18 @@ snit::type tabChannel {
         pack $lowerFrame -side bottom -fill x
     
         # Create the nicklist widget
-        set nicklistCtrl [listbox $topf.lb -listvariable [myvar nickList] \
-                    -height 8 -width 20 -highlightthickness 0]
-        
-        bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
-        bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod RightclickNicklist] %x %y"
-        set scrollNick [xscrollbar $topf.sbar2 -orient vertical -command "$nicklistCtrl yview"]
-        $nicklistCtrl conf -yscrollcommand "$scrollNick set"
-        
-        
-        pack $scrollNick -fill both -expand 0 -side right
-        pack $nicklistCtrl -fill both -expand 0 -side right
+        if {![$self isPM]} {
+            set nicklistCtrl [listbox $topf.lb -listvariable [myvar nickList] \
+                        -height 8 -width 20 -highlightthickness 0]
+            
+            bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
+            bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod RightclickNicklist] %x %y"
+            set scrollNick [xscrollbar $topf.sbar2 -orient vertical -command "$nicklistCtrl yview"]
+            $nicklistCtrl conf -yscrollcommand "$scrollNick set"
+            
+            pack $scrollNick -fill both -expand 0 -side right
+            pack $nicklistCtrl -fill both -expand 0 -side right
+        }
         
         pack $scroll -fill both -expand 0 -side right
         pack $chat -fill both -expand 1
@@ -142,6 +143,7 @@ snit::type tabChannel {
     
     ############## Update the toolbar's statuses ##############
     method updateToolbar {mTarget} {
+        Log D "Updating Toolbar: $mTarget"
         $Main::toolbar_find configure -state normal
         #Is connected
         if { [string length [$ServerRef getconnDesc] ] > 0 } {
@@ -721,5 +723,9 @@ snit::type tabChannel {
         set theNick [$nicklistCtrl get [$nicklistCtrl curselection] ]
         regexp "^\[[$self getNickPrefixes]\](.*)" $theNick -> theNick
         return $theNick
+    }
+    
+    method isPM {} {
+        return [regexp -- "^\[[$ServerRef getChannelPrefixes]\].+" $channel]
     }
 }

@@ -172,7 +172,6 @@ proc Main::init { } {
     # NoteBook creation
     set frame    [$Main::mainframe getframe]
     set Main::notebook [NoteBook $frame.nb]
-    $Main::notebook bindtabs <1> { Main::pressTab }
     $Main::notebook bindtabs <ButtonRelease-$Main::MIDDLE_CLICK> { Main::tabContext %x %y}
     
     

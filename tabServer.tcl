@@ -89,7 +89,7 @@ snit::type tabServer {
         regsub -all " " $id_var "*" id_var
         
         # Magic bullshit
-        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwdW]/icons/x.gif"]]
+        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwdW]/icons/x.gif"] -raisecmd Main::pressTab]
         set_close_bindings $Main::notebook $id_var
         set topf  [frame $frame.topf]
         
@@ -1174,4 +1174,6 @@ snit::type tabServer {
             Log WTF "$server ${error_options}"
         }
     }
+    
+    method getChannelPrefixes {} {return ChannelPrefixes}
 }
