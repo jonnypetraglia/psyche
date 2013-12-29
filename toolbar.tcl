@@ -1,12 +1,52 @@
-proc Main::metaToolbar {} {
-    # Meta toolbar
-    set toolbar2  [$Main::mainframe addtoolbar]
-    set bbox2 [ButtonBox $toolbar2.bbox1 -spacing 0 -padx 0 -pady 0 -homogeneous 0]
-    set Main::meta_toolbar [\
-    $bbox2 add -image [image create bitmap metameta -data {
-        #define plus2_width 16
-        #define plus2_height 11
-        static char plus2_bits = {
+proc Main::hideToolbar {} {
+    Log D "hideToolbar"
+    $Main::mainframe showtoolbar 0 true
+    $Main::mainframe showtoolbar 1 false
+    bind ${Main::win} <F10> { Main::showToolbar }
+}
+
+proc Main::showToolbar {} {
+    Log D "showToolbar"
+    $Main::mainframe showtoolbar 0 false
+    $Main::mainframe showtoolbar 1 true
+    bind ${Main::win} <F10> { Main::hideToolbar }
+}
+
+proc Main::init_toolbar { } {
+    #### Meta Toolbar ####
+    set toolbar0  [$Main::mainframe addtoolbar]
+    set bbox0 [ButtonBox $toolbar0.bbox -spacing 0 -padx 0 -pady 0 -homogeneous 0]
+    $bbox0 add -image [image create bitmap meta0 -data {
+        #define meta_width 16
+        #define meta_height 11
+        static char meta_bits = {
+        0x00, 0x00,
+        0x00, 0x00,
+        0x20, 0x08,
+        0x10, 0x04,
+        0x08, 0x02,
+        0x04, 0x01,
+        0x08, 0x02,
+        0x10, 0x04,
+        0x20, 0x08,
+        0x00, 0x00,
+        0x00, 0x00
+        }
+    }] -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 0 -pady 0 \
+    -command { Main::showToolbar }
+    pack $bbox0 -side right -anchor e
+    $Main::mainframe showtoolbar 0 false
+    
+    
+    #### Main Toolbar ####
+    set Main::toolbar  [$Main::mainframe addtoolbar]
+    
+    ### Meta button ###
+    set bbox1 [ButtonBox $Main::toolbar.bbox0 -spacing 0 -padx 0 -pady 0 -homogeneous 0]
+    $bbox1 add -image [image create bitmap meta1 -data {
+        #define meta_width 16
+        #define meta_height 11
+        static char meta_bits = {
         0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00,
@@ -20,60 +60,11 @@ proc Main::metaToolbar {} {
         0x00, 0x00
         }
     }] -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 0 -pady 0 \
-    -command { Main::toggleToolbar }]
-    pack $bbox2 -side left -anchor w
+    -command { Main::hideToolbar }
+    pack $bbox1 -side right -anchor e
     
-}
-
-proc Main::toggleToolbar {} {
-    set Main::hiddenToolbar [expr {!$Main::hiddenToolbar}]
-    $Main::mainframe showtoolbar 1 [expr {!$Main::hiddenToolbar}]
-    if { $Main::hiddenToolbar } {
-        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
-            #define plus2_width 16
-            #define plus2_height 11
-            static char plus2_bits = {
-            0x00, 0x00,
-            0x00, 0x00,
-            0x10, 0x02,
-            0x20, 0x04,
-            0x40, 0x08,
-            0x80, 0x10,
-            0x40, 0x08,
-            0x20, 0x04,
-            0x10, 0x02,
-            0x00, 0x00,
-            0x00, 0x00
-            }
-        }]
-    } else {
-        $Main::meta_toolbar configure -image [image create bitmap metameta -data {
-            #define plus2_width 16
-            #define plus2_height 11
-            static char plus2_bits = {
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x41, 0x41,
-            0x22, 0x22,
-            0x14, 0x14,
-            0x08, 0x08,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00,
-            0x00, 0x00
-            }
-        }]
-    }
-}
-
-proc Main::init_toolbar { } {
-    Main::metaToolbar
-    
-    set Main::toolbar  [$Main::mainframe addtoolbar]
-        
     ### Connection ###
-    set bbox [ButtonBox $Main::toolbar.bbox1 -spacing 0 -padx 1 -pady 1 -homogeneous 0]
+    set bbox [ButtonBox $Main::toolbar.bbox -spacing 0 -padx 1 -pady 1 -homogeneous 0]
     $bbox add -image [image create photo -file $About::icondir/connect.gif] \
         -highlightthickness 0 -takefocus 0 -relief link -borderwidth 1 -padx 1 -pady 1 \
         -helptext "Connect" \
@@ -159,7 +150,7 @@ proc Main::init_toolbar { } {
         
     #Close Tab
     #Clear Screen?
-        
+    
     pack $bbox -side left -anchor w
 }
 

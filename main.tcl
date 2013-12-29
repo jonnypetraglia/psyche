@@ -34,7 +34,6 @@ namespace eval Main {
     variable descmenu
     variable bookmarkMenu
     variable mainframe
-    variable toolbar
     variable status_text
     variable status_prog
     variable notebook
@@ -54,8 +53,6 @@ namespace eval Main {
     variable default_tab_color
     variable nick_colors
     
-    variable hiddenToolbar
-    variable meta_toolbar
     variable win
     variable cursor_link
     
@@ -281,9 +278,8 @@ proc Main::init { } {
     }
     
     # Toggle Toolbar
-    set Main::hiddenToolbar [expr {!!$Pref::toolbarHidden}]
-    if { $Main::hiddenToolbar} { Main::toggleToolbar }
-    bind ${Main::win} <F10> { Main::toggleToolbar }
+    if { $Pref::toolbarHidden} { Main::hideToolbar }
+    bind ${Main::win} <F10> { Main::hideToolbar }
 }
 
 proc Main::changeToTab {i} {
