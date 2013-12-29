@@ -3,6 +3,7 @@ snit::type tabServer {
     variable id_var
     # UI Controls
     variable chat
+    variable scroll
     variable input
     variable nickList
     variable awayLabel
@@ -104,6 +105,8 @@ snit::type tabServer {
         #$chat configure -bd 1
         $chat configure -relief solid
         $chat tag configure regionSearch -background yellow
+        set scroll [xscrollbar $topf.sbar -orient vertical -command "$chat yview"]
+        $chat conf -yscrollcommand "$scroll set"
         
         set lowerFrame [frame $topf.f]
         
@@ -125,6 +128,7 @@ snit::type tabServer {
         ## And this where a NickList widget would go
         ## IF I HAD ONE
         
+        pack $topf.sbar -fill both -expand 0 -side right
         pack $chat -fill both -expand 1
         pack $topf -fill both -expand 1
         
@@ -1140,8 +1144,6 @@ snit::type tabServer {
                     set mMsg "$ServerName has set your personal modes: $mMsg"
                 }
                 "NOTICE" {
-                    $self handleReceived $timestamp \[Notice\] bold $mMsg ""
-                    return
                 }
                 "433" {
                 # Note that this only happens when it is a catastrophic failure!
@@ -1156,7 +1158,7 @@ snit::type tabServer {
                 set style "mention"
                 $self notifyMention $mTarget $mMsg
             }
-            $self handleReceived $timestamp \[$mSomething\] bold $mMsg $style
+            $self handleReceived $timestamp \[[string totitle $mSomething]\] bold $mMsg $style
             return
         }
             

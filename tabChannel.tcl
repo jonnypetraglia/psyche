@@ -3,6 +3,8 @@ snit::type tabChannel {
     variable id_var
     # UI Controls
     variable chat
+    variable scroll
+    variable scrollNick
     variable input
     variable nickList
     variable awayLabel
@@ -94,6 +96,8 @@ snit::type tabChannel {
         $chat configure -background white
         $chat configure -state disabled
         $chat tag configure regionSearch -background yellow
+        set scroll [xscrollbar $topf.sbar -orient vertical -command "$chat yview"]
+        $chat conf -yscrollcommand "$scroll set"
         for {set i 0} {$i < [llength $Main::nick_colors]} {incr i} {
             $chat tag config "nick_color$i" -foreground [lindex $Main::nick_colors $i]
         }
@@ -117,17 +121,19 @@ snit::type tabChannel {
         pack $lowerFrame -side bottom -fill x
     
         # Create the nicklist widget
-        set nicklistPanedWindow [PanedWindow $topf.pw -side top]
-        set pane  [$nicklistPanedWindow add -minsize 100]
-        set nicklistScrolledWindow [ScrolledWindow $pane.sw]
-        set nicklistCtrl [listbox $nicklistScrolledWindow.lb -listvariable [myvar nickList] \
+        set nicklistCtrl [listbox $topf.lb -listvariable [myvar nickList] \
                     -height 8 -width 20 -highlightthickness 0]
         
-        $nicklistScrolledWindow setwidget $nicklistCtrl
-        pack $nicklistScrolledWindow $nicklistPanedWindow -fill both -expand 0 -side right
         bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
         bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod RightclickNicklist] %x %y"
+        set scrollNick [xscrollbar $topf.sbar2 -orient vertical -command "$nicklistCtrl yview"]
+        $nicklistCtrl conf -yscrollcommand "$scrollNick set"
         
+        
+        pack $scrollNick -fill both -expand 0 -side right
+        pack $nicklistCtrl -fill both -expand 0 -side right
+        
+        pack $scroll -fill both -expand 0 -side right
         pack $chat -fill both -expand 1
         pack $topf -fill both -expand 1
         

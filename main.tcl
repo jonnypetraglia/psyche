@@ -98,6 +98,7 @@ if {$tcl_version >= 8.5 && $::PLATFORM != $::PLATFORM_MAC} {
     interp alias {} xspinbox {} ttk::spinbox
     interp alias {} xlabelframe {} ttk::labelframe
     interp alias {} xradiobutton {} ttk::radiobutton
+    interp alias {} xscrollbar {} ttk::scrollbar
 } else {
     interp alias {} xbutton {} button
     interp alias {} xlabel {} label
@@ -106,6 +107,7 @@ if {$tcl_version >= 8.5 && $::PLATFORM != $::PLATFORM_MAC} {
     interp alias {} xspinbox {} spinbox
     interp alias {} xlabelframe {} labelframe
     interp alias {} xradiobutton {} radiobutton
+    interp alias {} xscrollbar {} scrollbar
 }
 source about.tcl
 source pref.tcl

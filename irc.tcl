@@ -11,7 +11,7 @@ set IrcCodes(309_Bahamut) Admin
 set IrcCodes(309_AustHex) WhoIs
 set IrcCodes(378_aircd) BanExpired
 set IrcCodes(378_Unreal) Whois
-set IrcCodes(378_AustHex) MOTD
+set IrcCodes(378_AustHex) MotD
 
 # https://www.alien.net.au/irc/irc2numerics.html
 # http://www.godspeak.net/chat/basic_irc.html
@@ -236,7 +236,7 @@ proc getTitle {mCode} {
         }
         372 {
             #RPL_MOTD (RFC1459)
-            return \[MOTD\]
+            return \[MotD\]
         }
         374 {
             #RPL_ENDOFINFO
@@ -244,11 +244,11 @@ proc getTitle {mCode} {
         }
         375 {
             #RPL_MOTDSTART (RFC1459)
-            return \[MOTD\]
+            return \[MotD\]
         }
         376 {
             #RPL_ENDOFMOTD (RFC1459)
-            return \[MOTD\]
+            return \[MotD\]
         }
         378 {
             #RPL_BANEXPIRED (aircd)

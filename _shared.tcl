@@ -95,6 +95,10 @@
         }
         $chat configure -state disabled
         
+        # Update Scrollbar
+        set s [$chat yview]
+        $scroll set [lindex $s 0] [lindex $s 1]
+        
         if {$isAtBottom==1.0} {
             $chat yview end
         }
