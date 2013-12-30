@@ -20,6 +20,7 @@ snit::type tabServer {
     # SPECIFIC
     variable server
     variable port
+    variable ssl
     variable nick
     variable connDesc
     variable channelMap
@@ -49,7 +50,7 @@ snit::type tabServer {
         
         # If it has no args it's a dummy tab for measurement
         if { [string length $args] > 0 } {
-            $self init [lindex $args 0] [lindex $args 1] [lindex $args 2]
+            $self init [lindex $args 0] [lindex $args 1] [lindex $args 2] [lindex $args 3]
         } else {
             set channel Temp
             set id_var measure_tab
@@ -65,7 +66,7 @@ snit::type tabServer {
     }
     
     ############## Initialize the variables ##############
-    method init {arg0 arg1 arg2} {
+    method init {arg0 arg1 arg2 arg3} {
         set nickList [list]
         set activeChannels [list]
     
@@ -73,8 +74,9 @@ snit::type tabServer {
         
         set server $arg0
         set port $arg1
+        set ssl $arg2
         set id_var "$server"
-        set nick [string trim $arg2]
+        set nick [string trim $arg3]
         Log D "  Server: $server"
         Log D "  Port:   $port"
         Log D "  Nick:   $nick"
@@ -386,9 +388,10 @@ snit::type tabServer {
     }
     
     #TODO: This should not exist
-    method _setData {newport newnick} {
+    method _setData {newport newnick newssl} {
         set nick $newnick
         set port $newport
+        set ssl  $newssl
     }
     
     ############## Issued when calling find ##############
@@ -527,8 +530,14 @@ snit::type tabServer {
                         set connectStatus timeout
                 }}
             # Create the connection; -async means it will continue on until it hits vwait
-            Log D "Attempting to connect $server $port"
-            set connDesc [socket -async $server $port]
+            Log D "Attempting to connect $server $port , ssl = $ssl"
+            if {$ssl} {
+                set connDesc [::tls::socket -async $server $port]
+                set res [::tls::handshake $connDesc]
+                Log V "Attemtping SSL handshake... $res"
+            } else {
+                set connDesc [socket -async $server $port]
+            }
             # Dummy handler to detect when the socket is writeable (i.e. open)
             fileevent $connDesc readable {set connectStatus ok}
             # Wait for either the socket to become writable, or the 

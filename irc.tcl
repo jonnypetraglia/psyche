@@ -325,7 +325,7 @@ proc performSpecialCase {msg obj} {
             set port $Main::DEFAULT_PORT
         }
         Log D "Connecting: $serv $port"
-        Main::createConnection $serv $port [$obj getNick]
+        Main::createConnection $serv $port false [$obj getNick]
         return true
     }
     #/join

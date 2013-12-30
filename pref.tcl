@@ -53,6 +53,7 @@ namespace eval Pref {
     variable gBname
     variable gBserver
     variable gBport
+    variable gBssl
     variable gBnick
     variable gBpass
     variable gBchannels
@@ -63,6 +64,7 @@ namespace eval Pref {
     variable gBedit
     variable gBlist
     variable tempbookmarks
+    variable tempssl
     
     set timeout 5000
     set raiseNewTabs false
@@ -198,31 +200,26 @@ proc Pref::show {} {
     pack $theFrame -fill both -expand 1
     
     
-    variable gBname
-    variable gBserver
-    variable gBport
-    variable gBnick
-    variable gBpass
-    variable gBchannels
-    
-    
     set Pref::gBlist   [listbox $theFrame.list -width 40]
     set Pref::gBadd    [xbutton $theFrame.add              -text "Add"    -width 6 -command {$Pref::gBlist selection clear 0 end; Pref::addBookmark}]
     set Pref::gBremove [xbutton $theFrame.remove           -text "Remove" -width 9 -command Pref::removeBookmark]
     set Pref::gBedit   [xbutton $theFrame.edit             -text "Edit"   -width 6 -command Pref::editBookmark]
     
     xlabel $theFrame.l_name            -text "Label"
-    set gBname [xentry $theFrame.name]
+    set Pref::gBname [xentry $theFrame.name]
     xlabel $theFrame.l_server          -text "Server"
-    set gBserver [xentry $theFrame.server]
+    set Pref::gBserver [xentry $theFrame.server]
     xlabel $theFrame.l_port            -text "Port"
-    set gBport [xentry $theFrame.port]
+    set Pref::gBport [xentry $theFrame.port]
+    
+    set Pref::gBssl [xcheckbutton $theFrame.ssl -text "SSL" -variable Pref::tempssl -onvalue true -offvalue false]
+    
     xlabel $theFrame.l_nick            -text "Nick"
-    set gBnick [xentry $theFrame.nick]
+    set Pref::gBnick [xentry $theFrame.nick]
     xlabel $theFrame.l_pass            -text "NickServ Pass"
-    set gBpass [xentry $theFrame.pass]
+    set Pref::gBpass [xentry $theFrame.pass]
     xlabel $theFrame.l_channels        -text "Channels"
-    set gBchannels [xentry $theFrame.channels -width 30]
+    set Pref::gBchannels [xentry $theFrame.channels -width 30]
     xlabel $theFrame.channelsnote      -text "(Space delimited)"
     set Pref::gBsave [xbutton $theFrame.save -text "Update" -command Pref::saveBookmark]
     set Pref::gBcancel [xbutton $theFrame.cancel -text "Nevermind" -command Pref::clearBookmarks]
@@ -233,7 +230,8 @@ proc Pref::show {} {
     grid config $theFrame.l_server      -row 1 -column 10 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.server        -row 1 -column 11 -padx 5 -pady 5 -sticky "w" -columnspan 2
     grid config $theFrame.l_port        -row 2 -column 10 -padx 5 -pady 5 -sticky "w"
-    grid config $theFrame.port          -row 2 -column 11 -padx 5 -pady 5 -sticky "w" -columnspan 2
+    grid config $theFrame.port          -row 2 -column 11 -padx 5 -pady 5 -sticky "w"
+    grid config $theFrame.ssl           -row 2 -column 12 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.l_nick        -row 3 -column 10 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.nick          -row 3 -column 11 -padx 5 -pady 5 -sticky "w" -columnspan 2
     grid config $theFrame.l_pass        -row 4 -column 10 -padx 5 -pady 5 -sticky "w"
@@ -365,6 +363,7 @@ proc Pref::addBookmark {} {
     $Pref::gBname     configure -state enabled
     $Pref::gBserver   configure -state enabled
     $Pref::gBport     configure -state enabled
+    $Pref::gBssl      configure -state enabled
     $Pref::gBnick     configure -state enabled
     $Pref::gBpass     configure -state enabled
     $Pref::gBchannels configure -state enabled
@@ -389,13 +388,16 @@ proc Pref::editBookmark {} {
     if {[$Pref::gBlist curselection] >=0} {
         set name [$Pref::gBlist get [$Pref::gBlist curselection]]
         set bookmark $Pref::tempbookmarks($name)
-        Log D "Editing Bookmark: [lindex $bookmark 0]"
+        
+        set connInfo [lindex $bookmark 0]
+        Log D "Editing Bookmark: $bookmark"
         $Pref::gBname     insert 0 $name
-        $Pref::gBserver   insert 0 [lindex $bookmark 0]
-        $Pref::gBport     insert 0 [lindex $bookmark 1]
-        $Pref::gBnick     insert 0 [lindex [lindex $bookmark 2] 0]
-        $Pref::gBpass     insert 0 [lindex [lindex $bookmark 2] 1]
-        $Pref::gBchannels insert 0 [join [lrange $bookmark 3 end] " "]
+        $Pref::gBserver   insert 0 [lindex $connInfo 0]
+        $Pref::gBport     insert 0 [lindex $connInfo 1]
+        set Pref::tempssl [lindex $connInfo 2]
+        $Pref::gBnick     insert 0 [lindex [lindex $bookmark 1] 0]
+        $Pref::gBpass     insert 0 [lindex [lindex $bookmark 1] 1]
+        $Pref::gBchannels insert 0 [lindex $bookmark 2]
     }
 }
 
@@ -403,6 +405,7 @@ proc Pref::clearBookmarks {} {
     $Pref::gBname     delete 0 end
     $Pref::gBserver   delete 0 end
     $Pref::gBport     delete 0 end
+    set Pref::tempssl false
     $Pref::gBnick     delete 0 end
     $Pref::gBpass     delete 0 end
     $Pref::gBchannels delete 0 end
@@ -410,6 +413,7 @@ proc Pref::clearBookmarks {} {
     $Pref::gBname     configure -state disabled
     $Pref::gBserver   configure -state disabled
     $Pref::gBport     configure -state disabled
+    $Pref::gBssl      configure -state disabled
     $Pref::gBnick     configure -state disabled
     $Pref::gBpass     configure -state disabled
     $Pref::gBchannels configure -state disabled
@@ -426,14 +430,16 @@ proc Pref::saveBookmark {} {
     Log D "Selected: [$Pref::gBlist curselection]"
     set oldname [$Pref::gBlist get active]
     set newname [$Pref::gBname get]
-    set thing [list [$Pref::gBserver get] [$Pref::gBport get]]
+    set thing [list]
+    
+    lappend thing [list [$Pref::gBserver get] [$Pref::gBport get] $Pref::tempssl]
     if {[string length [$Pref::gBpass get]] > 0} {
         lappend thing [list [$Pref::gBnick get] [$Pref::gBpass get]]
     } else {
-        lappend thing [$Pref::gBnick get]
+        lappend thing [list [$Pref::gBnick get]]
     }
     if {[string length [$Pref::gBchannels get]] > 0} {
-        lappend thing [$Pref::gBchannels get]
+        lappend thing [split [$Pref::gBchannels get] " "]
     }
     set cur [$Pref::gBlist curselection]
     if {$cur != ""} {

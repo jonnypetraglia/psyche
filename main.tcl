@@ -3,6 +3,7 @@ package require Tk
 #lappend ::auto_path [file dirname [zvfs::list */snit/pkgIndex.tcl]]
 package require BWidget
 package require snit
+package require tls
 
 set logLvl V
 proc Log {lvl msg} {
@@ -55,6 +56,7 @@ namespace eval Main {
     
     variable win
     variable cursor_link
+    variable connect_ssl
     
     variable MIDDLE_CLICK
     
@@ -586,23 +588,31 @@ proc Main::showConnectDialog { } {
     xlabel .connectDialog.l_port -text "Port"
     xentry .connectDialog.port -width 10 -textvariable Main::DEFAULT_PORT
     .connectDialog.port configure -background white
+    xlabel .connectDialog.l_ssl  -text "SSL"
+    xcheckbutton .connectDialog.ssl -variable Main::connect_ssl
+    set ::[.connectDialog.ssl cget -variable] 0
+    
     xlabel .connectDialog.l_nick -text "Nick"
-    xentry .connectDialog.nick -width 35
+    xentry .connectDialog.nick -width 20
     .connectDialog.nick configure -background white
     xlabel .connectDialog.l_pass -text "Nickserv Pass"
-    xentry .connectDialog.pass -width 35
+    xentry .connectDialog.pass -width 20
     .connectDialog.nick configure -background white
     xbutton .connectDialog.go -text "Connect"
     
     grid config .connectDialog.l_serv -row 0 -column 0 -sticky "w"
     grid config .connectDialog.serv   -row 1 -column 0
     grid config .connectDialog.l_port -row 0 -column 1 -sticky "w"
-    grid config .connectDialog.port   -row 1 -column 1
+    grid config .connectDialog.port   -row 1 -column 1 -sticky "w"
+    
+    grid config .connectDialog.l_ssl  -row 0 -column 2 -sticky "w"
+    grid config .connectDialog.ssl    -row 1 -column 2 -sticky "w"
+    
     grid config .connectDialog.l_nick -row 2 -column 0 -sticky "w"
-    grid config .connectDialog.nick   -row 3 -column 0 -columnspan 2
-    grid config .connectDialog.l_pass -row 4 -column 0 -sticky "w"
-    grid config .connectDialog.pass   -row 5 -column 0 -columnspan 2
-    grid config .connectDialog.go     -row 6 -column 1
+    grid config .connectDialog.nick   -row 3 -column 0
+    grid config .connectDialog.l_pass -row 2 -column 1 -sticky "w" -columnspan 2
+    grid config .connectDialog.pass   -row 3 -column 1             -columnspan 2
+    grid config .connectDialog.go     -row 4 -column 1
     .connectDialog.go configure -command Main::connectDialogConfirm
     
     foreground_win .connectDialog
@@ -655,17 +665,17 @@ proc Main::joinChannel {} {
 }
 
 # serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
-proc Main::createConnection {serv por nick pass} {
-    Log V "Creating Connection: $serv $por $nick ******"
+proc Main::createConnection {serv por ssl nick pass} {
+    Log V "Creating Connection: $serv $por ssl $nick ****"
     if [info exists Main::servers($serv)] {
         if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
         } else {
-            $Main::servers($serv) _setData $por $nick
+            $Main::servers($serv) _setData $por $nick $ssl
             $Main::servers($serv) initServer $pass
         }
     } else {
-        set Main::servers($serv) [tabServer %AUTO% $serv $por $nick $pass]
+        set Main::servers($serv) [tabServer %AUTO% $serv $por $ssl $nick $pass]
     }
     .tabMenu unpost
     $Main::notebook raise [$Main::servers($serv) getId]
@@ -676,6 +686,7 @@ proc Main::connectDialogConfirm {} {
     set por [.connectDialog.port get]
     set nick [.connectDialog.nick get]
     set pass [.connectDialog.pass get]
+
     if [ expr { [string length $serv] == 0 || \
         [string length $por] == 0  || \
         [string length $nick] == 0}] {
@@ -687,7 +698,7 @@ proc Main::connectDialogConfirm {} {
     catch {grab set .}
     wm state .connectDialog withdrawn
 
-    Main::createConnection $serv $por $nick $pass
+    Main::createConnection $serv $por $Main::connect_ssl $nick $pass
 }
 
 proc Main::reconnect {} {
@@ -834,14 +845,17 @@ proc Main::showProperties {} {
 }
 
 proc Main::openBookmark {target} {
-    set serv [lindex $Pref::bookmarks($target) 0]
-    set por [lindex $Pref::bookmarks($target) 1]
-    set nic [lindex $Pref::bookmarks($target) 2]
-    Log D "Opening bookmark: $serv $por $nic"
+    set connInfo [lindex $Pref::bookmarks($target) 0]
+    set serv [lindex $connInfo 0]
+    set por [lindex $connInfo 1]
+    set ssl [lindex $connInfo 2]
+    
+    set nic [lindex $Pref::bookmarks($target) 1]
+    Log D "Opening bookmark: $serv $por $ssl $nic"
     if {[llength $nic] > 1} {
-        Main::createConnection $serv $por [lindex $nic 0] [lindex $nic 1]
+        Main::createConnection $serv $por $ssl [lindex $nic 0] [lindex $nic 1]
     } else {
-        Main::createConnection $serv $por $nic ""
+        Main::createConnection $serv $por $ssl $nic ""
     }
     # Open Channels
     if { [string length [$Main::servers($serv) getconnDesc]] > 0} {

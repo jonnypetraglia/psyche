@@ -60,9 +60,13 @@ To set a value, use the same nomenclature as regular Tcl:
   * toolbarHidden = (boolean)
     * whether or not the toolbar is hidden by default.
   * bookmarks = (array entry containing list)
-    * bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect. If any channels are given, they are joined automatically.
-    * Syntax:   bookmarks($nickname) {$server $port {$nick _$pass_} _{$channel1 $channel2 ...}_}
-    * Example:  bookmarks(Geekshed) {irc.geekshed.net 6667 {notbryant} {#qweex}}
+    * bookmarks are slightly more complicated, in that they are stored in the array 'bookmarks' with a list of the values needed to connect.
+    * each entry for a bookmark is a list containing 3 sublists: (1) connection info, (2) nick info, and optionally (3) channels.
+      1. Connection info: server, port, and (optionally) whether or not to use SSL (a boolean)
+      2. Nick Info: nick, and (optionally) the NickServ pass
+      3. Channels: Any channels to join upon connecting
+    * Syntax:   bookmarks($nickname) { {$server $port _$ssl_} {$nick _$pass_} _{$channel1 $channel2 ...}_}
+    * Example:  bookmarks(Geekshed) {{irc.geekshed.net 6697 true} {notbryant} {#qweex #help}}
 
 For default values, see the "pref.tcl" file.
 
