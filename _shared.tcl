@@ -153,6 +153,7 @@
         }
         ::notebox::addmsg "$mNick - $mMsg"
         $Main::notebook itemconfigure $id_var -background $Pref::mentionColor
+        $Main::notebook itemconfigure $id_var -activebackground $Pref::mentionColor
         if {[string length $Pref::mentionSound] > 0 } {
             playSound $Pref::mentionSound
         }

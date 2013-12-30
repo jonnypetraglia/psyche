@@ -537,6 +537,7 @@ proc Main::updateStatusbarTimer {} {
 proc Main::unsetTabMention {} {
     if { [string length [$Main::notebook raise]] > 0} {
         $Main::notebook itemconfigure [$Main::notebook raise] -background $Main::default_tab_color
+        $Main::notebook itemconfigure [$Main::notebook raise] -activebackground $Main::default_tab_color
     }
 }
 
