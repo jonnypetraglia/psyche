@@ -740,6 +740,7 @@ snit::type tabServer {
                         $self _send "NOTICE $mFrom :\001PING $mContent\001"
                         $self handleReceived $timestamp \[CTCP\] bold "Ping request from $mFrom" $style
                     }
+                    return
                 }
                 "VERSION" {
                     if {$mThing == "NOTICE"} {
@@ -748,9 +749,16 @@ snit::type tabServer {
                         $self _send "NOTICE $mFrom :\001VERSION $Main::APP_NAME v$Main::APP_VERSION (C) 2013 Jon Petraglia"
                         $self handleReceived $timestamp \[CTCP\] bold "Version request from $mFrom" $style
                     }
+                    return
                 }
             }
-            return
+            switch $mThing {
+                "PRIVMSG" { #/me
+                    $self createPMTabIfNotExist $mFrom
+                    $channelMap($mFrom) handleReceived $timestamp " \* $mFrom" "nick_color[Main::colorIndexForNick $mFrom]" $mContent $style
+                    return
+                }
+            }
         }
         
         
@@ -764,10 +772,10 @@ snit::type tabServer {
                 # PM - /me
                 if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
                     set style "mention"
-                    $channelMap($mFrom) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
+                    $channelMap($mFrom) handleReceived $timestamp " \* $mFrom" "nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
                 # PM - general
                 } else {
-                    $channelMap($mFrom) handleReceived $timestamp <$mFrom> bold $mMsg $style
+                    $channelMap($mFrom) handleReceived $timestamp <$mFrom> "bold nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
                 }
                 
                 # Msg to channel
@@ -778,7 +786,7 @@ snit::type tabServer {
                 }
                 # Msg - /me
                 if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
-                    $channelMap($mTo) handleReceived $timestamp " \*" bold "$mFrom $mMsg" $style
+                    $channelMap($mTo) handleReceived $timestamp " \* $mFrom" "nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
                 # Msg - general
                 } else {
                     $channelMap($mTo) handleReceived $timestamp <$mFrom> "bold nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
