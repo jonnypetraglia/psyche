@@ -217,8 +217,10 @@ snit::type tabServer {
     ############## Internal function ##############
     method _send {str} {
         Log V "SEND: $str"
-        puts $connDesc $str;
-        flush $connDesc
+        if {[info exists connDesc]} {
+            puts $connDesc $str;
+            flush $connDesc
+        }
     }
  
     ############## Quit the server ##############
@@ -231,14 +233,14 @@ snit::type tabServer {
         $self _send "QUIT :$reason"
         close $connDesc
         unset connDesc
-        $self handleReceived $timestamp "\[Quit\] " bold "You have left the server ($reason)" ""
+        $self handleReceived $timestamp "***" bold "You have left the server ($reason)" ""
         $self updateToolbar ""
         
-        $self propogateMessage ALL $timestamp "\[Quit\] " bold "You have left the server ($reason)" ""
+        $self propogateMessage ALL $timestamp "***" bold "You have left the server ($reason)" ""
     }
     
     ############## Part a channel ##############
-    method part {chann reason} { $channelMap($chann) part $chann $reason }
+    method part {chann reason} { $self _send "PART $chann $reason" }
     
     ############## Nick has been changed ##############
     method nickChanged {newnick} {
@@ -657,7 +659,7 @@ snit::type tabServer {
     
     method closeChannel {chann} {
         $Main::notebook delete [$channelMap($chann) getId]
-        $self _send "part $chann"
+        $self _send "PART $chann :$Pref::defaultPart"
         $channelMap($chann) closeLog
         $self removeActiveChannel $chann
         unset channelMap($chann)
@@ -1013,12 +1015,12 @@ snit::type tabServer {
             }
             return
         }
-    
-        #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
-        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ ]*) ?([^ ]*)[^ ]* :?(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
+        
+        # "Special"
+        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ :]*) ?([^ :]*) :(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
             Log V "REC: Special: $mSomething"
             switch $mSomething {
-                "NICK" {
+                "NICK" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net NICK :bytes101
                     Log V "Nick Change: '$mNick\' == \'[$self getNick]\'   [string equal $mNick [$self getNick]]"
                     if {[string equal $mNick [$self getNick]]} {
                         $self handleReceived $timestamp "***" bold "You are now known as $mMsg" ""
@@ -1033,21 +1035,7 @@ snit::type tabServer {
                     }
                     return
                 }
-                "JOIN" {
-                    if {[string equal $mNick [$self getNick]]} {
-                        Log D "Truly joining: $mMsg"
-                        $self joinChan $mMsg ""
-                    } else {
-                        if {[regexp ".*$nick.*" "$mNick"]} {
-                            set style "mention"
-                            $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
-                        }
-                        $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
-                        $channelMap($mMsg) NLadd $mNick
-                    }
-                    return
-                }
-                "KICK" {
+                "KICK" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net KICK #qweex recipient :reason
                     if {$mTarget == [$self getNick]} {
                     $channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick kicked you: $mMsg" $style
                     $self removeActiveChannel $mChannel
@@ -1063,22 +1051,27 @@ snit::type tabServer {
                     }
                     return
                 }
-                "PART" {
-                    if {$mTarget == [$self getNick]} {
-                    if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
-                        set style "mention"
-                        $channelMap($mChannel) notifyMention $mChannel "$mNick has left ($mMsg)"
-                    }
-                    $self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
-                    $channelMap($mChannel) NLremove $mNick
-                    $self removeActiveChannel $mChannel
+                "PART" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net PART #qweex :later skater
+                    if {$mNick == [$self getNick]} {
+                        #if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+                        #    set style "mention"
+                        #    $channelMap($mChannel) notifyMention $mChannel "$mNick has left ($mMsg)"
+                        #}
+                        $channelMap($mChannel) handleReceived $timestamp "***" bold "You have left the channel ($mMsg)" $style
+                        $channelMap($mChannel) NLremove $mNick
+                        $self removeActiveChannel $mChannel
+                        
+                        set parts [Main::getServAndChan [$Main::notebook raise]]
+                        set serv [lindex $parts 0]
+                        set chan [lindex $parts 1]
+                        $self updateToolbar $chan
                     } else {
-                    $self handleReceived $timestamp "***" bold "You have left ($mMsg)" $style
-                    $channelMap($mChannel) NLremove $mNick
+                        $self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
+                        $channelMap($mChannel) NLremove $mNick
                     }
                     return
                 }
-                "QUIT" {
+                "QUIT" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net QUIT :Gone to have lunch
                     if {$mTarget == [$self getNick]} {
                     Log E "You quit? What the hell?"
                     #$self removeActiveChannel $mChannel
@@ -1093,6 +1086,27 @@ snit::type tabServer {
                 }
                 "NOTICE" {
                     $self handleReceived $timestamp \[Notice\] bold $mMsg ""
+                    return
+                }
+            }
+        }
+        
+        # Special minus colon
+        if {[regexp {:([^!]*)![^ ]* ([^ ]*) ?([^ :]*) ?([^ :]*) :?(.*)} $line -> mNick mSomething mChannel mTarget mMsg]} {
+            Log V "REC: Special: $mSomething"
+            switch $mSomething {
+                "JOIN" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net JOIN #qweex
+                    if {[string equal $mNick [$self getNick]]} {
+                        Log D "Truly joining: $mMsg"
+                        $self joinChan $mMsg ""
+                    } else {
+                        if {[regexp ".*$nick.*" "$mNick"]} {
+                            set style "mention"
+                            $channelMap($mMsg) notifyMention $mMsg "$mNick has joined"
+                        }
+                        $channelMap($mMsg) handleReceived $timestamp "***" bold "$mNick has joined" $style
+                        $channelMap($mMsg) NLadd $mNick
+                    }
                     return
                 }
             }
@@ -1163,7 +1177,7 @@ snit::type tabServer {
         }
             
         # "NOTICE AUTH : *** Please wait while we scan your connection for open proxies"
-        if {[regexp {NOTICE AUTH:(.*)} $line -> mMsg]} {
+        if {[regexp {NOTICE AUTH ?:(.*)} $line -> mMsg]} {
             $self handleReceived $timestamp \[Notice\] bold $mMsg "";
             return
         }

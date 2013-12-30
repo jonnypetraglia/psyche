@@ -220,15 +220,8 @@ snit::type tabChannel {
     
     ############## Part a channel ##############
     method part {chann reason} {
-        $self _send "PART $chann $reason"
-        $self handleReceived [$self getTimestamp] \[PART\] bold "You have left the channel" ""
-        
-        $ServerRef removeActiveChannel $chann
-    
-        set parts [Main::getServAndChan [$Main::notebook raise]]
-        set serv [lindex $parts 0]
-        set chan [lindex $parts 1]
-        $self updateToolbar $chan
+        $ServerRef part $chann $reason
+        return
     }
     
     ############## Nick has been changed ##############
@@ -578,15 +571,19 @@ snit::type tabChannel {
     
     ############## Gui Event ##############
     method DoubleclickNicklist {} {
-        set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
-        $self createPMTabIfNotExist $nickName
+        if {[$ServerRef isChannelConnected $channel]} {
+            set nickName [$nicklistCtrl get [$nicklistCtrl curselection] ]
+            $ServerRef createPMTabIfNotExist $nickName
+        }
     }
     
     ############## Gui Event ##############
     method RightclickNicklist {x y} {
-        set x [expr [winfo rootx $nicklistCtrl] + $x]
-        set y [expr [winfo rooty $nicklistCtrl] + $y]
-        tk_popup .nicklistMenu $x $y
+        if {[$ServerRef isChannelConnected $channel]} {
+            set x [expr [winfo rootx $nicklistCtrl] + $x]
+            set y [expr [winfo rooty $nicklistCtrl] + $y]
+            tk_popup .nicklistMenu $x $y
+        }
     }
     
     method touchLastSpoke {nick} {

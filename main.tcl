@@ -145,6 +145,8 @@ proc Main::init { } {
     
     # Some Colors
     set Main::nick_colors [list #E90E7F #8E55E9 #B30E0E #18B33C #58ADB3 #9E54B3 #B39875 #3176B3 #000001]
+    set Main::findRegex 0
+    set Main::findCase 0
     
     set Main::win .
     bind $Main::win <FocusIn> {Main::pressTab}
@@ -312,8 +314,8 @@ proc Main::find {} {
     
     # Checkboxes
     frame .findDialog.chkboxes
-    xcheckbutton .findDialog.regex -text "Regex"      -variable Main::findRegex
-    xcheckbutton .findDialog.case -text "Match case"  -variable Main::findCase
+    xcheckbutton .findDialog.regex -text "Regex"       -variable Main::findRegex
+    xcheckbutton .findDialog.case  -text "Match case"  -variable Main::findCase
     #xcheckbutton .findDialog.word -text "Match word"  -variable Main::findWord
     
     # Buttons
@@ -477,6 +479,7 @@ proc Main::closeTab {target} {
         $Main::servers($serv) closeLog
         destroy Main::servers($serv)
         unset Main::servers($serv)
+        Main::updateStatusbar
     }
     
     if {[llength [$Main::notebook pages]] == 0} {
@@ -504,6 +507,7 @@ proc Main::updateStatusbar {} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     if {[string length $serv] == 0 || ![info exists Main::servers($serv)]} {
+        set Main::status_text ""
         return
     }
     Log I "Updating statusbar: $serv $chan"
