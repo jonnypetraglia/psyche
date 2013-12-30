@@ -21,6 +21,8 @@ snit::type tabChannel {
     # SPECIFIC
     variable ServerRef	;# tabServer Reference
     variable channel
+    variable tabCompleteData
+    variable tabCompleteIndex
     
     # Channel info
     variable Topic
@@ -113,7 +115,8 @@ snit::type tabChannel {
         bind $input <Return> "[mymethod hitSendKey]; break;"
         bind $input <Up> "[mymethod upDown] -1; break;"
         bind $input <Down> "[mymethod upDown] 1; break;"
-        bind $input <Tab> "[mymethod tabComplete]; break;"
+        bind $input <Tab> "[mymethod tabCompleteBegin]; break;"
+        bind $input <KeyPress> "[mymethod tabCompleteCancel] %K"
     
         grid $awayLabel -row 0 -column 0
         grid $input -row 0 -column 1 -sticky ew
@@ -453,7 +456,7 @@ snit::type tabChannel {
             # If it's found, replace it with the new one
             set idx [lsearch $SpecialUsers($m) $oldNick]
             if {$idx > -1} {
-            set SpecialUsers($m) [lreplace $SpecialUsers($m) $idx $idx $oldNick]
+                set SpecialUsers($m) [lreplace $SpecialUsers($m) $idx $idx $oldNick]
             }
         }
         return [$self _NLchangeTheNickAndOrUpdateItsMode $oldNick $newNick]
@@ -587,100 +590,63 @@ snit::type tabChannel {
     }
     
     method touchLastSpoke {nick} {
-        Log V " TTTTT $nick HAS SPOKEN [clock seconds] TTTT"
-        set LastSpoke($nick) [clock seconds]
+        set LastSpoke($nick) [clock milliseconds]
     }
     
-    method tabComplete {} {
-        regexp ".*\\.(.*)" [$input index {insert + 0 c}] -> ind
-        set ind [expr {$ind - 1}]
-        set tempNickSearchTerm [$input get 1.0 end]
-        set ind0 [expr {[string last " " $tempNickSearchTerm $ind] + 1}]
-        
-        set earlierThan 9999999999
-        if {[info exists LastTabbed]} {
-            if [info exists LastSpoke($LastTabbed)] {
-                set earlierThan $LastSpoke($LastTabbed)
-                set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+    method tabCompleteBegin {} {
+        # Initiate data
+        set tabCompleteData [list]
+        set tabCompleteIndex 0
+        # Extract thing we are looking for & get the indices
+        regexp ".*\\.(.*)" [$input index {insert + 0 c}] -> insert_ind
+        set nickSearchTerm [$input get 1.0 1.$insert_ind]
+        set begin_ind [expr {[string last " " $nickSearchTerm $insert_ind] + 1}]
+        set nickSearchTerm [string range $nickSearchTerm $begin_ind end]
+        set ind [lsearch -regexp -nocase $nickList "^\[[$ServerRef getNickPrefixes]\]?$nickSearchTerm.*"]
+        while {$ind > -1} {
+            set theNick [lindex $nickList $ind]
+            regexp "^\[[$self getNickPrefixes]\](.*)" $theNick -> theNick
+            if [info exists LastSpoke($theNick)] {
+                lappend tabCompleteData [list $theNick $LastSpoke($theNick)]
             } else {
-                set nickloc [lsearch -regexp $nickList "^$LastTabbed.*"]
+                lappend tabCompleteData [list $theNick 0]
             }
-        } else {
-            set NickSearchTerm [string range $tempNickSearchTerm $ind0 $ind]
-            set nickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
+            incr ind
+            set ind [lsearch -start $ind -regexp -nocase $nickList "^\[[$ServerRef getNickPrefixes]\]?$nickSearchTerm.*"]
         }
+        if {[llength $tabCompleteData] == 0} { return }
         
-        Log D "Looking for nick that starts with: '$NickSearchTerm'"
-        Log D "Must be earlier than $earlierThan"
+        #lsort by 2nd column first, then 1st column
+        set tabCompleteData [lsort -command [mymethod compareTabComplete] $tabCompleteData]
         
-        # If there is a prior tabbed, make sure our starting point is not it
-        if {[info exists LastTabbed] && [lindex $nickList $nickloc]==$LastTabbed} {	;#&& [info exists LastSpoke($LastTabbed)] 
-            incr nickloc
-            # If the starting point WAS the Last Tabbed AND it was the only one, invalidate the normal nicks
-            if {![regexp "^$NickSearchTerm.*" [lindex $nickList $nickloc]]} {
-                set nickloc -1
-            }
-        }
-        Log D "Checking normal. Starting point is $nickloc"
-        Log D "  [lindex $nickList $nickloc]"
+        $input replace 1.$begin_ind 1.$insert_ind "[lindex [lindex $tabCompleteData $tabCompleteIndex] 0], "
         
-        
-        # Check normal nicks, if there are any
-        if {$nickloc > -1} {
-            set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan]
-            if {$tempnickloc > $nickloc} {
-                set nickloc $tempnickloc
-            }
-        }
-        
-        Log D "Post post - $nickloc"
-        Log D "Post post - [lindex $nickList $nickloc]"
-        
-        # Do mods and such
-        set modes [split [$ServerRef getNickPrefixes] {}]
-        foreach m $modes {
-            set tempnickloc [lsearch -regexp $nickList "^$NickSearchTerm.*"]
-            if {$tempnickloc < 0} { continue }
-            set tempnickloc [$self _tabComplete $nickloc $NickSearchTerm $earlierThan "\[[$ServerRef getNickPrefixes]\]" ]
-            if {$tempnickloc > $nickloc} {
-                set nickloc $tempnickloc
-            }
-        }
-        
-        # Regular
-        Log D "Post modes - $nickloc"
-        Log D "Post modes - [lindex $nickList $nickloc]"
-        
-        if {$nickloc == -1} { return}
-        
-        
-        set LastTabbed [lindex $nickList $nickloc]
-        $input replace 1.$ind0 1.[expr {$ind+1}] $LastTabbed
+        bind $input <Tab> "[mymethod tabCompleteNext]; break;"
     }
     
-    method _tabComplete {nickloc txt earlierThan {leNickPrefix ""}} {
-        set i [expr {$nickloc + 1}]
-        while {[regexp "^$leNickPrefix$txt.*" [lindex $nickList $i]]} {
-            # The iterating-one over must have spoken at least once
-            if {![info exists LastSpoke([lindex $nickList $i])]} {
-            incr i; continue;
-            }
-            
-            # If the iterating-one HAS spoken but the nickloc (i.e., the alphanumerical first) has not,
-            # default to the iterating-one
-            # OR if they both exist, actually compare
-            if {![info exists LastSpoke([lindex $nickList $nickloc])] || \
-                    ($LastSpoke([lindex $nickList $i]) > $LastSpoke([lindex $nickList $nickloc]) &&
-                     $LastSpoke([lindex $nickList $i]) < $earlierThan)} {
-                # DEBUG
-                if [info exists LastSpoke([lindex $nickList $nickloc])] {
-                    Log D "   [lindex $nickList $i] @ $LastSpoke([lindex $nickList $i]) < [lindex $nickList $nickloc] @ $LastSpoke([lindex $nickList $nickloc])" }
-                # GUBED
-                set nickloc $i
-            }
-            incr i
+    method tabCompleteNext {} {
+        regexp ".*\\.(.*)" [$input index {insert + 0 c}] -> insert_ind
+        set oldNickLength [string length [lindex [lindex $tabCompleteData $tabCompleteIndex] 0]]
+        set begin_ind [expr {$insert_ind - $oldNickLength - 2}]
+        incr tabCompleteIndex
+        if {$tabCompleteIndex >= [llength $tabCompleteData]} { set tabCompleteIndex 0}
+        $input replace 1.$begin_ind 1.$insert_ind "[lindex [lindex $tabCompleteData $tabCompleteIndex] 0], "
+    }
+    
+    method tabCompleteCancel {arg} {
+        bind $input <Tab> "[mymethod tabCompleteBegin]; break;"
+    }
+    
+    ############## Comparator for Nick Completion ##############
+    method compareTabComplete {a b} {
+        set timeA [lindex $a 1]
+        set timeB [lindex $b 1]
+        if {$timeA == $timeB} {
+            return [$self compareNick [lindex $a 0] [lindex $b 0]]
         }
-        return $nickloc
+        if {$timeA < $timeB} { return  1 }
+        if {$timeA > $timeB} { return -1 }
+        return 0
     }
     
     ############## Comparator for NickList ##############
@@ -698,17 +664,12 @@ snit::type tabChannel {
             set bv [string first [string index $b0 0] [$self getNickPrefixes] ]
         }
         
-    
         # If they are the same class (e.g. both ops OR both normal (10))
         if {$av == $bv } {
             return [string compare -nocase $a $b]
         }
-        if {$av < $bv} {
-            return -1
-        }
-        if {$av > $bv} {
-            return 1
-        }
+        if {$av < $bv} { return -1 }
+        if {$av > $bv} { return 1 }
         return 0
     }
     

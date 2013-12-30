@@ -775,7 +775,6 @@ snit::type tabServer {
                 if {[regexp ".*$nick.*" $mMsg]} {
                     set style "mention"
                     $channelMap($mTo) notifyMention $mFrom $mMsg
-                    $channelMap($mTo) touchLastSpoke $mFrom
                 }
                 # Msg - /me
                 if [regexp {\001ACTION ?(.+)\001} $mMsg -> mMsg] {
@@ -784,6 +783,7 @@ snit::type tabServer {
                 } else {
                     $channelMap($mTo) handleReceived $timestamp <$mFrom> "bold nick_color[Main::colorIndexForNick $mFrom]" $mMsg $style
                 }
+                $channelMap($mTo) touchLastSpoke $mFrom
             }
             return
         }
