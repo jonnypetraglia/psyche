@@ -859,7 +859,7 @@ proc Main::openBookmark {target} {
     }
     # Open Channels
     if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
-        set channels [lindex $Pref::bookmarks($target) 3]
+        set channels [lindex $Pref::bookmarks($target) 2]
         foreach chann $channels {
             $Main::servers($serv) _send "JOIN $chann"
         }
