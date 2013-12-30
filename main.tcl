@@ -243,8 +243,8 @@ proc Main::init { } {
     # Ban submenu
     menu ${Main::win}nicklistMenu.kickban
     ${Main::win}nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
-    ${Main::win}nicklistMenu.kickban add command -label "Ban" -command "Main::NLban"
-    ${Main::win}nicklistMenu.kickban add command -label "KickBan" -command "Main::NLkickban"
+    ${Main::win}nicklistMenu.kickban add command -label "Ban" -command {Main::NLban $Pref::banMask false}
+    ${Main::win}nicklistMenu.kickban add command -label "KickBan" -command {Main::NLban $Pref::banMask true}
     ${Main::win}nicklistMenu.kickban add separator
     ${Main::win}nicklistMenu.kickban add command -label "Ban *!*@*.host" -command "Main::NLban *!*@*.host false"
     ${Main::win}nicklistMenu.kickban add command -label "Ban *!*@domain" -command "Main::NLban *!*@domain false"
@@ -496,7 +496,6 @@ proc Main::pressTab { args} {
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
     
-    Log V "Pressing Tab $serv $chan"
     if [info exists Main::servers($serv)] {
         $Main::servers($serv) updateToolbar $chan
     }
@@ -512,7 +511,6 @@ proc Main::updateStatusbar {} {
         set Main::status_text ""
         return
     }
-    Log I "Updating statusbar: $serv $chan"
     
     set pingtime [$Main::servers($serv) getPingtime]
     if {$pingtime == 0} {

@@ -45,8 +45,11 @@ proc Main::init_toolbar { } {
     set bbox1 [ButtonBox $Main::toolbar.bbox0 -spacing 0 -padx 0 -pady 0 -homogeneous 0]
     $bbox1 add -image [image create bitmap meta1 -data {
         #define meta_width 16
-        #define meta_height 11
+        #define meta_height 16
         static char meta_bits = {
+        0x00, 0x00,
+        0x00, 0x00,
+        0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00,
@@ -54,6 +57,8 @@ proc Main::init_toolbar { } {
         0x22, 0x22,
         0x14, 0x14,
         0x08, 0x08,
+        0x00, 0x00,
+        0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00,
         0x00, 0x00,

@@ -465,7 +465,7 @@ proc performSpecialCase {msg obj} {
         if {[string length $mReason] > 0} {
             set mReason $Pref::defaultBan
         }
-        $obj requestBan $mTarget "*!user@domain" false $mReason
+        $obj requestBan $mTarget $Pref::banMask false $mReason
         return true
     }
     #/kb
@@ -473,7 +473,7 @@ proc performSpecialCase {msg obj} {
         if {[string length $mReason] > 0} {
             set mReason $Pref::defaultBan
         }
-        $obj requestBan $mTarget "*!user@domain" true $mReason
+        $obj requestBan $mTarget $Pref::banMask true $mReason
         return true
     }
 

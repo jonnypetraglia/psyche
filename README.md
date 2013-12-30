@@ -39,6 +39,8 @@ To set a value, use the same nomenclature as regular Tcl:
     * the default message when issuing the /part command or pressing the Part button
   * defaultAway = (string)
     * the default message when issuing the /away command or pressing the Away button
+  * banMask = (*!*@*.host | *!*@domain | *!user@*.host | *!user@domain)
+    * the default mask to be used when using /ban or the "Ban" menu item
   * logEnabled = (boolean)
     * if you want all messages to be logged
   * logDir = (string)

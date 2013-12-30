@@ -146,7 +146,6 @@ snit::type tabChannel {
     
     ############## Update the toolbar's statuses ##############
     method updateToolbar {mTarget} {
-        Log D "Updating Toolbar: $mTarget"
         $Main::toolbar_find configure -state normal
         #Is connected
         if { [string length [$ServerRef getconnDesc] ] > 0 } {

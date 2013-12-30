@@ -233,12 +233,6 @@ snit::type tabServer {
             return
         }
         $self _send "QUIT :$reason"
-        close $connDesc
-        unset connDesc
-        $self handleReceived $timestamp "***" bold "You have left the server ($reason)" ""
-        $self updateToolbar ""
-        
-        $self propogateMessage ALL $timestamp "***" bold "You have left the server ($reason)" ""
     }
     
     ############## Part a channel ##############
@@ -531,7 +525,7 @@ snit::type tabServer {
                 }}
             # Create the connection; -async means it will continue on until it hits vwait
             Log D "Attempting to connect $server $port , ssl = $ssl"
-            if {$ssl} {
+            if {$ssl!="" && $ssl} {
                 set connDesc [::tls::socket -async $server $port]
                 set res [::tls::handshake $connDesc]
                 Log V "Attemtping SSL handshake... $res"
@@ -709,13 +703,19 @@ snit::type tabServer {
         Log D $line
         set style ""
         
-        # ERROR
-        if {[regexp {^ERROR :(.*)} $line -> mMsg]} {
+        # "ERROR" (Ghosted, Quit)
+        if {[regexp "^ERROR :Closing Link: \[^ \]+ \[^\(\]*\\\((.*)\\\)" $line -> mMsg]} {
+            if {[regexp "^Quit ?:?(.*)" $mMsg -> mMsg]} {
+                $self handleReceived $timestamp "***" bold "You have left the server ($mMsg)" ""
+                $self propogateMessage ALL $timestamp "***" bold "You have left the server ($mMsg)" ""
+            } else {
+                $self handleReceived $timestamp \[Error\] bold $mMsg ""
+                $self propogateMessage "" $timestamp \[Error\] bold $mMsg ""
+            }
+            $self updateToolbar ""
+            
             close $connDesc
             unset connDesc
-            $self handleReceived $timestamp \[Error\] bold $mMsg ""
-            $self propogateMessage "" $timestamp \[Error\] bold $mMsg ""
-            $self updateToolbar ""
             return
         }
         
@@ -1083,21 +1083,24 @@ snit::type tabServer {
                         set chan [lindex $parts 1]
                         $self updateToolbar $chan
                     } else {
-                        $self handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
+                        $channelMap($mChannel) handleReceived $timestamp "***" bold "$mNick has left ($mMsg)" $style
                         $channelMap($mChannel) NLremove $mNick
                     }
                     return
                 }
                 "QUIT" { #:byteslol!~byteslol@protectedhost-99B37D77.hsd1.co.comcast.net QUIT :Gone to have lunch
-                    if {$mTarget == [$self getNick]} {
-                    Log E "You quit? What the hell?"
-                    #$self removeActiveChannel $mChannel
+                    if {$mNick == [$self getNick]} {
+                        Log E "You quit? What the hell?"
+                        $self removeActiveChannel $mChannel
+                        #TODO: Not sure if I should do this here
+                        close $connDesc
+                        unset connDesc
                     } else {
-                    if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
-                        set style "mention"
-                        $self notifyMention $mChannel "$mNick has quit ($mMsg)"
-                    }
-                    $self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
+                        if {[regexp ".*$nick.*" "$mNick$mMsg"]} {
+                            set style "mention"
+                            $self notifyMention $mChannel "$mNick has quit ($mMsg)"
+                        }
+                        $self propogateMessage QUIT $timestamp "***" bold "$mNick has quit ($mMsg)" $style
                     }
                     return
                 }

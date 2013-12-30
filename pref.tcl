@@ -16,6 +16,7 @@ namespace eval Pref {
     variable defaultKick
     variable defaultPart
     variable defaultAway
+    variable banMask
     variable bookmarks
     variable logEnabled
     variable logDir
@@ -73,6 +74,7 @@ namespace eval Pref {
     set defaultBan "Stop. That."
     set defaultPart "Partin'"
     set defaultAway "I'm away"
+    set banMask "*!user@domain"
     set logEnabled false
     set logDir "${CONFIG_DIR}${Main::fs_sep}log"
     set popupTimeout 5000
@@ -105,7 +107,7 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
         set data [gets $fp]
         # Manually add the namespace
-        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden ).*)" $data -> data]} {
+        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden |banMask ).*)" $data -> data]} {
             set data "set Pref::[regsub -all {\\} $data {\\\\}]"
         }
         Log V "Reading preference: '$data'"
@@ -254,14 +256,21 @@ proc Pref::show {} {
     set Pref::gquit [xentry $theFrame.quit -width 65]
     xlabel $theFrame.l_kick -text "Kick:"
     set Pref::gkick [xentry $theFrame.kick -width 65]
-    xlabel $theFrame.l_ban  -text "Ban:"
-    set Pref::gban  [xentry $theFrame.ban  -width 65]
     xlabel $theFrame.l_part -text "Part:"
     set Pref::gpart [xentry $theFrame.part -width 65]
     xlabel $theFrame.l_away -text "Away:"
     set Pref::gaway [xentry $theFrame.away -width 65]
+    xlabel $theFrame.l_ban  -text "Ban:"
+    set Pref::gban  [xentry $theFrame.ban  -width 65]
     
-    set pady 10
+    xlabelframe $theFrame.banmask -text "Ban mask"
+    set ::banmask "*!*@domain"
+    set ban_host       [radiobutton $theFrame.banmask.host       -variable banmask -text "*!*@*.host"    -value "*!*@*.host"]
+    set ban_domain     [radiobutton $theFrame.banmask.domain     -variable banmask -text "*!*@domain"    -value "*!*@domain"]
+    set ban_userhost   [radiobutton $theFrame.banmask.userhost   -variable banmask -text "*!user@*.host" -value "*!user@*.host"]
+    set ban_userdomain [radiobutton $theFrame.banmask.userdomain -variable banmask -text "*!user@domain" -value "*!user@domain"]
+    
+    set pady 7
     grid config $theFrame.l_quit      -row 0 -column 0 -padx 5 -pady $pady -sticky "w"
     grid config $theFrame.quit        -row 0 -column 1 -padx 5 -pady $pady -sticky "w"
     grid config $theFrame.l_kick      -row 1 -column 0 -padx 5 -pady $pady -sticky "w"
@@ -272,6 +281,12 @@ proc Pref::show {} {
     grid config $theFrame.part        -row 3 -column 1 -padx 5 -pady $pady -sticky "w"
     grid config $theFrame.l_away      -row 4 -column 0 -padx 5 -pady $pady -sticky "w"
     grid config $theFrame.away        -row 4 -column 1 -padx 5 -pady $pady -sticky "w"
+    
+    grid config $theFrame.banmask   -row 5 -column 0 -padx 5 -pady 10 -sticky "w" -columnspan 2
+    grid config $ban_host       -row 0 -column 0 -padx 5 -pady 5
+    grid config $ban_domain     -row 0 -column 1 -padx 5 -pady 5
+    grid config $ban_userhost   -row 0 -column 2 -padx 5 -pady 5
+    grid config $ban_userdomain -row 0 -column 3 -padx 5 -pady 5
     
     #################### Mentions tab ####################
     set page [$notebook insert end preftab4 -text "Notification"]
@@ -495,6 +510,7 @@ proc Pref::setValues {} {
     set ::[$Pref::glogEnabled cget -variable] $Pref::logEnabled
     # radio groups
     set ::nsew $Pref::popupLocation
+    set ::banmask $Pref::banMask
     # color buttons
     $Pref::gmenColorBtn configure -background $Pref::mentionColor -activebackground $Pref::mentionColor
     # font buttons
@@ -530,6 +546,7 @@ proc Pref::savePrefs {} {
     set Pref::logEnabled      $Pref::glogEnabled_v
     # radio groups
     set Pref::popupLocation $::nsew
+    set Pref::banMask $::banmask
     # color buttons
     set Pref::mentionColor [$Pref::gmenColorBtn cget -background]
     # font buttons
@@ -554,7 +571,7 @@ proc Pref::savePrefs {} {
 
 proc Pref::writePrefs {} {
     set fp [open $Pref::prefFile w]
-    set prefsToWrite {timeout raiseNewTabs defaultQuit defaultBan defaultKick defaultPart defaultAway logEnabled logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound toolbarHidden}
+    set prefsToWrite {timeout raiseNewTabs defaultQuit defaultBan defaultKick defaultPart defaultAway logEnabled logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound toolbarHidden banMask}
     foreach pref $prefsToWrite {
         set val "Pref::$pref"
         set val "[expr $$val]"
