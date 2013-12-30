@@ -189,7 +189,8 @@ snit::type tabServer {
             }
         }
         lappend activeChannels $chan
-        .tabMenu unpost
+        .tabMenu_server  unpost
+        .tabMenu_channel unpost
         $Main::notebook raise [$channelMap($chan) getId]
         $self updateToolbar $chan
     }

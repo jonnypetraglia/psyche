@@ -218,11 +218,21 @@ proc Main::init { } {
         bind ${Main::win} <F3>        { Main::findNext }
     }
     
-    # Create the tab menu
-    menu ${Main::win}tabMenu -tearoff false
-    ${Main::win}tabMenu add command -label "Join channel" -command Main::showJoinDialog
-    ${Main::win}tabMenu add command -label "Part or Quit" -command Main::partOrQuit
-    ${Main::win}tabMenu add command -label "Close tab" -command Main::closeTabFromGui
+    # Create the tab menus
+    menu ${Main::win}tabMenu_server -tearoff false
+    ${Main::win}tabMenu_server add command -label "Join channel" -command Main::showJoinDialog
+    ${Main::win}tabMenu_server add command -label "Quit"         -command Main::partOrQuit
+    ${Main::win}tabMenu_server add command -label "Close tab"    -command Main::closeTabFromGui
+    menu ${Main::win}tabMenu_channel -tearoff false
+    ${Main::win}tabMenu_channel add command -label "Part"        -command Main::partOrQuit
+    ${Main::win}tabMenu_channel add command -label "Close tab"   -command Main::closeTabFromGui
+    menu ${Main::win}tabMenu_serverD -tearoff false
+    ${Main::win}tabMenu_serverD add command -label "Join channel" -state disabled
+    ${Main::win}tabMenu_serverD add command -label "Quit"         -state disabled
+    ${Main::win}tabMenu_serverD add command -label "Close tab"    -state disabled
+    menu ${Main::win}tabMenu_channelD -tearoff false
+    ${Main::win}tabMenu_channelD add command -label "Part"        -state disabled
+    ${Main::win}tabMenu_channelD add command -label "Close tab"   -state disabled
     
     # Create the nicklist menu
     menu ${Main::win}nicklistMenu -tearoff false
@@ -543,8 +553,25 @@ proc Main::unsetTabMention {} {
 
 proc Main::tabContext { x y tabId } {
     $Main::notebook raise $tabId
+    set parts [Main::getServAndChan $tabId]
+    set serv [lindex $parts 0]
+    set chan [lindex $parts 1]
+    
     Main::pressTab
-    tk_popup .tabMenu [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
+    if {[string length $chan] > 0} { #Channel
+        if {[$Main::servers($serv) isChannelConnected $chan]} {
+            tk_popup .tabMenu_channel [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
+        } else { #Disconnected
+            tk_popup .tabMenu_channelD [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
+        }
+    } else { #Server
+        if { [string length [$Main::servers($serv) getconnDesc]] > 0 } {
+            tk_popup .tabMenu_server  [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
+        } else { #Disconnected
+            tk_popup .tabMenu_serverD  [expr [winfo rootx .] + $x] [expr [winfo rooty .] + $y + 50]
+        }
+    }
+    
 }
 
 proc Main::pressAway {} {
@@ -675,7 +702,8 @@ proc Main::createConnection {serv por ssl nick pass} {
     } else {
         set Main::servers($serv) [tabServer %AUTO% $serv $por $ssl $nick $pass]
     }
-    .tabMenu unpost
+    .tabMenu_server unpost
+    .tabMenu_channel unpost
     $Main::notebook raise [$Main::servers($serv) getId]
 }
 
