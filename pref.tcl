@@ -217,7 +217,7 @@ proc Pref::show {} {
     xlabel $theFrame.l_nick            -text "Nick"
     set Pref::gBnick [xentry $theFrame.nick]
     xlabel $theFrame.l_pass            -text "NickServ Pass"
-    set Pref::gBpass [xentry $theFrame.pass]
+    set Pref::gBpass [xentry $theFrame.pass -show "*"]
     xlabel $theFrame.l_channels        -text "Channels"
     set Pref::gBchannels [xentry $theFrame.channels -width 30]
     xlabel $theFrame.channelsnote      -text "(Space delimited)"

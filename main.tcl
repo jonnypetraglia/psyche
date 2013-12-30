@@ -596,7 +596,7 @@ proc Main::showConnectDialog { } {
     xentry .connectDialog.nick -width 20
     .connectDialog.nick configure -background white
     xlabel .connectDialog.l_pass -text "Nickserv Pass"
-    xentry .connectDialog.pass -width 20
+    xentry .connectDialog.pass -width 20 -show "*"
     .connectDialog.nick configure -background white
     xbutton .connectDialog.go -text "Connect"
     
