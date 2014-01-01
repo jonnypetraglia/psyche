@@ -80,6 +80,18 @@
             }
         }
         
+        if {[lsearch -regexp $style1 "^nick_color.+"] > -1} {
+            set nickBeginning [$chat index [list $beginning + [expr {[string length $timestamp] + 1}] chars]]
+            set nickEnd       [$chat index [list $nickBeginning + [string length $title] chars]]
+            
+            set tagname "${id_var}[clock milliseconds]"
+            $chat tag add  $tagname $nickBeginning $nickEnd
+            $chat tag bind      $tagname "<Enter>" "$chat configure -cursor question_arrow"
+            $chat tag bind      $tagname "<Leave>" "$chat configure -cursor arrow"
+            $chat tag bind $tagname <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod rightClickNick] $tagname %x %y"
+        }
+        
+        # Trim lines if over the scrollback limit
         # the original example (on the interwebs) used -1; -2 is for the trailing newline?
         if {[expr [lindex [split [$chat index end] .] 0] -2] > $Pref::maxScrollback} {
             $chat delete 1.0 2.0
@@ -173,4 +185,13 @@
         # Retrieve new one
         set sendHistoryIndex $newSHindex
         $input replace 1.0 end [lindex $sendHistory $sendHistoryIndex]
+    }
+    
+    ############## RightClicked a Nick INSIDE the chat widget ##############
+    method rightClickNick {tagname x y} {
+        set Main::NLnick [string range [$chat get $tagname.first $tagname.last] 1 end-1]
+        .nicklistMenu entryconfigure 0 -label "PM $Main::NLnick"
+        set x [expr [winfo rootx $chat] + $x]
+        set y [expr [winfo rooty $chat] + $y]
+        tk_popup .nicklistMenu $x $y
     }

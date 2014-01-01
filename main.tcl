@@ -53,6 +53,7 @@ namespace eval Main {
 
     variable default_tab_color
     variable nick_colors
+    variable NLnick
     
     variable win
     variable cursor_link
@@ -242,7 +243,7 @@ proc Main::init { } {
     ${Main::win}nicklistMenu add command -label "Version" -command {Main::NLcmd "/version "}
     ${Main::win}nicklistMenu add command -label "Ping" -command {Main::NLcmd "/ping "}
     # Modes submenu
-    menu ${Main::win}nicklistMenu.modes
+    menu ${Main::win}nicklistMenu.modes -tearoff false
     ${Main::win}nicklistMenu.modes add command -label "Give Op" -command "Main::NLmode +o"
     ${Main::win}nicklistMenu.modes add command -label "Take Op" -command "Main::NLmode -o"
     ${Main::win}nicklistMenu.modes add command -label "Give HalfOp" -command "Main::NLmode +h"
@@ -251,7 +252,7 @@ proc Main::init { } {
     ${Main::win}nicklistMenu.modes add command -label "Take Voice" -command "Main::NLmode -v"
     ${Main::win}nicklistMenu add cascade -label "Modes" -menu .nicklistMenu.modes
     # Ban submenu
-    menu ${Main::win}nicklistMenu.kickban
+    menu ${Main::win}nicklistMenu.kickban -tearoff false
     ${Main::win}nicklistMenu.kickban add command -label "Kick" -command "Main::NLkick"
     ${Main::win}nicklistMenu.kickban add command -label "Ban" -command {Main::NLban $Pref::banMask false}
     ${Main::win}nicklistMenu.kickban add command -label "KickBan" -command {Main::NLban $Pref::banMask true}
@@ -421,47 +422,35 @@ proc Main::NLpm {} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-
-    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-
-    $Main::servers($serv) createPMTabIfNotExist $theNick
+    $Main::servers($serv) createPMTabIfNotExist $Main::NLnick
 }
 
 proc Main::NLcmd {the_cmd} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    
-    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-    
-    $Main::servers($serv) sendMessage "$the_cmd$theNick"
+    $Main::servers($serv) sendMessage "$the_cmd$Main::NLnick"
 }
 
 proc Main::NLmode {the_mode} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    
-    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-    $Main::servers($serv) sendMessage "/mode $chan $the_mode $theNick"
+    $Main::servers($serv) sendMessage "/mode $chan $the_mode $Main::NLnick"
 }
 
 proc Main::NLkick {} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    
-    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-    $Main::servers($serv) _send "KICK $chan $theNick :$Pref::defaultKick"
+    $Main::servers($serv) _send "KICK $chan $Main::NLnick :$Pref::defaultKick"
 }
 
 proc Main::NLban {bantype shouldkick} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    
-    set theNick [$Main::servers($serv) getSelectedNickOfChannel $chan]
-    $Main::servers($serv) requestBan $theNick $chan $bantype $shouldkick $Pref::defaultBan
+    $Main::servers($serv) requestBan $Main::NLnick $chan $bantype $shouldkick $Pref::defaultBan
 }
 
 
@@ -691,7 +680,7 @@ proc Main::joinChannel {} {
 
 # serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
 proc Main::createConnection {serv por ssl nick pass} {
-    Log V "Creating Connection: $serv $por ssl $nick ****"
+    Log V "Creating Connection: $serv | $por | $ssl | $nick | $pass"
     if [info exists Main::servers($serv)] {
         if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""

@@ -129,7 +129,7 @@ snit::type tabChannel {
                         -height 8 -width 20 -highlightthickness 0]
             
             bind $nicklistCtrl <Double-1> [mymethod DoubleclickNicklist]
-            bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "[mymethod RightclickNicklist] %x %y"
+            bind $nicklistCtrl <ButtonRelease-$Main::MIDDLE_CLICK> "event generate $nicklistCtrl <1> -x %x -y %y; [mymethod RightclickNicklist] %x %y"
             set scrollNick [xscrollbar $topf.sbar2 -orient vertical -command "$nicklistCtrl yview"]
             $nicklistCtrl conf -yscrollcommand "$scrollNick set"
             
@@ -582,6 +582,8 @@ snit::type tabChannel {
     ############## Gui Event ##############
     method RightclickNicklist {x y} {
         if {[$ServerRef isChannelConnected $channel]} {
+            set Main::NLnick [$self getSelectedNick]
+            .nicklistMenu entryconfigure 0 -label "PM $Main::NLnick"
             set x [expr [winfo rootx $nicklistCtrl] + $x]
             set y [expr [winfo rooty $nicklistCtrl] + $y]
             tk_popup .nicklistMenu $x $y

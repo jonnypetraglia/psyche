@@ -61,7 +61,7 @@ snit::type tabServer {
             if {$Pref::logEnabled} {
                 $self createLog
             }
-            $self initServer [lindex $args 3]
+            $self initServer [lindex $args 4]
         }
     }
     
@@ -535,7 +535,7 @@ snit::type tabServer {
             }
             # Dummy handler to detect when the socket is writeable (i.e. open)
             fileevent $connDesc readable {set connectStatus ok}
-            # Wait for either the socket to become writable, or the 
+            # Wait for either the socket to become writable, or the timeout to occur
             vwait connectStatus
         } problemDesc]} {
             # Catch any exceptions thrown
@@ -663,9 +663,12 @@ snit::type tabServer {
     
     method closeChannel {chann} {
         $Main::notebook delete [$channelMap($chann) getId]
-        $self _send "PART $chann :$Pref::defaultPart"
+        if {[$self isChannelConnected $chann] && [regexp "^\[$ChannelPrefixes\].+" $chann]} {
+            # It is connected AND is a channel
+            $self _send "PART $chann :$Pref::defaultPart"
+            $self removeActiveChannel $chann
+        }
         $channelMap($chann) closeLog
-        $self removeActiveChannel $chann
         unset channelMap($chann)
     }
     
@@ -957,10 +960,9 @@ snit::type tabServer {
                 329 {
                     #RPL_CREATIONTIME
                     regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
-                    $self handleReceived $timestamp [getTitle $mCode] bold "$mTarget created at [clock format $mTime]" $style
-                    #if [info exists channelMap($mTarget)] {
-                    #$channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created [clock format $mTime]" $style
-                    #}
+                    if [info exists channelMap($mTarget)] {
+                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created at [clock format $mTime]" $style
+                    }
                     return
                 }
                 333 {
