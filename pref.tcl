@@ -11,6 +11,7 @@ namespace eval Pref {
 
     variable timeout
     variable raiseNewTabs
+    variable useTheme
     variable defaultQuit
     variable defaultBan
     variable defaultKick
@@ -18,7 +19,9 @@ namespace eval Pref {
     variable defaultAway
     variable banMask
     variable bookmarks
-    variable logEnabled
+    variable logServers
+    variable logChannels
+    variable logPMs
     variable logDir
     variable popupTimeout
     variable popupLocation
@@ -36,6 +39,7 @@ namespace eval Pref {
     variable gmenColorBtn
     variable gmenSoundBtn
     variable gmenSound
+    variable guseTheme
     variable gquit
     variable gkick
     variable gban
@@ -47,7 +51,9 @@ namespace eval Pref {
     variable gpopupFontBtn
     variable graiseNew
     variable gtoolbar
-    variable glogEnabled
+    variable glogServers
+    variable glogChannels
+    variable glogPMs
     variable gmenSoundChk
     variable gmenSoundChk_v
     variable vnewFont
@@ -69,13 +75,16 @@ namespace eval Pref {
     
     set timeout 5000
     set raiseNewTabs false
+    set useTheme [expr [expr {$::tcl_version >= 8.5} && {$::PLATFORM != $::PLATFORM_MAC}] == 1 ? true : false]
     set defaultQuit "Quittin'"
     set defaultKick "Please stop that"
     set defaultBan "Stop. That."
     set defaultPart "Partin'"
     set defaultAway "I'm away"
     set banMask "*!user@domain"
-    set logEnabled false
+    set logServers false
+    set logChannels false
+    set logPMs false
     set logDir "${CONFIG_DIR}${Main::fs_sep}log"
     set popupTimeout 5000
     set popupFont {Helvetica 16}
@@ -107,7 +116,7 @@ proc Pref::readPrefs {} {
     while {![eof $fp]} {
         set data [gets $fp]
         # Manually add the namespace
-        if {[regexp "^set ((timeout |raiseNewTabs |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logEnabled |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden |banMask ).*)" $data -> data]} {
+        if {[regexp "^set ((timeout |raiseNewTabs |useTheme |defaultQuit |defaultBan |defaultKick |defaultPart |defaultAway |bookmarks\\(.*\\)|logServers |logChannels|logPMs |logDir |popupTimeout |popupLocation |popupFont |maxSendHistory |maxScrollback |mentionSound |mentionColor |toolbarHidden |banMask ).*)" $data -> data]} {
             set data "set Pref::[regsub -all {\\} $data {\\\\}]"
         }
         Log V "Reading preference: '$data'"
@@ -117,6 +126,7 @@ proc Pref::readPrefs {} {
         }
     }
     close $fp
+    aliases
     menu .bookmarkMenu -tearoff false -title Bookmarks
     Pref::createBookmarkMenu
     return 1
@@ -176,8 +186,14 @@ proc Pref::show {} {
     set Pref::gmenSoundChk [xcheckbutton $theFrame.c_msound -onvalue true -offvalue false -variable Pref::gmenSoundChk_v]
     set Pref::gmenSound [xentry $theFrame.msound -width 50]
     set Pref::gmenSoundBtn [xbutton $theFrame.b_msound -width 4 -text "..."]
-    xlabel $theFrame.l_hideToolbar          -text "Toolbar Hidden"
+    xlabel $theFrame.l_hideToolbar      -text "Toolbar Hidden"
     set Pref::gtoolbar [xcheckbutton $theFrame.hideToolbar -onvalue true -offvalue false -variable Pref::gtoolbar_v]
+    xlabel $theFrame.l_theme            -text "Use Theme"
+    set Pref::guseTheme [xcheckbutton $theFrame.theme -onvalue true -offvalue false -variable Pref::guseTheme_v]
+    xlabel $theFrame.n_theme            -text "(Requires restart)"
+    if {$::tcl_version < 8.5} {
+        $Pref::guseTheme configure -state disabled
+    }
     
     grid config $theFrame.l_timeout      -row 0 -column 0 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.timeout        -row 0 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
@@ -195,6 +211,9 @@ proc Pref::show {} {
     grid config $theFrame.b_msound       -row 5 -column 4 -padx 5 -pady 5
     grid config $theFrame.l_hideToolbar  -row 6 -column 0 -padx 5 -pady 5 -sticky "w"
     grid config $theFrame.hideToolbar    -row 6 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
+    grid config $theFrame.l_theme        -row 7 -column 0 -padx 5 -pady 5 -sticky "w"
+    grid config $theFrame.theme          -row 7 -column 1 -padx 5 -pady 5 -sticky "w"
+    grid config $theFrame.n_theme        -row 7 -column 2 -padx 5 -pady 5 -sticky "w"
     
     #################### Bookmarks tab ####################
     set page [$notebook insert end preftab2 -text "Bookmarks"]
@@ -325,20 +344,29 @@ proc Pref::show {} {
     set theFrame [frame $page.frame]
     pack $theFrame -fill both -expand 1
     
-    xlabel $theFrame.l_logenabled -text "Logging enabled"
-    set Pref::glogEnabled [xcheckbutton $theFrame.logenabled -onvalue true -offvalue false -variable Pref::glogEnabled_v]
+    
+    xlabel $theFrame.l_logservers -text "Log servers"
+    set Pref::glogServers [xcheckbutton $theFrame.logservers -onvalue true -offvalue false -variable Pref::glogServers_v]
+    xlabel $theFrame.l_logchannels -text "Log channels"
+    set Pref::glogChannels [xcheckbutton $theFrame.logchannels -onvalue true -offvalue false -variable Pref::glogChannels_v]
+    xlabel $theFrame.l_logpms -text "Log PMs"
+    set Pref::glogPMs [xcheckbutton $theFrame.logpms -onvalue true -offvalue false -variable Pref::glogPMs_v]
     
     xlabel $theFrame.l_logdir           -text "Logging Directory"
     set Pref::glogDir [xentry $theFrame.logdir -width 50]
     set Pref::glogDirBtn [xbutton $theFrame.b_logdir -width 4 -text "..."]
     xbutton $theFrame.openlogdir -text "Open Data Location" -command {platformOpen $Pref::logDir}
     
-    grid config $theFrame.l_logenabled      -row 0 -column 0 -padx 5 -pady $pady -sticky "w"
-    grid config $theFrame.logenabled        -row 0 -column 1 -padx 5 -pady $pady -sticky "w"
-    grid config $theFrame.l_logdir          -row 1 -column 0 -padx 5 -pady 5 -sticky "w"
-    grid config $theFrame.logdir            -row 1 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
-    grid config $theFrame.b_logdir          -row 1 -column 4 -padx 5 -pady 5
-    grid config $theFrame.openlogdir        -row 2 -column 0 -padx 5 -pady 5 -columnspan 4
+    grid config $theFrame.l_logservers      -row 0 -column 0 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.logservers        -row 0 -column 1 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.l_logchannels     -row 1 -column 0 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.logchannels       -row 1 -column 1 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.l_logpms          -row 2 -column 0 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.logpms            -row 2 -column 1 -padx 5 -pady $pady -sticky "w"
+    grid config $theFrame.l_logdir          -row 3 -column 0 -padx 5 -pady 5 -sticky "w"
+    grid config $theFrame.logdir            -row 3 -column 1 -padx 5 -pady 5 -sticky "w" -columnspan 2
+    grid config $theFrame.b_logdir          -row 3 -column 4 -padx 5 -pady 5
+    grid config $theFrame.openlogdir        -row 4 -column 0 -padx 5 -pady 5 -columnspan 4
     
     #################### Binding clicks ####################
     $Pref::gmenColorBtn configure -command {
@@ -363,8 +391,8 @@ proc Pref::show {} {
     }
     $Pref::gmenSoundChk configure -command {
         if {$Pref::gmenSoundChk_v==true} {
-            $Pref::gmenSound configure -state enabled
-            $Pref::gmenSoundBtn configure -state enabled
+            $Pref::gmenSound configure -state normal
+            $Pref::gmenSoundBtn configure -state normal
         } else {
             $Pref::gmenSound configure -state disabled
             $Pref::gmenSoundBtn configure -state disabled
@@ -375,15 +403,15 @@ proc Pref::show {} {
 }
 
 proc Pref::addBookmark {} {
-    $Pref::gBname     configure -state enabled
-    $Pref::gBserver   configure -state enabled
-    $Pref::gBport     configure -state enabled
-    $Pref::gBssl      configure -state enabled
-    $Pref::gBnick     configure -state enabled
-    $Pref::gBpass     configure -state enabled
-    $Pref::gBchannels configure -state enabled
-    $Pref::gBsave     configure -state enabled
-    $Pref::gBcancel   configure -state enabled
+    $Pref::gBname     configure -state normal
+    $Pref::gBserver   configure -state normal
+    $Pref::gBport     configure -state normal
+    $Pref::gBssl      configure -state normal
+    $Pref::gBnick     configure -state normal
+    $Pref::gBpass     configure -state normal
+    $Pref::gBchannels configure -state normal
+    $Pref::gBsave     configure -state normal
+    $Pref::gBcancel   configure -state normal
     $Pref::gBlist     configure -state disabled
     $Pref::gBadd      configure -state disabled
     $Pref::gBremove   configure -state disabled
@@ -435,9 +463,9 @@ proc Pref::clearBookmarks {} {
     $Pref::gBsave     configure -state disabled
     $Pref::gBcancel   configure -state disabled
     $Pref::gBlist     configure -state normal
-    $Pref::gBadd      configure -state enabled
-    $Pref::gBremove   configure -state enabled
-    $Pref::gBedit     configure -state enabled
+    $Pref::gBadd      configure -state normal
+    $Pref::gBremove   configure -state normal
+    $Pref::gBedit     configure -state normal
 }
 
 proc Pref::saveBookmark {} {
@@ -505,9 +533,12 @@ proc Pref::setValues {} {
     $Pref::gaway     delete 0 end
     $Pref::gaway     insert 0 $Pref::defaultAway
     # checkbuttons
-    set ::[$Pref::graiseNew cget -variable]   $Pref::raiseNewTabs
-    set ::[$Pref::gtoolbar cget -variable]    $Pref::toolbarHidden
-    set ::[$Pref::glogEnabled cget -variable] $Pref::logEnabled
+    set ::[$Pref::graiseNew cget -variable]    $Pref::raiseNewTabs
+    set ::[$Pref::gtoolbar cget -variable]     $Pref::toolbarHidden
+    set ::[$Pref::glogServers cget -variable]  $Pref::logServers
+    set ::[$Pref::glogChannels cget -variable] $Pref::logChannels
+    set ::[$Pref::glogPMs cget -variable]      $Pref::logPMs
+    set ::[$Pref::guseTheme cget -variable]    $Pref::useTheme
     # radio groups
     set ::nsew $Pref::popupLocation
     set ::banmask $Pref::banMask
@@ -543,7 +574,10 @@ proc Pref::savePrefs {} {
     # checkbuttons
     set Pref::raiseNewTabs    $Pref::graiseNew_v
     set Pref::toolbarHidden   $Pref::gtoolbar_v
-    set Pref::logEnabled      $Pref::glogEnabled_v
+    set Pref::logServers      $Pref::glogServers_v
+    set Pref::logChannels     $Pref::glogChannels_v
+    set Pref::logPMs          $Pref::glogPMs_v
+    set Pref::useTheme        $Pref::guseTheme_v
     # radio groups
     set Pref::popupLocation $::nsew
     set Pref::banMask $::banmask
@@ -566,12 +600,14 @@ proc Pref::savePrefs {} {
     set servs [array names Main::servers]
     foreach serv $servs {
         $Main::servers($serv) resetMentionColor
+        $Main::servers($serv) resetLog
     }
+    
 }
 
 proc Pref::writePrefs {} {
     set fp [open $Pref::prefFile w]
-    set prefsToWrite {timeout raiseNewTabs defaultQuit defaultBan defaultKick defaultPart defaultAway logEnabled logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound toolbarHidden banMask}
+    set prefsToWrite {timeout raiseNewTabs useTheme defaultQuit defaultBan defaultKick defaultPart defaultAway logServers logChannels logPMs logDir popupTimeout popupLocation popupFont maxSendHistory maxScrollback mentionColor mentionSound toolbarHidden banMask}
     foreach pref $prefsToWrite {
         set val "Pref::$pref"
         set val "[expr $$val]"

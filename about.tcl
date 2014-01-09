@@ -62,7 +62,6 @@ namespace eval About {
     lappend keystrokes [list "F10" "Toggle Toolbar"]
 }
 
-
 proc About::show {} {
     if [winfo exists .aboutDialog] {
         Main::foreground_win .aboutDialog
@@ -108,7 +107,8 @@ proc About::show {} {
     
     # Donate
     xlabel $theFrame.donate -text "Like Psyche? Support the developer." -foreground blue
-    $theFrame.donate configure -font [linsert [$theFrame.donate cget -font] end -underline true]       ;#TODO: reliable way of getting font size
+    set defaultfont [lappend [getDefaultFont $theFrame.donate] -underline true]
+    $theFrame.donate configure -font $defaultfont
     $theFrame.donate configure -cursor $Main::cursor_link
     grid config $theFrame.donate    -row 6 -column 0 -padx 5 -columnspan 2 -pady 15
     bind $theFrame.donate <ButtonRelease> {platformOpen $About::donateUrl}
@@ -138,21 +138,23 @@ proc About::show {} {
     
     # Headers
     xlabel $options.a -text "Variable" -background white
-    $options.a configure -font [linsert [$options.a cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
+    set defaultfont [lappend [getDefaultFont $options.a] -underline true]
+    $options.a configure -font $defaultfont     ;#TODO how do get real font size + 2
     grid config $options.a -row 0 -column 0 -padx 2 -pady 2 -sticky "w"
     
     xlabel $options.b -text "Type" -background white
-    $options.b configure -font [linsert [$options.b cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
+    $options.b configure -font $defaultfont     ;#TODO how do get real font size + 2
     grid config $options.b -row 0 -column 1 -padx 2 -pady 2 -sticky "w"
     
     xlabel $options.c -text "Description" -background white
-    $options.c configure -font [linsert [$options.c cget -font] end -weight bold -underline true]     ;#TODO how do get real font size + 2
+    $options.c configure -font $defaultfont     ;#TODO how do get real font size + 2
     grid config $options.c -row 0 -column 2 -padx 2 -pady 2 -sticky "w"
     
     set i 1
     foreach c [array names About::config] {
         xlabel $options.a$i -text $c -background white
-        $options.a$i configure -font [linsert [$options.a$i cget -font] end -size 9 -weight bold]     ;#TODO how do get real font size
+        set defaultfont [lappend [getDefaultFont $options.a$i] -underline true]
+        $options.a$i configure -font defaultFont     ;#TODO how do get real font size
         grid config $options.a$i -row $i -column 0 -padx 2 -pady 2 -sticky "w"
         
         xlabel $options.b$i -text [lindex $About::config($c) 0] -background white
@@ -169,7 +171,7 @@ proc About::show {} {
     xlabel $theFrame.locationL -text "\nPsyche's configuration is stored in a Tcl file located at:" -anchor w
     pack $theFrame.locationL -fill x -expand 1
     xlabel $theFrame.location -text "$Pref::prefFile" -anchor w -foreground blue
-    #$theFrame.location configure -font [linsert [$theFrame.location cget -font] end 9 underline]       ;#TODO: reliable way of getting font size
+    #$theFrame.location configure -font [lappend [$theFrame.location cget -font] -underline true]       ;#TODO: reliable way of getting font size
     $theFrame.location configure -font [list underline]       ;#TODO: reliable way of getting font size
     pack $theFrame.location -anchor w
     $theFrame.location configure -cursor $Main::cursor_link
@@ -190,17 +192,19 @@ proc About::show {} {
     
     # Headers
     xlabel $options.a -text "Keys" -background white
-    $options.a configure -font [linsert [$options.a cget -font] end -size 11 -weight bold -underline true]     ;#TODO how do get real font size
+    set defaultfont [lappend [getDefaultFont $options.a] -underline true]
+    $options.a configure -font $defaultfont     ;#TODO how do get real font size
     grid config $options.a -row 0 -column 0 -padx 2 -pady 2 -sticky "w"
     
     xlabel $options.b -text "Action" -background white
-    $options.b configure -font [linsert [$options.b cget -font] end -size 11 -weight bold -underline true]     ;#TODO how do get real font size
+    $options.b configure -font $defaultfont     ;#TODO how do get real font size
     grid config $options.b -row 0 -column 1 -padx 16 -pady 2 -sticky "w"
     
     set i 1
     foreach keyAndAction $About::keystrokes {
         xlabel $options.a$i -text [lindex $keyAndAction 0] -background white
-        $options.a$i configure -font [linsert [$options.a$i cget -font] end -size 9 -weight bold]     ;#TODO how do get real font size
+        set defaultfont [lappend [getDefaultFont $options.a$i] -underline true]
+        $options.a$i configure -font [lappend [$options.a$i cget -font] -size 9 -weight bold]     ;#TODO how do get real font size
         grid config $options.a$i -row $i -column 0 -padx 2 -sticky "w"
         
         xlabel $options.b$i -text [lindex $keyAndAction 1] -background white
@@ -224,7 +228,7 @@ proc About::show {} {
     
     # Header
     xlabel $license.header -text "BSD 3-Clause License" -background white
-    $license.header configure -font [linsert [$license.header cget -font] end -weight bold -underline true]
+    $license.header configure -font [lappend [getDefaultFont $license.header] -weight bold -underline true]
     
     # Read in dat license!
     set fp [open "LICENSE" r]
@@ -258,4 +262,11 @@ proc platformOpen { whatwhat } {
             Log E "Could not open  $whatwhat"
         }
     }
+}
+
+proc getDefaultFont {ctrl} {
+    if {[$ctrl cget -font]!=""} {
+        return [font configure [$ctrl cget -font]]
+    }
+    return [list]
 }

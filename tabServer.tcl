@@ -60,7 +60,7 @@ snit::type tabServer {
         
         $self init_ui
         if { [string length $args] > 0 } {
-            if {$Pref::logEnabled} {
+            if {$Pref::logServers} {
                 $self createLog
             }
             $self initServer
@@ -490,6 +490,19 @@ snit::type tabServer {
         set chanNames [array names channelMap]
         foreach c $chanNames {
             $channelMap($c) resetMentionColor
+        }
+    }
+    
+    method resetLog {} {
+        if [info exists logDesc] {
+            close logDesc
+        }
+        if {[expr {[$self isPM] && $Pref::logPMs} || {![$self isPM] && $Pref::logChannels}]} {
+            $self createLog
+        }
+        set chanNames [array names channelMap]
+        foreach c $chanNames {
+            $channelMap($c) resetLog
         }
     }
     

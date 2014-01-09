@@ -115,11 +115,20 @@
         if {$isAtBottom==1.0} {
             $chat yview end
         }
-        if {$Pref::logEnabled} {
-            set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
-            puts $logDesc "$timestamp $title $message"
-            flush $logDesc
+        
+        if {$type == "::tabServer" && !$Pref::logServers} {
+            return
         }
+        if {$type == "::tabChannel"} {
+            set isPM [$self isPM]
+            if {[expr {$isPM && $Pref::logPMs} || {!$isPM && $Pref::logChannels}]} {
+                return
+            }
+        }
+        
+        set timestamp [clock format [clock seconds] -format "\[%A, %B %d, %Y\] \[%I:%M:%S %p\]"]
+        puts $logDesc "$timestamp $title $message"
+        flush $logDesc
     }
     
     ############## Creates the logDesc ##############

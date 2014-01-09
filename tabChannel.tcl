@@ -54,7 +54,7 @@ snit::type tabChannel {
         
         $self init_ui
         if { [string length $args] > 0 } {
-            if {$Pref::logEnabled} {
+            if {[expr {[$self isPM] && $Pref::logPMs} || {![$self isPM] && $Pref::logChannels}]} {
                 $self createLog
             }
             $self initChan [lindex $args 2]
@@ -94,7 +94,7 @@ snit::type tabChannel {
         $chat tag config italic -font [linsert [$chat cget -font] end italic]
         $chat tag config timestamp -font {Arial 7} -foreground grey60
         $chat tag config blue   -foreground blue
-        $chat tag config mention   -foreground red
+        $self resetMentionColor
         $chat configure -background white
         $chat configure -state disabled
         $chat tag configure regionSearch -background yellow
@@ -371,6 +371,15 @@ snit::type tabChannel {
     
     method resetMentionColor {} {
         $chat tag config mention   -foreground $Pref::mentionColor
+    }
+    
+    method resetLog {} {
+        if [info exists logDesc] {
+            close logDesc
+        }
+        if {[expr {[$self isPM] && $Pref::logPMs} || {![$self isPM] && $Pref::logChannels}]} {
+            $self createLog
+        }
     }
     
     source "_shared.tcl"
