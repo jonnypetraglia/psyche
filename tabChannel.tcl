@@ -303,8 +303,12 @@ snit::type tabChannel {
         catch {grab set .propDialog}
     }
         
-    method _setData {newport newnick} {
-        $ServerRef _setNick $newport $newnick
+    #TODO: This should not exist
+    method _setData {newport newssl newnick newpass} {
+        set nick $newnick
+        set port $newport
+        set ssl  $newssl
+        set passForNick($newnick) $newpass
     }
     
     ############## Issued when calling find ##############

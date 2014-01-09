@@ -22,10 +22,12 @@ snit::type tabServer {
     variable port
     variable ssl
     variable nick
+    variable passForNick
     variable connDesc
     variable channelMap
     variable activeChannels
     variable banRequestList
+    variable autojoinChannels
     # map from nick to channel & mask; banRequestList(notbryant) = {#qweex *!*@domain shouldKick banMsg}
     variable pingtime
     
@@ -42,7 +44,7 @@ snit::type tabServer {
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Similar (same name)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Constructor ##############
-    constructor {args} {    ;# args = irc.geekshed.net 6697 nick pass
+    constructor {args} {    ;# args = irc.geekshed.net 6697 nick pass autojoin
         set server ""
         set sendHistory [list ""]
         set sendHistoryIndex 0
@@ -50,7 +52,7 @@ snit::type tabServer {
         
         # If it has no args it's a dummy tab for measurement
         if { [string length $args] > 0 } {
-            $self init [lindex $args 0] [lindex $args 1] [lindex $args 2] [lindex $args 3]
+            $self init [lindex $args 0] [lindex $args 1] [lindex $args 2] [lindex $args 3] [lindex $args 4] [lindex $args 5]
         } else {
             set channel Temp
             set id_var measure_tab
@@ -61,12 +63,12 @@ snit::type tabServer {
             if {$Pref::logEnabled} {
                 $self createLog
             }
-            $self initServer [lindex $args 4]
+            $self initServer
         }
     }
     
     ############## Initialize the variables ##############
-    method init {arg0 arg1 arg2 arg3} {
+    method init {arg0 arg1 arg2 arg3 arg4 arg5} {
         set nickList [list]
         set activeChannels [list]
     
@@ -77,9 +79,13 @@ snit::type tabServer {
         set ssl $arg2
         set id_var "$server"
         set nick [string trim $arg3]
+        set passForNick($nick) [string trim $arg4]
+        set autojoinChannels $arg5
         Log D "  Server: $server"
         Log D "  Port:   $port"
         Log D "  Nick:   $nick"
+        Log D "  Pass:   $passForNick($nick)"
+        Log D "  Auto:   $autojoinChannels"
     }
     
     ############## GUI stuff ##############
@@ -200,6 +206,11 @@ snit::type tabServer {
     ############## Send a Private Message to a user...or maybe channel? ##############    
     method sendPM { mNick mMsg} {
         $self _send "PRIVMSG $mNick :$mMsg"
+        # Check for identifying
+        if {[string toupper $mNick]=="NICKSERV" && [regexp {^IDENTIFY.*} [string trimleft [string toupper $mMsg]]]} {
+            $self handleReceived [$self getTimestamp] [Notice] bold "<identify> ******" ""
+            return
+        }
         $self createPMTabIfNotExist $mNick
         $channelMap($mNick) handleReceived [$self getTimestamp] <$mNick> bold $mMsg ""
     }
@@ -383,10 +394,12 @@ snit::type tabServer {
     }
     
     #TODO: This should not exist
-    method _setData {newport newnick newssl} {
+    method _setData {newport newssl newnick newpass newautojoin} {
         set nick $newnick
         set port $newport
         set ssl  $newssl
+        set passForNick($newnick) $newpass
+        set autojoinChannels $newautojoin
     }
     
     ############## Issued when calling find ##############
@@ -511,7 +524,7 @@ snit::type tabServer {
     }
     
     ############## Specific init ##############
-    method initServer {pass} {
+    method initServer {} {
         global connectStatus
         $self handleReceived [$self getTimestamp] \[Connect\] bold "Connecting to $server on port $port..." ""
         set connectStatus "unknown"
@@ -604,8 +617,8 @@ snit::type tabServer {
                 #TODO: What is this
                 $self _send "USER $nick 0 * :Psyche user"
                 fileevent $connDesc readable [mymethod _recv]
-                if {[string length $pass]>0} {
-                    $self _send "PRIVMSG NickServ :identify $pass"
+                if {[string length $passForNick($nick)]>0} {
+                    $self _send "PRIVMSG NickServ :identify $passForNick($nick)"
                 }
             } probDesc]} {
             if [info exists connDesc] {
@@ -617,6 +630,11 @@ snit::type tabServer {
         }
         
         $self updateToolbar ""
+        
+        #TODO: Check if channelMap($chann) already exists and if it does do not send it?
+        foreach chann $autojoinChannels {
+            $self _send "JOIN $chann"
+        }
     }
     
     ############## Update the specific Away button ##############
@@ -959,10 +977,11 @@ snit::type tabServer {
                 }
                 329 {
                     #RPL_CREATIONTIME
-                    regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
-                    if [info exists channelMap($mTarget)] {
-                        $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created at [clock format $mTime]" $style
-                    }
+                    #regexp "(\[^ \]*) (.*)" $mMsg -> mTarget mTime
+                    #if [info exists channelMap($mTarget)] {
+                    #    $channelMap($mTarget) handleReceived $timestamp [getTitle $mCode] bold "Channel created at [clock format $mTime]" $style
+                    #}
+                    ## !! Do nothing !!
                     return
                 }
                 333 {
@@ -1174,13 +1193,18 @@ snit::type tabServer {
         }
     
         # Server message with no numbers but sent explicitely from server
-        if {[regexp {:([^ ]*) ([^ ]*) ([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
+        # Ex: :Komma.GeekShed.net NOTICE %#jupiterbroadcasting :*** Channel joinflood detected (limit is 6 per 5 seconds), setting mode +R
+        if {[regexp {:([^ ]*) ([^ ]*) %?([^:]*):(.*)} $line -> mServer mSomething mTarget mMsg]} {
             Log V "REC: Etc: $mSomething $mTarget"
             switch $mSomething {
                 "MODE" {
                     set mMsg "$ServerName has set your personal modes: $mMsg"
                 }
                 "NOTICE" {
+                    if {[string trim $mTarget]!="AUTH"} {
+                        $channelMap($mTarget) handleReceived $timestamp "[Notice]" bold $mMsg
+                        return
+                    }
                 }
                 "433" {
                 # Note that this only happens when it is a catastrophic failure!

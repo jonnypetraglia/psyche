@@ -679,17 +679,17 @@ proc Main::joinChannel {} {
 }
 
 # serv should be the raw server, i.e. irc.geekshed.net, NOT irc_geekshed_net
-proc Main::createConnection {serv por ssl nick pass} {
+proc Main::createConnection {serv por ssl nick pass autojoin} {
     Log V "Creating Connection: $serv | $por | $ssl | $nick | $pass"
     if [info exists Main::servers($serv)] {
         if { [string length [$Main::servers($serv) getconnDesc]] > 0 } { 
             $Main::servers($serv) handleReceived [$Main::servers($serv) getTimestamp] \[Nope\] bold "Dude you are already connected" ""
         } else {
-            $Main::servers($serv) _setData $por $nick $ssl
-            $Main::servers($serv) initServer $pass
+            $Main::servers($serv) _setData $por $ssl $nick $pass $autojoin
+            $Main::servers($serv) initServer
         }
     } else {
-        set Main::servers($serv) [tabServer %AUTO% $serv $por $ssl $nick $pass]
+        set Main::servers($serv) [tabServer %AUTO% $serv $por $ssl $nick $pass $autojoin]
     }
     .tabMenu_server unpost
     .tabMenu_channel unpost
@@ -720,7 +720,7 @@ proc Main::reconnect {} {
     set parts [Main::getServAndChan [$Main::notebook raise]]
     set serv [lindex $parts 0]
     set chan [lindex $parts 1]
-    $Main::servers($serv) initServer ""
+    $Main::servers($serv) initServer
 }
 
 proc Main::disconnect {} {
@@ -866,18 +866,13 @@ proc Main::openBookmark {target} {
     set ssl [lindex $connInfo 2]
     
     set nic [lindex $Pref::bookmarks($target) 1]
-    Log D "Opening bookmark: $serv $por $ssl $nic"
+    set autochan [lindex $Pref::bookmarks($target) 2]
+    
+    Log D "Opening bookmark: $serv $por $ssl $nic $autochan"
     if {[llength $nic] > 1} {
-        Main::createConnection $serv $por $ssl [lindex $nic 0] [lindex $nic 1]
+        Main::createConnection $serv $por $ssl [lindex $nic 0] [lindex $nic 1] $autochan
     } else {
-        Main::createConnection $serv $por $ssl $nic ""
-    }
-    # Open Channels
-    if { [string length [$Main::servers($serv) getconnDesc]] > 0} {
-        set channels [lindex $Pref::bookmarks($target) 2]
-        foreach chann $channels {
-            $Main::servers($serv) _send "JOIN $chann"
-        }
+        Main::createConnection $serv $por $ssl $nic "" $autochan
     }
 }
 

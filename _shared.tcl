@@ -84,7 +84,8 @@
             set nickBeginning [$chat index [list $beginning + [expr {[string length $timestamp] + 1}] chars]]
             set nickEnd       [$chat index [list $nickBeginning + [string length $title] chars]]
             
-            set tagname "${id_var}[clock milliseconds]"
+            # Have to append '_nick' because it has the possibility of being the same millisecond as a link.
+            set tagname "${id_var}[clock milliseconds]_nick"
             $chat tag add  $tagname $nickBeginning $nickEnd
             $chat tag bind      $tagname "<Enter>" "$chat configure -cursor question_arrow"
             $chat tag bind      $tagname "<Leave>" "$chat configure -cursor arrow"
