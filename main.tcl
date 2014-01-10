@@ -907,6 +907,7 @@ proc set_close_bindings {notebook page} {
 }
 
 proc set_scroll_helper {notebookctl widget x y dir xory} {
+    if {$dir<0} { set dir -1} else { set dir 1}
     set widgetUnderMouse [winfo containing $x $y]
     if [regexp {(.*\.scrollable).*$} $widgetUnderMouse -> scrollControl] {
         $scrollControl ${xory}view scroll $dir units

@@ -22,12 +22,15 @@ namespace eval About {
     
     set config(timeout) {"(integer)" "the time in milliseconds to wait for a server to connect"}
     set config(raiseNewTabs) {"(boolean)" "when opening a new tab if you want to immediately switch to it"}
+    set config(useTheme) {"(boolean)" "if you want to use ttk themed Tk widgets"}
     set config(defaultQuit) {"(string)" "the default message when issuing the /quit command or pressing the Quit button"}
     set config(defaultKick) {"(string)" "the default message when issuing the /kick command or using the Ban/Kick menu)"}
     set config(defaultBan) {"(string)" "the default message when issuing the /kb command or using the Ban/Kick menu; used specifically for the Kick message in kickbans)"}
     set config(defaultPart) {"(string)" "the default message when issuing the /part command or pressing the Part button)"}
     set config(defaultAway) {"(string)" "the default message when issuing the /away command or pressing the Away button"}
-    set config(logEnabled) {"(boolean)" "if you want all messages to be logged"}
+    set config(logServers) {"(boolean)" "if you want all messages to be logged for servers"}
+    set config(logChannels) {"(boolean)" "if you want all messages to be logged for channels"}
+    set config(logPMs) {"(boolean)" "if you want all messages to be logged for PMs"}
     set config(logDir) {"(string)" "the location of the log"}
     set config(popupTimeout) {"(integer)" "the duration in milliseconds the popup notification for mentions should stay on the screen; set to 0 for it to stay indefinitely until manually dismissed"}
     set config(popupLocation) {"(nsew)" "the location on the screen for the popup; should contain one of 'n' or 's' for the vertical and one of 'e' or 'w' for the horizontal; example: 'nw'"}
@@ -242,10 +245,12 @@ proc About::show {} {
     
     
     # Bindings for scrollviews
-    eval bind .aboutDialog <4>         \" set_scroll_helper $notebook $sf %X %Y  -1 y \"
-    eval bind .aboutDialog <5>         \" set_scroll_helper $notebook $sf %X %Y  1 y \"
-    eval bind .aboutDialog <Control-4> \" set_scroll_helper $notebook $sf %X %Y -1 x \"
-    eval bind .aboutDialog <Control-5> \" set_scroll_helper $notebook $sf %X %Y  1 x \"
+    bind .aboutDialog <MouseWheel>         "set_scroll_helper $notebook $sf %X %Y \[expr %D * -1\] y "
+    bind .aboutDialog <4>                  "set_scroll_helper $notebook $sf %X %Y  -1 y"
+    bind .aboutDialog <5>                  "set_scroll_helper $notebook $sf %X %Y  1 y"
+    bind .aboutDialog <Control-4>          "set_scroll_helper $notebook $sf %X %Y -1 x"
+    bind .aboutDialog <Control-5>          "set_scroll_helper $notebook $sf %X %Y  1 x"
+    bind .aboutDialog <Control-MouseWheel> "set_scroll_helper $notebook $sf %X %Y \[expr %D * -1\] x "
 }
 
 proc platformOpen { whatwhat } {

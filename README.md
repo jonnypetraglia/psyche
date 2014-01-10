@@ -29,6 +29,8 @@ To set a value, use the same nomenclature as regular Tcl:
     * the time in milliseconds to wait for a server to connect
   * raiseNewTabs = (boolean)
     * when opening a new tab if you want to immediately switch to it
+  * useTheme = (boolean)
+    * if you want to use ttk themed Tk widgets
   * defaultQuit = (string)
     * the default message when issuing the /quit command or pressing the Quit button
   * defaultKick = (string)
@@ -41,8 +43,12 @@ To set a value, use the same nomenclature as regular Tcl:
     * the default message when issuing the /away command or pressing the Away button
   * banMask = (*!*@*.host | *!*@domain | *!user@*.host | *!user@domain)
     * the default mask to be used when using /ban or the "Ban" menu item
-  * logEnabled = (boolean)
-    * if you want all messages to be logged
+  * logServers = (boolean)
+    * if you want all messages to be logged for servers
+  * logChannels = (boolean)
+    * if you want all messages to be logged for channels
+  * logPMs = (boolean)
+    * if you want all messages to be logged for PMs
   * logDir = (string)
     * the location of the log
   * popupTimeout = (integer)
