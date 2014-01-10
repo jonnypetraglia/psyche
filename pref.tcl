@@ -549,8 +549,8 @@ proc Pref::setValues {} {
     # dependent entries
     if {[string length $Pref::mentionSound] > 0 } {
         set ::[$Pref::gmenSoundChk cget -variable] true
-        $Pref::gmenSound configure -state enabled
-        $Pref::gmenSoundBtn configure -state enabled
+        $Pref::gmenSound configure -state normal
+        $Pref::gmenSoundBtn configure -state normal
     } else {
         set ::[$Pref::gmenSoundChk cget -variable] false
         $Pref::gmenSound configure -state disabled

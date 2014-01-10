@@ -75,7 +75,7 @@ set ::PLATFORM windows	;#TODO This should not be necessary
 switch $tcl_platform(platform) {
     "unix" {
         if {$tcl_platform(os) == "Darwin"} {
-            set ::PLATFORM $::PLATFORM_OSX
+            set ::PLATFORM $::PLATFORM_MAC
             set Main::MIDDLE_CLICK 2
             set Main::cursor_link pointinghand
         } else {
