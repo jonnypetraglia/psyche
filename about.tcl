@@ -257,7 +257,7 @@ proc platformOpen { whatwhat } {
     Log D "Attempting to open  ${whatwhat}"
     if {$::PLATFORM == $::PLATFORM_WIN} {
         Log V "Opening on Windows"
-        exec {*}[auto_execok start] "$whatwhat"
+        exec {*}[auto_execok start] [regsub -all "\&" [regsub -all "\\\^" $whatwhat "^^"] "^&"]
     } elseif {$::PLATFORM == $::PLATFORM_MAC} {
         Log V "Opening on Mac"
         exec "open" $whatwhat
