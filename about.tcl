@@ -13,8 +13,8 @@ namespace eval About {
     set bwidget_version [package version BWidget]
     set snit_version [package version snit]
     
-    set icondir [pwdW]/icons
-    set copyright_year 2013
+    set icondir $::APP_DIR/icons
+    set copyright_year "2013-2014"
     set donateUrl "http://qweex.com/donate"
     set BTC "1G6cCKnhbESiBXLprxNjzjFDZsES4tH9ZM"
     set LTC "LRthYyVMBUJJqkoJTnnWrTQpuATWfv5s7g"
@@ -234,7 +234,7 @@ proc About::show {} {
     $license.header configure -font [lappend [getDefaultFont $license.header] -weight bold -underline true]
     
     # Read in dat license!
-    set fp [open "LICENSE" r]
+    set fp [open "$::APP_DIR/LICENSE" r]
     xlabel $license.content -text "[read $fp]" -background white
     close $fp
     

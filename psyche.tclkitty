@@ -1,7 +1,7 @@
 [Main]
 iconfile=C:/Steampunk/Dev/psyche/icons/butterfly-icon.ico
 mainfile=C:/Steampunk/Dev/psyche/main.tcl
-outputfolder=C:/Steampunk/Dev/psyche
+outputfolder=C:/Steampunk/Dev/psyche/bin
 
 [Files]
 extraFiles0=C:/Steampunk/Dev/psyche/LICENSE
@@ -10,13 +10,12 @@ extraFiles2=C:/Steampunk/Dev/psyche/_shared.tcl
 extraFiles3=C:/Steampunk/Dev/psyche/about.tcl
 extraFiles4=C:/Steampunk/Dev/psyche/icons
 extraFiles5=C:/Steampunk/Dev/psyche/irc.tcl
-extraFiles8=C:/Steampunk/Dev/psyche/mention.wav
-extraFiles9=C:/Steampunk/Dev/psyche/notebox.tcl
-extraFiles10=C:/Steampunk/Dev/psyche/pref.tcl
-extraFiles11=C:/Steampunk/Dev/psyche/sound.tcl
-extraFiles12=C:/Steampunk/Dev/psyche/tabChannel.tcl
-extraFiles13=C:/Steampunk/Dev/psyche/tabServer.tcl
-extraFiles14=C:/Steampunk/Dev/psyche/toolbar.tcl
+extraFiles6=C:/Steampunk/Dev/psyche/notebox.tcl
+extraFiles7=C:/Steampunk/Dev/psyche/pref.tcl
+extraFiles8=C:/Steampunk/Dev/psyche/sound.tcl
+extraFiles9=C:/Steampunk/Dev/psyche/tabChannel.tcl
+extraFiles10=C:/Steampunk/Dev/psyche/tabServer.tcl
+extraFiles11=C:/Steampunk/Dev/psyche/toolbar.tcl
 
 [Packages]
 pkgFiles0=C:/Tcl/lib/bwidget-1.9.6

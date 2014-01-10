@@ -23,8 +23,8 @@ namespace eval Main {
     variable APP_NAME
     variable APP_BUILD_DATE
     set APP_NAME Psyche
-    set APP_VERSION 0.05
-    set APP_BUILD_DATE "December 20, 2013"
+    set APP_VERSION 0.1
+    set APP_BUILD_DATE "January 10, 2014"
     
     variable DEFAULT_PORT
     set DEFAULT_PORT 6667
@@ -114,14 +114,30 @@ proc aliases {} {
         interp alias {} xscrollbar {} scrollbar
     }
 }
+
+
+variable APP_DIR
+variable REAL_DIR
+if [info exists starkit::topdir] {
+    set REAL_DIR "[file normalize $starkit::topdir/..]"
+    set APP_DIR $starkit::topdir
+} else {
+    set REAL_DIR "[file normalize [pwd]/]"
+    set APP_DIR $REAL_DIR
+}
+
+# Gotta CD because for some reason APP_DIR is not defined inside a Snit type
+set cwd [pwd]
+cd $APP_DIR
 source about.tcl
-source pref.tcl
 source irc.tcl
+source notebox.tcl
+source pref.tcl
 source sound.tcl
 source tabServer.tcl
 source tabChannel.tcl
 source toolbar.tcl
-source notebox.tcl
+cd $cwd
 
 Pref::readPrefs
 if [regexp {(.*)x(.*)} $Pref::popupLocation -> x y] {

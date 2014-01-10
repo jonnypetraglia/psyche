@@ -97,7 +97,7 @@ snit::type tabServer {
         regsub -all " " $id_var "*" id_var
         
         # Magic bullshit
-        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "[pwdW]/icons/x.gif"] -raisecmd Main::pressTab]
+        set frame [$Main::notebook insert end $id_var -text $name -image [image create photo -file "$::APP_DIR/icons/x.gif"] -raisecmd Main::pressTab]
         set_close_bindings $Main::notebook $id_var
         set topf  [frame $frame.topf]
         
@@ -506,7 +506,7 @@ snit::type tabServer {
         }
     }
     
-    source "_shared.tcl"
+    source _shared.tcl
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Send Message ##############

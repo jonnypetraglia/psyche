@@ -382,7 +382,7 @@ snit::type tabChannel {
         }
     }
     
-    source "_shared.tcl"
+    source _shared.tcl
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Specific (this)~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     ############## Send Message ##############
