@@ -127,7 +127,6 @@ proc Pref::readPrefs {} {
     }
     close $fp
     aliases
-    menu .bookmarkMenu -tearoff false -title Bookmarks
     Pref::createBookmarkMenu
     return 1
 }

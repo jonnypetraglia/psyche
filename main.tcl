@@ -93,29 +93,6 @@ switch $tcl_platform(platform) {
     }
 }
 
-proc aliases {} {
-    if {$::tcl_version >= 8.5 && $Pref::useTheme} {
-        interp alias {} xbutton {} ttk::button
-        interp alias {} xlabel {} ttk::label
-        interp alias {} xentry {} ttk::entry
-        interp alias {} xcheckbutton {} ttk::checkbutton
-        interp alias {} xspinbox {} ttk::spinbox
-        interp alias {} xlabelframe {} ttk::labelframe
-        interp alias {} xradiobutton {} ttk::radiobutton
-        interp alias {} xscrollbar {} ttk::scrollbar
-    } else {
-        interp alias {} xbutton {} button
-        interp alias {} xlabel {} label
-        interp alias {} xentry {} entry
-        interp alias {} xcheckbutton {} checkbutton
-        interp alias {} xspinbox {} spinbox
-        interp alias {} xlabelframe {} labelframe
-        interp alias {} xradiobutton {} radiobutton
-        interp alias {} xscrollbar {} scrollbar
-    }
-}
-
-
 variable APP_DIR
 variable REAL_DIR
 if [info exists starkit::topdir] {
@@ -139,6 +116,31 @@ source tabChannel.tcl
 source toolbar.tcl
 cd $cwd
 
+
+Log D "Herpaderp: $Pref::useTheme  $::tcl_version"
+if {$::tcl_version >= 8.5 && $Pref::useTheme} {
+    interp alias {} xbutton {} ttk::button
+    interp alias {} xlabel {} ttk::label
+    interp alias {} xentry {} ttk::entry
+    interp alias {} xcheckbutton {} ttk::checkbutton
+    interp alias {} xspinbox {} ttk::spinbox
+    interp alias {} xlabelframe {} ttk::labelframe
+    interp alias {} xradiobutton {} ttk::radiobutton
+    interp alias {} xscrollbar {} ttk::scrollbar
+    Log D "Using Theme"
+} else {
+    interp alias {} xbutton {} button
+    interp alias {} xlabel {} label
+    interp alias {} xentry {} entry
+    interp alias {} xcheckbutton {} checkbutton
+    interp alias {} xspinbox {} spinbox
+    interp alias {} xlabelframe {} labelframe
+    interp alias {} xradiobutton {} radiobutton
+    interp alias {} xscrollbar {} scrollbar
+    Log D "NOT Using Theme"
+}
+
+menu .bookmarkMenu -tearoff false -title Bookmarks
 Pref::readPrefs
 if [regexp {(.*)x(.*)} $Pref::popupLocation -> x y] {
     ::notebox::setposition $x $y
