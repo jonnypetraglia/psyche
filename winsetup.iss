@@ -10,7 +10,7 @@ AppId={{C5AE352B-3A5A-45E7-855C-623590FB715E}
 AppName=Psyche
 AppVersion=0.1
 ;AppVerName=Psyche 0.1
-OutputBaseFilename=Psyche_0.1-win32.setup
+OutputBaseFilename=Psyche_0.1-win32setup
 AppPublisher=Qweex
 AppPublisherURL=http://www.qweex.com/
 AppSupportURL=http://www.qweex.com/
@@ -30,7 +30,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Steampunk\Dev\psyche\bin\main.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Steampunk\Dev\psyche\bin\psyche.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
