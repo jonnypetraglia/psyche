@@ -1,3 +1,20 @@
+[Mac]
+info_dict=1.0
+info_id=com.qweex.psyche
+info_name=Psyche
+info_region=English
+macInfoEnabled_dict=1
+macInfoEnabled_id=1
+macInfoEnabled_region=1
+macInfoEnabled_relversion=1
+macInfoEnabled_version=1
+macVersion_1=0
+macVersion_2=1
+macVersion_3=0
+macVersionrel_1=0
+macVersionrel_2=1
+macVersionrel_3=0
+
 [Main]
 iconfile=/Users/notbryant/psyche/icons/butterfly-icon.icns
 mainfile=/Users/notbryant/psyche/main.tcl
@@ -16,11 +33,9 @@ extraFiles8=/Users/notbryant/psyche/sound.tcl
 extraFiles9=/Users/notbryant/psyche/tabChannel.tcl
 extraFiles10=/Users/notbryant/psyche/tabServer.tcl
 extraFiles11=/Users/notbryant/psyche/toolbar.tcl
-extraFiles12=/opt/local/lib/libtk8.6.dylib
 
 [Packages]
 pkgFiles0=/opt/local/lib/BWidget
 pkgFiles1=/opt/local/lib/tcllib1.13/snit
-pkgFiles2=/opt/local/lib/tk8.6
-pkgFiles3=/opt/local/lib/tls1.6
-pkgFiles4=/opt/local/lib/libtk8.6.dylib
+pkgFiles2=/opt/local/lib/tls1.6
+

@@ -24,7 +24,7 @@ namespace eval Main {
     variable APP_BUILD_DATE
     set APP_NAME Psyche
     set APP_VERSION 0.1
-    set APP_BUILD_DATE "January 10, 2014"
+    set APP_BUILD_DATE "January 12, 2014"
     
     variable DEFAULT_PORT
     set DEFAULT_PORT 6667
