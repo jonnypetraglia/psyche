@@ -1,0 +1,28 @@
+# Maintainer: MrQweex <mrqweex[at]qweex[dot]com>
+pkgname=psyche
+pkgver=0.1
+pkgrel=1
+pkgdesc="Teeny, Tiny IRC client written in Tcl/Tk"
+url="http://www.qweex.com"
+arch=('x86_64' 'i686')
+license=('BSD')
+depends=('tcl' 'tk' 'tcllib' 'tls')
+makedepends=('git')
+source=("git+https://github.com/notbryant/psyche.git")
+md5sums=('SKIP') 
+
+build(){
+    cd "${srcdir}"/psyche
+    git checkout v0.1
+}
+
+package(){
+    install -d                                    "${pkgdir}"/opt/psyche
+    install -Dm775 "${srcdir}"/psyche/*.tcl       "${pkgdir}"/opt/psyche
+    install -Dm775 "${srcdir}"/psyche/README.md   "${pkgdir}"/opt/psyche/README.md
+    install -Dm775 "${srcdir}"/psyche/LICENSE     "${pkgdir}"/opt/psyche/LICENSE
+    install -d                                    "${pkgdir}"/opt/psyche/icons
+    install -Dm775 "${srcdir}"/psyche/icons/*.gif "${pkgdir}"/opt/psyche/icons
+    install -Dm775 "${srcdir}"/psyche/icons/*.png "${pkgdir}"/opt/psyche/icons
+    install -Dm777 "${srcdir}"/psyche/build/psyche.desktop "${pkgdir}/usr/share/applications/psyche.desktop"
+}

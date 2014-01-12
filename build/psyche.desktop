@@ -1,0 +1,10 @@
+[Desktop Entry]
+Categories=Network;IRCClient;
+Exec=cd /opt/psyche && tclsh /opt/psyche/main.tcl
+Icon=/opt/psyche/icons/butterfly-icon.png
+Name=Psyche
+GenericName=IRC Client
+Terminal=false
+Type=Application
+Version=0.1
+Description=Soundboard audio clip player
