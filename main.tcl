@@ -648,6 +648,7 @@ proc Main::showConnectDialog { } {
     grid config .connectDialog.pass   -row 3 -column 1             -columnspan 2
     grid config .connectDialog.go     -row 4 -column 1
     .connectDialog.go configure -command Main::connectDialogConfirm
+    bind .connectDialog <Return> Main::connectDialogConfirm
     
     foreground_win .connectDialog
     catch {grab release .}
@@ -733,7 +734,7 @@ proc Main::connectDialogConfirm {} {
     catch {grab set .}
     wm state .connectDialog withdrawn
 
-    Main::createConnection $serv $por $Main::connect_ssl $nick $pass
+    Main::createConnection $serv $por $Main::connect_ssl $nick $pass [list]
 }
 
 proc Main::reconnect {} {
