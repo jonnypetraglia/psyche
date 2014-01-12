@@ -126,7 +126,6 @@ proc Pref::readPrefs {} {
         }
     }
     close $fp
-    aliases
     Pref::createBookmarkMenu
     return 1
 }

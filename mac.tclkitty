@@ -1,7 +1,7 @@
 [Main]
 iconfile=/Users/notbryant/psyche/icons/butterfly-icon.icns
 mainfile=/Users/notbryant/psyche/main.tcl
-outputfolder=/Users/notbryant/psyche
+outputfolder=/Users/notbryant/psyche/bin
 
 [Files]
 extraFiles0=/Users/notbryant/psyche/LICENSE
