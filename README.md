@@ -1,5 +1,5 @@
 # Psyche - IRC in Tlc/Tk #
-#### Copyright 2013 Jon Petraglia of Qweex ####
+#### Copyright 2013-2014 Jon Petraglia of Qweex ####
 #### http://qweex.com ####
 
 ### Contents: ###

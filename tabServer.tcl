@@ -790,7 +790,7 @@ snit::type tabServer {
                     if {$mThing == "NOTICE"} {
                         $self handleReceived $timestamp \[CTCP\] bold "Version response from $mFrom: $mContent" $style
                     } else {
-                        $self _send "NOTICE $mFrom :\001VERSION $Main::APP_NAME v$Main::APP_VERSION (C) 2013 Jon Petraglia"
+                        $self _send "NOTICE $mFrom :\001VERSION $Main::APP_NAME v$Main::APP_VERSION (C) $About::copyright_year Jon Petraglia"
                         $self handleReceived $timestamp \[CTCP\] bold "Version request from $mFrom" $style
                     }
                     return
